@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Insert title here</title>
+</head>
+<body>
+  <form id="graphForm" action="graph.html" method="GET">
+    Select one or more candidates to seed the graph visualization with:
+    <br>
+    <select id="candidatesList" name="candidates" multiple="multiple" size=20>
+    </select>
+    <br><br>
+    Group contributions by:
+    <input type="radio" name="groupContributionsBy" value="PAC" checked="true">
+      Political Action Committee
+    </input>
+    <input type="radio" name="groupContributionsBy" value="Industry">
+      Industry
+    </input>
+    <br><br>
+    Max contributions to display per candidate:<input name="maxContributions" type="text" value=5>
+    <br><br>
+    <input type="button" onclick="document.getElementById('graphForm').submit()" value="Submit">
+  </form>
+</body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+function addOptionToSelectBox(selectbox, text, value) {
+  var option = document.createElement("OPTION");
+  option.text = text;
+  option.value = value;
+  selectbox.options.add(option);
+}
+
+d3.json("/candidates", doStuff);
+
+function doStuff(err, candidates) {
+  // TODO: Check for errors.
+
+  var selectBox = document.getElementById("candidatesList");
+  candidates.forEach(
+      function(row) {
+        addOptionToSelectBox(selectBox, row.FirstLastP, "'" + row.CID + "'");
+      });
+}
+
+</script>
+</html>
