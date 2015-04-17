@@ -49,6 +49,20 @@ function queryContributions(req, res) {
                 + "where Candidates.CID in (" + seedCandidates + ") "
                 + "group by CatName, CatCode, FirstLastP, Candidates.CID, AmountSign) "
                 + "order by Amount desc ";
+  } else if (groupContributionsBy == "Sector") {
+    sqlQuery =
+      "select Sector as source, CatOrder as sourceId, "
+          + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
+          + "(select Sector, CatOrder, FirstLastP, Candidates.CID, "
+              + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
+              + "from PACsToCandidates "
+              + "inner join Candidates inner join Committees inner join Categories "
+                  + "on PACsToCandidates.CID = Candidates.CID "
+                  + "and PACsToCandidates.PACID = Committees.CmteID "
+                  + "and Categories.CatCode = Committees.PrimCode "
+              + "where Candidates.CID in (" + seedCandidates + ") "
+              + "group by Sector, CatOrder, FirstLastP, Candidates.CID, AmountSign) "
+              + "order by Amount desc ";
   } else {
     // TODO
   }
