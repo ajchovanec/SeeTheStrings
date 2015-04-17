@@ -53,8 +53,9 @@ function queryContributions(req, res) {
         var numContributions =
             contributionCounts[contributionKey] || (contributionCounts[contributionKey] = 0);
 
-        if (Math.abs(row.Amount) >= 0 && numContributions < maxContributions) {
-          row.type = row.Amount >= 0 ? "plain" : "red";
+        if (numContributions < maxContributions) {
+          row.type = "plain";
+          row.isRefund = row.Amount >= 0 ? true : false;
           row.label = "$" + row.Amount;
           links.push(row);
           contributionCounts[contributionKey] = numContributions + 1;
@@ -69,7 +70,8 @@ function queryContributions(req, res) {
               "target": row.target,
               "Amount": newAmount,
               "label": (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount),
-              "type": newAmount >= 0 ? "plain" : "red"
+              "type": "plain",
+              "isRefund": newAmount >= 0 ? true : false
             };
           } else {
             aggregateLinks[contributionKey] = {
@@ -79,16 +81,15 @@ function queryContributions(req, res) {
               "target": row.target,
               "Amount": row.Amount,
               "label": (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount),
-              "type": row.Amount >= 0 ? "plain" : "red"
+              "type": "plain",
+              "isRefund": row.type >= 0 ? true : false
             };
           }
         }
       },
       function() {
         for (var contributionKey in aggregateLinks) {
-          if (Math.abs(aggregateLinks[contributionKey].Amount) >= 0) {
-            links.push(aggregateLinks[contributionKey]);
-           }
+          links.push(aggregateLinks[contributionKey]);
         }
         res.write(JSON.stringify(links));
         res.end();

@@ -46,8 +46,11 @@ function doStuff(err, links) {
   // Compute the distinct nodes from the links.
   links.forEach(
       function(link) {
-        link.source = nodes[link.sourceId] || (nodes[link.sourceId] = {name: link.source});
-        link.target = nodes[link.targetId] || (nodes[link.targetId] = {name: link.target});
+        var reportedSource = nodes[link.sourceId] || (nodes[link.sourceId] = {name: link.source});
+        var reportedTarget = nodes[link.targetId] || (nodes[link.targetId] = {name: link.target});
+        link.source = link.isRefund ? reportedTarget : reportedSource;
+        link.target = link.isRefund ? reportedSource : reportedTarget;
+        link.isRefund = null;
       });
 
   var width = 1600,
