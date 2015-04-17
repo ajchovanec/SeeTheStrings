@@ -61,6 +61,7 @@ function queryContributions(req, res) {
 
         if (Math.abs(row.Amount) >= 0 && numContributions < maxContributions) {
           row.type = row.Amount >= 0 ? "plain" : "red";
+          row.label = "$" + row.Amount;
           links.push(row);
           contributionCounts[contributionKey] = numContributions + 1;
         } else {
@@ -69,21 +70,21 @@ function queryContributions(req, res) {
             var newAmount = existingAggregateLink.Amount + row.Amount;
             aggregateLinks[contributionKey] = {
               "sourceId": contributionKey,
-              "source": (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount)
-                  + ", misc. contributors",
+              "source": "Misc. contributors",
               "targetId": row.targetId,
               "target": row.target,
               "Amount": newAmount,
+              "label": (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount),
               "type": newAmount >= 0 ? "plain" : "red"
             };
           } else {
             aggregateLinks[contributionKey] = {
               "sourceId": contributionKey,
-              "source": (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount)
-                  + ", misc. contributors",
+              "source": row.source,
               "targetId": row.targetId,
               "target": row.target,
               "Amount": row.Amount,
+              "label": (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount),
               "type": row.Amount >= 0 ? "plain" : "red"
             };
           }

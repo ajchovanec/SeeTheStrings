@@ -92,18 +92,26 @@ function doStuff(err, links) {
       .attr("r", 6)
       .call(force.drag);
 
-  var text = svg.append("g").selectAll("text")
+  var nodeText = svg.append("g").selectAll("text")
       .data(force.nodes())
     .enter().append("text")
-      .attr("x", 8)
+      .attr("x", "8")
       .attr("y", ".31em")
       .text(function(d) { return d.name; });
+ 
+  var linkText = svg.append("g").selectAll("text")
+      .data(force.links())
+    .enter().append("text")
+      .attr("x", "-8")
+      .attr("y", ".31em")
+      .text(function(d) { return d.label; });
 
   // Use elliptical arc path segments to doubly-encode directionality.
   function tick() {
     path.attr("d", linkArc);
-    circle.attr("transform", transform);
-    text.attr("transform", transform);
+    circle.attr("transform", transformNodes);
+    nodeText.attr("transform", transformNodes);
+    linkText.attr("transform", transformLinks);
   }
 
   function linkArc(d) {
@@ -114,8 +122,12 @@ function doStuff(err, links) {
         + d.target.x + "," + d.target.y;
   }
 
-  function transform(d) {
+  function transformNodes(d) {
     return "translate(" + d.x + "," + d.y + ")";
+  }
+
+  function transformLinks(d) {
+    return "translate(" + (d.source.x + d.target.x) / 2 + "," + (d.source.y + d.target.y) / 2 + ")";
   }
 }
 
