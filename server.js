@@ -3,7 +3,6 @@ var Http = require('http')
 var Router = require('router')
 var Url = require('url');
 var ServeStatic = require('serve-static')
-var Fs = require("fs");
 var Sqlite3 = require("sqlite3").verbose();
 
 var contributionsDbFile = "data/sqlite/CampaignFin14.db";
@@ -22,47 +21,28 @@ function queryContributions(req, res) {
   var contributionCounts = {};
   var negContributionCounte = {};
   var sqlQuery;
+  var sqlQueryFormat = 
+      "select SOURCE_NAME as source, SOURCE_ID as sourceId, "
+      + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
+      + "(select SOURCE_NAME, SOURCE_ID, FirstLastP, Candidates.CID, "
+          + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
+          + "from PACsToCandidates "
+          + "inner join Candidates inner join Committees inner join Categories "
+              + "on PACsToCandidates.CID = Candidates.CID "
+              + "and PACsToCandidates.PACID = Committees.CmteID "
+              + "and Categories.CatCode = Committees.PrimCode "
+          + "where Candidates.CID in (" + seedCandidates + ") "
+          + "group by SOURCE_NAME, SOURCE_ID, FirstLastP, Candidates.CID, AmountSign) "
+          + "order by Amount desc ";
   if (groupContributionsBy == "PAC") {
-    sqlQuery =
-        "select PACShort as source, CmteID as sourceId, "
-            + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
-            + "(select PACShort, CmteID, FirstLastP, Candidates.CID, "
-                + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
-                + "from PACsToCandidates "
-                + "inner join Candidates inner join Committees "
-                    + "on PACsToCandidates.CID = Candidates.CID "
-                    + "and PACsToCandidates.PACID = Committees.CmteID "
-                + "where Candidates.CID in (" + seedCandidates + ") "
-                + "group by PACShort, CmteID, FirstLastP, Candidates.CID, AmountSign) "
-                + "order by Amount desc ";
-  } else if (groupContributionsBy == "Industry"){
-    sqlQuery =
-        "select CatName as source, CatCode as sourceId, "
-            + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
-            + "(select CatName, CatCode, FirstLastP, Candidates.CID, "
-                + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
-                + "from PACsToCandidates "
-                + "inner join Candidates inner join Committees inner join Categories "
-                    + "on PACsToCandidates.CID = Candidates.CID "
-                    + "and PACsToCandidates.PACID = Committees.CmteID "
-                    + "and Categories.CatCode = Committees.PrimCode "
-                + "where Candidates.CID in (" + seedCandidates + ") "
-                + "group by CatName, CatCode, FirstLastP, Candidates.CID, AmountSign) "
-                + "order by Amount desc ";
+    sqlQuery = sqlQueryFormat.replace(/SOURCE_NAME/g, "PACShort")
+        .replace(/SOURCE_ID/g, "CmteId");
+  } else if (groupContributionsBy == "Industry") {
+    sqlQuery = sqlQueryFormat.replace(/SOURCE_NAME/g, "CatName")
+        .replace(/SOURCE_ID/g, "CatCode");
   } else if (groupContributionsBy == "Sector") {
-    sqlQuery =
-      "select Sector as source, CatOrder as sourceId, "
-          + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
-          + "(select Sector, CatOrder, FirstLastP, Candidates.CID, "
-              + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
-              + "from PACsToCandidates "
-              + "inner join Candidates inner join Committees inner join Categories "
-                  + "on PACsToCandidates.CID = Candidates.CID "
-                  + "and PACsToCandidates.PACID = Committees.CmteID "
-                  + "and Categories.CatCode = Committees.PrimCode "
-              + "where Candidates.CID in (" + seedCandidates + ") "
-              + "group by Sector, CatOrder, FirstLastP, Candidates.CID, AmountSign) "
-              + "order by Amount desc ";
+    sqlQuery = sqlQueryFormat.replace(/SOURCE_NAME/g, "Sector")
+        .replace(/SOURCE_ID/g, "Sector");
   } else {
     // TODO
   }
@@ -134,10 +114,10 @@ function queryAllCandidates(req, res) {
 var router = Router()
 router.get('/data', queryContributions);
 router.get('/candidates', queryAllCandidates);
-router.use('/', serveStatic('web-content', {'index': ['form.html']}));
+router.use('/', ServeStatic('web-content', {'index': ['form.html']}));
 
 var server = Http.createServer(function(req, res) {
-  router(req, res, finalhandler(req, res))
+  router(req, res, Finalhandler(req, res))
 })
 
 server.listen(3000);
