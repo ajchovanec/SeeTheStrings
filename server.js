@@ -1,10 +1,10 @@
-var finalhandler = require('finalhandler')
-var http = require('http')
+var Finalhandler = require('finalhandler')
+var Http = require('http')
 var Router = require('router')
 var Url = require('url');
-var serveStatic = require('serve-static')
-var fs = require("fs");
-var sqlite3 = require("sqlite3").verbose();
+var ServeStatic = require('serve-static')
+var Fs = require("fs");
+var Sqlite3 = require("sqlite3").verbose();
 
 var contributionsDbFile = "data/sqlite/CampaignFin14.db";
 
@@ -15,7 +15,7 @@ function queryContributions(req, res) {
   var seedCandidates = queryParams["candidates"];
   var maxContributions = queryParams["maxContributions"];
   var groupContributionsBy = queryParams["groupContributionsBy"];
-  var db = new sqlite3.Database(contributionsDbFile);
+  var db = new Sqlite3.Database(contributionsDbFile);
   res.writeHead(200, {"Content-Type": "application/json"});
   var links = [];
   var aggregateLinks = {};
@@ -117,7 +117,7 @@ function queryContributions(req, res) {
 }
 
 function queryAllCandidates(req, res) {
-  var db = new sqlite3.Database(contributionsDbFile);
+  var db = new Sqlite3.Database(contributionsDbFile);
   res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
   db.each("select CID, FirstLastP from Candidates where Cycle = 2014 order by FirstLastP asc",
@@ -136,7 +136,7 @@ router.get('/data', queryContributions);
 router.get('/candidates', queryAllCandidates);
 router.use('/', serveStatic('web-content', {'index': ['form.html']}));
 
-var server = http.createServer(function(req, res) {
+var server = Http.createServer(function(req, res) {
   router(req, res, finalhandler(req, res))
 })
 
