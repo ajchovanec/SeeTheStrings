@@ -20,6 +20,10 @@
   stroke-dasharray: 0,2 1;
 }
 
+.link.red.dashed {
+  stroke-dasharray: 0,2 1;
+}
+
 circle {
   fill: #ccc;
   stroke: #333;
@@ -69,7 +73,7 @@ function doStuff(err, links) {
       .attr("width", width)
       .attr("height", height);
 
-  // Per-type markers, as they don't inherit styles.
+  // Per-style markers, as they don't inherit styles.
   svg.append("defs").selectAll("marker")
       .data(["plain", "red", "dashed"])
     .enter().append("marker")
@@ -86,8 +90,8 @@ function doStuff(err, links) {
   var path = svg.append("g").selectAll("path")
       .data(force.links())
     .enter().append("path")
-      .attr("class", function(d) { return "link " + d.type; })
-      .attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
+      .attr("class", function(d) { return "link " + d.style; })
+      .attr("marker-end", function(d) { return "url(#" + d.style + ")"; });
 
   var circle = svg.append("g").selectAll("circle")
       .data(force.nodes())
