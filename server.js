@@ -70,16 +70,22 @@ function queryContributions(req, res) {
   } else {
     // TODO
   }
-  var styleMapping = {
+
+  var linkStyleMapping = {
     "D": {
-      "true": "red",
-      "false": "plain",
+      "true": "plain red",
+      "false": "plain gray",
     },
     "I": {
-      "true": "red dashed",
-      "false": "dashed",
+      "true": "dashed red",
+      "false": "dashed gray",
     },
   }
+  var markerColorMapping = {
+    "true": "red",
+    "false": "black"
+  }
+
   console.log("SQL query: " + sqlQuery);
   db.each(sqlQuery,
       function(err, row) {
@@ -92,7 +98,8 @@ function queryContributions(req, res) {
 
         if (numContributions < maxContributionLinks) {
           row.isAgainst = isAgainst
-          row.style = styleMapping[row.DirectOrIndirect][isAgainst];
+          row.style = linkStyleMapping[row.DirectOrIndirect][isAgainst];
+          row.color = markerColorMapping[isAgainst];
           row.isRefund = row.Amount < 0 ? true : false;
           row.label = (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount);
           links.push(row);
@@ -109,7 +116,8 @@ function queryContributions(req, res) {
               "Amount": newAmount,
               "label": (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount),
               "isAgainst": isAgainst,
-              "style": styleMapping[row.DirectOrIndirect][isAgainst],
+              "style": linkStyleMapping[row.DirectOrIndirect][isAgainst],
+              "color": markerColorMapping[isAgainst],
               "isRefund": newAmount < 0 ? true : false
             };
           } else {
@@ -121,7 +129,8 @@ function queryContributions(req, res) {
               "Amount": row.Amount,
               "label": (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount),
               "isAgainst": isAgainst,
-              "style": styleMapping[row.DirectOrIndirect][isAgainst],
+              "style": linkStyleMapping[row.DirectOrIndirect][isAgainst],
+              "color": markerColorMapping[isAgainst],
               "isRefund": row.Amount < 0 ? true : false
             };
           }
