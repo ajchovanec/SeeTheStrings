@@ -21,28 +21,47 @@ function queryContributions(req, res) {
   var contributionCounts = {};
   var negContributionCounte = {};
   var sqlQuery;
-  var sqlQueryFormat = 
-      "select SOURCE_NAME as source, SOURCE_ID as sourceId, "
-      + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
-      + "(select SOURCE_NAME, SOURCE_ID, FirstLastP, Candidates.CID, "
-          + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
-          + "from PACsToCandidates "
-          + "inner join Candidates inner join Committees inner join Categories "
-              + "on PACsToCandidates.CID = Candidates.CID "
-              + "and PACsToCandidates.PACID = Committees.CmteID "
-              + "and Categories.CatCode = Committees.PrimCode "
-          + "where Candidates.CID in (" + seedCandidates + ") "
-          + "group by SOURCE_NAME, SOURCE_ID, FirstLastP, Candidates.CID, AmountSign) "
-          + "order by Amount desc ";
   if (groupContributionsBy == "PAC") {
-    sqlQuery = sqlQueryFormat.replace(/SOURCE_NAME/g, "PACShort")
-        .replace(/SOURCE_ID/g, "CmteId");
-  } else if (groupContributionsBy == "Industry") {
-    sqlQuery = sqlQueryFormat.replace(/SOURCE_NAME/g, "CatName")
-        .replace(/SOURCE_ID/g, "CatCode");
+    sqlQuery =
+        "select PACShort as source, CmteID as sourceId, "
+            + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
+            + "(select PACShort, CmteID, FirstLastP, Candidates.CID, "
+                + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
+                + "from PACsToCandidates "
+                + "inner join Candidates inner join Committees "
+                    + "on PACsToCandidates.CID = Candidates.CID "
+                    + "and PACsToCandidates.PACID = Committees.CmteID "
+                + "where Candidates.CID in (" + seedCandidates + ") "
+                + "group by PACShort, CmteID, FirstLastP, Candidates.CID, AmountSign) "
+                + "order by Amount desc ";
+  } else if (groupContributionsBy == "Industry"){
+    sqlQuery =
+        "select CatName as source, CatCode as sourceId, "
+            + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
+            + "(select CatName, CatCode, FirstLastP, Candidates.CID, "
+                + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
+                + "from PACsToCandidates "
+                + "inner join Candidates inner join Committees inner join Categories "
+                    + "on PACsToCandidates.CID = Candidates.CID "
+                    + "and PACsToCandidates.PACID = Committees.CmteID "
+                    + "and Categories.CatCode = Committees.PrimCode "
+                + "where Candidates.CID in (" + seedCandidates + ") "
+                + "group by CatName, CatCode, FirstLastP, Candidates.CID, AmountSign) "
+                + "order by Amount desc ";
   } else if (groupContributionsBy == "Sector") {
-    sqlQuery = sqlQueryFormat.replace(/SOURCE_NAME/g, "Sector")
-        .replace(/SOURCE_ID/g, "Sector");
+    sqlQuery =
+      "select Sector as source, CatOrder as sourceId, "
+          + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
+          + "(select Sector, CatOrder, FirstLastP, Candidates.CID, "
+              + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
+              + "from PACsToCandidates "
+              + "inner join Candidates inner join Committees inner join Categories "
+                  + "on PACsToCandidates.CID = Candidates.CID "
+                  + "and PACsToCandidates.PACID = Committees.CmteID "
+                  + "and Categories.CatCode = Committees.PrimCode "
+              + "where Candidates.CID in (" + seedCandidates + ") "
+              + "group by Sector, CatOrder, FirstLastP, Candidates.CID, AmountSign) "
+              + "order by Amount desc ";
   } else {
     // TODO
   }
