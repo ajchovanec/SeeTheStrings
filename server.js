@@ -26,41 +26,38 @@ function queryContributions(req, res) {
         "select PACShort as source, CmteID as sourceId, "
             + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
             + "(select PACShort, CmteID, FirstLastP, Candidates.CID, "
-                + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
-                + "from PACsToCandidates "
+                + "sum(Amount) as totalAmount from PACsToCandidates "
                 + "inner join Candidates inner join Committees "
                     + "on PACsToCandidates.CID = Candidates.CID "
                     + "and PACsToCandidates.PACID = Committees.CmteID "
                 + "where Candidates.CID in (" + seedCandidates + ") "
-                + "group by PACShort, CmteID, FirstLastP, Candidates.CID, AmountSign) "
+                + "group by PACShort, CmteID, FirstLastP, Candidates.CID) "
                 + "order by Amount desc ";
-  } else if (groupContributionsBy == "Industry"){
+  } else if (groupContributionsBy == "Industry") {
     sqlQuery =
         "select CatName as source, CatCode as sourceId, "
             + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
             + "(select CatName, CatCode, FirstLastP, Candidates.CID, "
-                + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
-                + "from PACsToCandidates "
+                + "sum(Amount) as totalAmount from PACsToCandidates "
                 + "inner join Candidates inner join Committees inner join Categories "
                     + "on PACsToCandidates.CID = Candidates.CID "
                     + "and PACsToCandidates.PACID = Committees.CmteID "
                     + "and Categories.CatCode = Committees.PrimCode "
                 + "where Candidates.CID in (" + seedCandidates + ") "
-                + "group by CatName, CatCode, FirstLastP, Candidates.CID, AmountSign) "
+                + "group by CatName, CatCode, FirstLastP, Candidates.CID) "
                 + "order by Amount desc ";
   } else if (groupContributionsBy == "Sector") {
     sqlQuery =
       "select Sector as source, CatOrder as sourceId, "
           + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
           + "(select Sector, CatOrder, FirstLastP, Candidates.CID, "
-              + "abs(Amount)/Amount as AmountSign, sum(Amount) as totalAmount "
-              + "from PACsToCandidates "
+              + "sum(Amount) as totalAmount from PACsToCandidates "
               + "inner join Candidates inner join Committees inner join Categories "
                   + "on PACsToCandidates.CID = Candidates.CID "
                   + "and PACsToCandidates.PACID = Committees.CmteID "
                   + "and Categories.CatCode = Committees.PrimCode "
               + "where Candidates.CID in (" + seedCandidates + ") "
-              + "group by Sector, CatOrder, FirstLastP, Candidates.CID, AmountSign) "
+              + "group by Sector, CatOrder, FirstLastP, Candidates.CID) "
               + "order by Amount desc ";
   } else {
     // TODO
@@ -68,14 +65,14 @@ function queryContributions(req, res) {
   console.log("SQL query: " + sqlQuery);
   db.each(sqlQuery,
       function(err, row) {
-        var contributionKey = (row.Amount >= 0 ? "+" : "-") + row.targetId;
+        var contributionKey = "key " + row.targetId;
         var numContributions =
             contributionCounts[contributionKey] || (contributionCounts[contributionKey] = 0);
 
         if (numContributions < maxContributions) {
           row.type = "plain";
-          row.isRefund = row.Amount >= 0 ? true : false;
-          row.label = "$" + row.Amount;
+          row.isRefund = row.Amount < 0 ? true : false;
+          row.label = (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount);
           links.push(row);
           contributionCounts[contributionKey] = numContributions + 1;
         } else {
@@ -90,7 +87,7 @@ function queryContributions(req, res) {
               "Amount": newAmount,
               "label": (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount),
               "type": "plain",
-              "isRefund": newAmount >= 0 ? true : false
+              "isRefund": newAmount < 0 ? true : false
             };
           } else {
             aggregateLinks[contributionKey] = {
@@ -101,7 +98,7 @@ function queryContributions(req, res) {
               "Amount": row.Amount,
               "label": (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount),
               "type": "plain",
-              "isRefund": row.type >= 0 ? true : false
+              "isRefund": row.type < 0 ? true : false
             };
           }
         }
