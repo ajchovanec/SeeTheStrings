@@ -22,7 +22,15 @@
       Sector
     </input>
     <br><br>
-    Max contributions to display per candidate:<input name="maxContributions" type="text" value=5>
+    Contribution types to show:
+    <input type="checkbox" name="contributionTypes" value="'D'" checked="true">
+      Direct
+    </input>
+    <input type="checkbox" name="contributionTypes" value="'I'" checked="true">
+      Indirect
+    </input>
+    <br><br>
+    Max contribution links to display per type, per candidate:<input name="maxContributionLinks" type="text" value=5>
     <br><br>
     <input type="button" onclick="document.getElementById('graphForm').submit()" value="Submit">
   </form>

@@ -12,8 +12,10 @@ function queryContributions(req, res) {
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
   var seedCandidates = queryParams["candidates"];
-  var maxContributions = queryParams["maxContributions"];
+  var maxContributionLinks = queryParams["maxContributionLinks"];
   var groupContributionsBy = queryParams["groupContributionsBy"];
+  var contributionTypes = queryParams["contributionTypes"];
+  console.log("Contribution types: " + contributionTypes);
   var db = new Sqlite3.Database(contributionsDbFile);
   res.writeHead(200, {"Content-Type": "application/json"});
   var links = [];
@@ -31,6 +33,7 @@ function queryContributions(req, res) {
                     + "on PACsToCandidates.CID = Candidates.CID "
                     + "and PACsToCandidates.PACID = Committees.CmteID "
                 + "where Candidates.CID in (" + seedCandidates + ") "
+                + "and DirectOrIndirect in (" + contributionTypes + ") "
                 + "group by PACShort, CmteID, FirstLastP, Candidates.CID, DirectOrIndirect, Type) "
                 + "order by Amount desc ";
   } else if (groupContributionsBy == "Industry") {
@@ -44,6 +47,7 @@ function queryContributions(req, res) {
                     + "and PACsToCandidates.PACID = Committees.CmteID "
                     + "and Categories.CatCode = Committees.PrimCode "
                 + "where Candidates.CID in (" + seedCandidates + ") "
+                + "and DirectOrIndirect in (" + contributionTypes + ") "
                 + "group by CatName, CatCode, FirstLastP, Candidates.CID, DirectOrIndirect) "
                 + "order by Amount desc ";
   } else if (groupContributionsBy == "Sector") {
@@ -57,6 +61,7 @@ function queryContributions(req, res) {
                   + "and PACsToCandidates.PACID = Committees.CmteID "
                   + "and Categories.CatCode = Committees.PrimCode "
               + "where Candidates.CID in (" + seedCandidates + ") "
+              + "and DirectOrIndirect in (" + contributionTypes + ") "
               + "group by Sector, CatOrder, FirstLastP, Candidates.CID, DirectOrIndirect, Type) "
               + "order by Amount desc ";
   } else {
@@ -82,7 +87,7 @@ function queryContributions(req, res) {
         var numContributions =
             contributionCounts[contributionKey] || (contributionCounts[contributionKey] = 0);
 
-        if (numContributions < maxContributions) {
+        if (numContributions < maxContributionLinks) {
           row.isAgainst = isAgainst
           row.style = styleMapping[row.DirectOrIndirect][isAgainst];
           row.isRefund = row.Amount < 0 ? true : false;
