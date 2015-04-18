@@ -26,8 +26,9 @@ function queryContributions(req, res) {
   if (groupContributionsBy == "PAC") {
     sqlQuery =
         "select PACShort as source, CmteID as sourceId, "
-            + "FirstLastP as target, CID as targetId, DirectOrIndirect, Type, totalAmount as Amount from "
-            + "(select PACShort, CmteID, FirstLastP, Candidates.CID, DirectOrIndirect, Type, "
+            + "FirstLastP as target, CID as targetId, Party, DirectOrIndirect, Type, "
+            + "totalAmount as Amount from "
+            + "(select PACShort, CmteID, FirstLastP, Candidates.Party, Candidates.CID, DirectOrIndirect, Type, "
                 + "sum(Amount) as totalAmount from PACsToCandidates "
                 + "inner join Candidates inner join Committees "
                     + "on PACsToCandidates.CID = Candidates.CID "
@@ -39,8 +40,9 @@ function queryContributions(req, res) {
   } else if (groupContributionsBy == "Industry") {
     sqlQuery =
         "select CatName as source, CatCode as sourceId, "
-            + "FirstLastP as target, CID as targetId, DirectOrIndirect, Type, totalAmount as Amount from "
-            + "(select CatName, CatCode, FirstLastP, Candidates.CID, DirectOrIndirect, Type, "
+            + "FirstLastP as target, CID as targetId, Party, DirectOrIndirect, Type, "
+            + "totalAmount as Amount from "
+            + "(select CatName, CatCode, FirstLastP, Candidates.Party, Candidates.CID, DirectOrIndirect, Type, "
                 + "sum(Amount) as totalAmount from PACsToCandidates "
                 + "inner join Candidates inner join Committees inner join Categories "
                     + "on PACsToCandidates.CID = Candidates.CID "
@@ -53,8 +55,9 @@ function queryContributions(req, res) {
   } else if (groupContributionsBy == "Sector") {
     sqlQuery =
       "select Sector as source, CatOrder as sourceId, "
-          + "FirstLastP as target, CID as targetId, DirectOrIndirect, Type, totalAmount as Amount from "
-          + "(select Sector, CatOrder, FirstLastP, Candidates.CID, DirectOrIndirect, Type, "
+          + "FirstLastP as target, CID as targetId, DirectOrIndirect, Type, "
+          + "totalAmount as Amount from "
+          + "(select Sector, CatOrder, FirstLastP, Candidates.Party, Candidates.CID, Party, DirectOrIndirect, Type, "
               + "sum(Amount) as totalAmount from PACsToCandidates "
               + "inner join Candidates inner join Committees inner join Categories "
                   + "on PACsToCandidates.CID = Candidates.CID "

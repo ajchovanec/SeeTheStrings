@@ -24,8 +24,43 @@
   stroke-dasharray: 0,2 1;
 }
 
-circle {
-  fill: #ccc;
+.circle {
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+.circle.gray {
+  fill: #bbb;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+.circle.white {
+  fill: white;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+.circle.red {
+  fill: red;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+circle.blue {
+  fill: blue;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+.circle.gold {
+  fill: yellow;  /* TODO: gold */
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+.circle.purple {
+  fill: purple;
   stroke: #333;
   stroke-width: 1.5px;
 }
@@ -41,6 +76,16 @@ text {
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
 
+function getStyleForParty(party) {
+  switch (party) {
+  case "R": return "red";
+  case "D": return "blue";
+  case "L": return "gold";
+  case "3": return "purple";
+  default: return "white" 
+  }
+}
+
 d3.json("/data" + window.location.search, doStuff);
 
 function doStuff(err, links) {
@@ -50,8 +95,15 @@ function doStuff(err, links) {
   // Compute the distinct nodes from the links.
   links.forEach(
       function(link) {
-        var reportedSource = nodes[link.sourceId] || (nodes[link.sourceId] = {name: link.source});
-        var reportedTarget = nodes[link.targetId] || (nodes[link.targetId] = {name: link.target});
+        var reportedSource = nodes[link.sourceId] ||
+            (nodes[link.sourceId] = {
+              name: link.source
+            });
+        var reportedTarget = nodes[link.targetId] ||
+            (nodes[link.targetId] = {
+              name: link.target,
+              party: link.Party
+            });
         link.source = link.isRefund ? reportedTarget : reportedSource;
         link.target = link.isRefund ? reportedSource : reportedTarget;
         link.isRefund = null;
@@ -97,6 +149,10 @@ function doStuff(err, links) {
       .data(force.nodes())
     .enter().append("circle")
       .attr("r", 6)
+      .attr("class",
+          function (d) {
+            return "circle " + (d.party != null ? getStyleForParty(d.party) : "gray");
+          })
       .call(force.drag);
 
   var nodeText = svg.append("g").selectAll("text")
