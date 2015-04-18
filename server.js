@@ -140,7 +140,7 @@ function queryAllCandidates(req, res) {
   res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
   db.each("select distinct CID, FirstLastP from Candidates "
-      + "where Cycle = 2014 order by FirstLastP asc",
+      + "where Cycle = 2014 and CycleCand = 'Y' order by FirstLastP asc",
       function(err, row) {
         candidates.push(row);
       },
