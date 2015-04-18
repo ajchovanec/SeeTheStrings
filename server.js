@@ -24,40 +24,40 @@ function queryContributions(req, res) {
   if (groupContributionsBy == "PAC") {
     sqlQuery =
         "select PACShort as source, CmteID as sourceId, "
-            + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
-            + "(select PACShort, CmteID, FirstLastP, Candidates.CID, "
+            + "FirstLastP as target, CID as targetId, DirectOrIndirect, totalAmount as Amount from "
+            + "(select PACShort, CmteID, FirstLastP, Candidates.CID, DirectOrIndirect, "
                 + "sum(Amount) as totalAmount from PACsToCandidates "
                 + "inner join Candidates inner join Committees "
                     + "on PACsToCandidates.CID = Candidates.CID "
                     + "and PACsToCandidates.PACID = Committees.CmteID "
                 + "where Candidates.CID in (" + seedCandidates + ") "
-                + "group by PACShort, CmteID, FirstLastP, Candidates.CID) "
+                + "group by PACShort, CmteID, FirstLastP, Candidates.CID, DirectOrIndirect) "
                 + "order by Amount desc ";
   } else if (groupContributionsBy == "Industry") {
     sqlQuery =
         "select CatName as source, CatCode as sourceId, "
-            + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
-            + "(select CatName, CatCode, FirstLastP, Candidates.CID, "
+            + "FirstLastP as target, CID as targetId, DirectOrIndirect, totalAmount as Amount from "
+            + "(select CatName, CatCode, FirstLastP, Candidates.CID, DirectOrIndirect, "
                 + "sum(Amount) as totalAmount from PACsToCandidates "
                 + "inner join Candidates inner join Committees inner join Categories "
                     + "on PACsToCandidates.CID = Candidates.CID "
                     + "and PACsToCandidates.PACID = Committees.CmteID "
                     + "and Categories.CatCode = Committees.PrimCode "
                 + "where Candidates.CID in (" + seedCandidates + ") "
-                + "group by CatName, CatCode, FirstLastP, Candidates.CID) "
+                + "group by CatName, CatCode, FirstLastP, Candidates.CID, DirectOrIndirect) "
                 + "order by Amount desc ";
   } else if (groupContributionsBy == "Sector") {
     sqlQuery =
       "select Sector as source, CatOrder as sourceId, "
-          + "FirstLastP as target, CID as targetId, totalAmount as Amount from "
-          + "(select Sector, CatOrder, FirstLastP, Candidates.CID, "
+          + "FirstLastP as target, CID as targetId, DirectOrIndirect, totalAmount as Amount from "
+          + "(select Sector, CatOrder, FirstLastP, Candidates.CID, DirectOrIndirect, "
               + "sum(Amount) as totalAmount from PACsToCandidates "
               + "inner join Candidates inner join Committees inner join Categories "
                   + "on PACsToCandidates.CID = Candidates.CID "
                   + "and PACsToCandidates.PACID = Committees.CmteID "
                   + "and Categories.CatCode = Committees.PrimCode "
               + "where Candidates.CID in (" + seedCandidates + ") "
-              + "group by Sector, CatOrder, FirstLastP, Candidates.CID) "
+              + "group by Sector, CatOrder, FirstLastP, Candidates.CID, DirectOrIndirect) "
               + "order by Amount desc ";
   } else {
     // TODO
@@ -65,12 +65,14 @@ function queryContributions(req, res) {
   console.log("SQL query: " + sqlQuery);
   db.each(sqlQuery,
       function(err, row) {
-        var contributionKey = "key " + row.targetId;
+        // TODO: Find a way to keep multiple links for contributions of separate types from the same
+        // to the same target from being superimposed on top of each other.
+        var contributionKey = "key " + row.targetId + " " + row.DirectOrDindirect;
         var numContributions =
             contributionCounts[contributionKey] || (contributionCounts[contributionKey] = 0);
 
         if (numContributions < maxContributions) {
-          row.type = "plain";
+          row.type = (row.DirectOrIndirect == "D") ? "plain" : "dashed";
           row.isRefund = row.Amount < 0 ? true : false;
           row.label = (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount);
           links.push(row);
@@ -86,7 +88,7 @@ function queryContributions(req, res) {
               "target": row.target,
               "Amount": newAmount,
               "label": (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount),
-              "type": "plain",
+              "type": (row.DirectOrIndirect == "D") ? "plain" : "dashed",
               "isRefund": newAmount < 0 ? true : false
             };
           } else {
@@ -97,7 +99,7 @@ function queryContributions(req, res) {
               "target": row.target,
               "Amount": row.Amount,
               "label": (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount),
-              "type": "plain",
+              "type": (row.DirectOrIndirect == "D") ? "plain" : "dashed",
               "isRefund": row.type < 0 ? true : false
             };
           }
