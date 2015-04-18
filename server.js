@@ -139,7 +139,8 @@ function queryAllCandidates(req, res) {
   var db = new Sqlite3.Database(contributionsDbFile);
   res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
-  db.each("select CID, FirstLastP from Candidates where Cycle = 2014 order by FirstLastP asc",
+  db.each("select distinct CID, FirstLastP from Candidates "
+      + "where Cycle = 2014 order by FirstLastP asc",
       function(err, row) {
         candidates.push(row);
       },
