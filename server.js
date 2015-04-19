@@ -205,7 +205,6 @@ function queryAllCandidates(req, res) {
   dbWrapper.fetchAll(sqlQuery,
       null,
       function(err, result) {
-        dbWrapper.close(function(err) { console.log('Connection closed !'); });
         if (err != null) {
           console.log("queryAllCandidatesError: " + JSON.stringify(err));
           // TODO: Should we exit here?
@@ -214,6 +213,7 @@ function queryAllCandidates(req, res) {
         result.forEach(function(row) {
           candidates.push(row);
         });
+        dbWrapper.close(function(err) { console.log('Connection closed !'); });
         res.write(JSON.stringify(candidates));
         res.end();
       });
