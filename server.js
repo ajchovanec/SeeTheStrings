@@ -178,7 +178,7 @@ function queryContributions(req, res) {
   dbWrapper.fetchAll(sqlQuery,
       null,
       function(err, result) {
-        dbWrapper.close();
+        dbWrapper.close(function(err) { console.log('Connection closed !'); });
         if (err != null) {
           console.log("queryAllCandidatesError: " + JSON.stringify(err));
           // TODO: Should we exit here?
@@ -205,7 +205,7 @@ function queryAllCandidates(req, res) {
           + "where Cycle = 2014 and CycleCand = 'Y' order by FirstLastP asc",
       null,
       function(err, result) {
-        dbWrapper.close();
+        dbWrapper.close(function(err) { console.log('Connection closed !'); });
         if (err != null) {
           console.log("queryAllCandidatesError: " + JSON.stringify(err));
           // TODO: Should we exit here?
