@@ -5,6 +5,8 @@ var Url = require('url');
 var ServeStatic = require('serve-static')
 var Sqlite3 = require("sqlite3").verbose();
 
+var port = process.env.PORT || 3000;
+
 var contributionsDbFile = "data/sqlite/CampaignFin14.db";
 
 function queryContributions(req, res) {
@@ -178,4 +180,4 @@ var server = Http.createServer(function(req, res) {
   router(req, res, Finalhandler(req, res))
 })
 
-server.listen(3000);
+server.listen(port);
