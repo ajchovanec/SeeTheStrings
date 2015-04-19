@@ -180,7 +180,11 @@ function queryContributions(req, res) {
       null,
       function(err, result) {
         dbWrapper.close();
-        console.log("Error: " + err);
+        if (err != null) {
+          console.log("queryAllCandidatesError: " + JSON.stringify(err));
+          // TODO: Should we exit here?
+        }
+        console.log("Got " + result.length + " raw links ");
         result.forEach(handleOneRow);
         for (var contributionKey in aggregateLinks) {
           links.push(aggregateLinks[contributionKey]);
@@ -193,15 +197,22 @@ function queryContributions(req, res) {
 }
       
 function queryAllCandidates(req, res) {
+  console.log("Querying list of candidates");
   var dbWrapper = new DBWrapper('sqlite3', dbConnectionConfig);
-  dbWrapper.connect();  res.writeHead(200, {"Content-Type": "application/json"});
+  res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
+  dbWrapper.connect();
   dbWrapper.fetchAll(
       "select distinct CID, FirstLastP from Candidates "
           + "where Cycle = 2014 and CycleCand = 'Y' order by FirstLastP asc",
       null,
       function(err, result) {
         dbWrapper.close();
+        if (err != null) {
+          console.log("queryAllCandidatesError: " + JSON.stringify(err));
+          // TODO: Should we exit here?
+        }
+        console.log("Got a list of " + result.length + " candidates");
         result.forEach(function(row) {
           candidates.push(row);
         });
