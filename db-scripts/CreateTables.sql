@@ -1,3 +1,9 @@
+DROP TABLE Categories;
+DROP TABLE Candidates;
+DROP TABLE Committees;
+DROP TABLE PACsToCandidates;
+DROP TABLE IndivsToCandidates;
+
 CREATE TABLE Categories (
     CatCode TEXT,
     CatName TEXT,
