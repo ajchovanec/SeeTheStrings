@@ -115,6 +115,7 @@ d3.json("/candidates", doStuff);
 function doStuff(err, candidates) {
   if (err != null) {
     console.log("Error fetching candidates list from HTML page: " + JSON.stringify(err));
+    // TODO: What should we do here?
   } else {
     console.log("Got a list of " + candidates.length + " candidates on HTML page");
   }
