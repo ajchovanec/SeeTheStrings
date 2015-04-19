@@ -109,8 +109,9 @@ function doStuff(err, links) {
       .nodes(d3.values(nodes))
       .links(links)
       .size([width, height])
-      .linkDistance(100)
-      .charge(-600)
+      .linkDistance(200)
+      .charge(-300)
+      .friction(.75)
       .on("tick", tick)
       .start();
 
