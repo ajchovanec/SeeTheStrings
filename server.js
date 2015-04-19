@@ -3,11 +3,12 @@ var Http = require('http')
 var Router = require('router')
 var Url = require('url');
 var ServeStatic = require('serve-static')
-var Sqlite3 = require("sqlite3").verbose();
+var DBWrapper = require('node-dbi').DBWrapper;
 
 var port = process.env.PORT || 3000;
 
 var contributionsDbFile = "data/sqlite/CampaignFin14.db";
+var dbConnectionConfig = { path: contributionsDbFile };
 
 function queryContributions(req, res) {
   // TODO: Figure out how to display both positive and negative contributions from the same source.
@@ -18,12 +19,9 @@ function queryContributions(req, res) {
   var groupContributionsBy = queryParams["groupContributionsBy"];
   var contributionTypes = queryParams["contributionTypes"];
   var maxContributionLinks = queryParams["maxContributionLinks"];
-  var db = new Sqlite3.Database(contributionsDbFile);
+  var dbWrapper = new DBWrapper('sqlite3', dbConnectionConfig);
+  dbWrapper.connect();
   res.writeHead(200, {"Content-Type": "application/json"});
-  var links = [];
-  var aggregateLinks = {};
-  var contributionCounts = {};
-  var negContributionCounte = {};
   var sqlQuery;
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "\"Misc candidates\" as target, -1 as targetId, "
@@ -94,80 +92,92 @@ function queryContributions(req, res) {
     "false": "black"
   }
 
-  console.log("SQL query: " + sqlQuery);
-  db.each(sqlQuery,
-      function(err, row) {
-        // TODO: Find a way to keep multiple links for contributions of separate types from the same
-        // to the same target from being superimposed on top of each other.
-        var isAgainst = (["24A", "24N"].indexOf(row.Type) != -1);
-        var contributionKey = "key " + row.targetId + " " + row.DirectOrIndirect + " " + isAgainst;
-        var numContributions =
-            contributionCounts[contributionKey] || (contributionCounts[contributionKey] = 0);
+  var links = [];
+  var aggregateLinks = {};
+  var contributionCounts = {};
+  var negContributionCounte = {};
 
-        if (numContributions < maxContributionLinks) {
-          row.isAgainst = isAgainst
-          row.style = linkStyleMapping[row.DirectOrIndirect][isAgainst];
-          row.color = markerColorMapping[isAgainst];
-          row.isRefund = row.Amount < 0 ? true : false;
-          row.label = (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount);
-          links.push(row);
-          contributionCounts[contributionKey] = numContributions + 1;
-        } else {
-          var existingAggregateLink = aggregateLinks[contributionKey];
-          if (existingAggregateLink) {
-            var newAmount = existingAggregateLink.Amount + row.Amount;
-            aggregateLinks[contributionKey] = {
-              "sourceId": contributionKey,
-              "source": "Misc. contributors",
-              "targetId": row.targetId,
-              "target": row.target,
-              "Amount": newAmount,
-              "label": (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount),
-              "isAgainst": isAgainst,
-              "style": linkStyleMapping[row.DirectOrIndirect][isAgainst],
-              "color": markerColorMapping[isAgainst],
-              "isRefund": newAmount < 0 ? true : false
-            };
-          } else {
-            aggregateLinks[contributionKey] = {
-              "sourceId": contributionKey,
-              "source": row.source,
-              "targetId": row.targetId,
-              "target": row.target,
-              "Amount": row.Amount,
-              "label": (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount),
-              "isAgainst": isAgainst,
-              "style": linkStyleMapping[row.DirectOrIndirect][isAgainst],
-              "color": markerColorMapping[isAgainst],
-              "isRefund": row.Amount < 0 ? true : false
-            };
-          }
-        }
-      },
-      function() {
+  function handleOneRow(row) {
+    // TODO: Find a way to keep multiple links for contributions of separate types from the same
+    // to the same target from being superimposed on top of each other.
+    var isAgainst = (["24A", "24N"].indexOf(row.Type) != -1);
+    var contributionKey = "key " + row.targetId + " " + row.DirectOrIndirect + " " + isAgainst;
+    var numContributions =
+        contributionCounts[contributionKey] || (contributionCounts[contributionKey] = 0);
+
+    if (numContributions < maxContributionLinks) {
+      row.isAgainst = isAgainst
+      row.style = linkStyleMapping[row.DirectOrIndirect][isAgainst];
+      row.color = markerColorMapping[isAgainst];
+      row.isRefund = row.Amount < 0 ? true : false;
+      row.label = (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount);
+      links.push(row);
+      contributionCounts[contributionKey] = numContributions + 1;
+    } else {
+      var existingAggregateLink = aggregateLinks[contributionKey];
+      if (existingAggregateLink) {
+        var newAmount = existingAggregateLink.Amount + row.Amount;
+        aggregateLinks[contributionKey] = {
+          "sourceId": contributionKey,
+          "source": "Misc. contributors",
+          "targetId": row.targetId,
+          "target": row.target,
+          "Amount": newAmount,
+          "label": (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount),
+          "isAgainst": isAgainst,
+          "style": linkStyleMapping[row.DirectOrIndirect][isAgainst],
+          "color": markerColorMapping[isAgainst],
+          "isRefund": newAmount < 0 ? true : false
+        };
+      } else {
+        aggregateLinks[contributionKey] = {
+          "sourceId": contributionKey,
+          "source": row.source,
+          "targetId": row.targetId,
+          "target": row.target,
+          "Amount": row.Amount,
+          "label": (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount),
+          "isAgainst": isAgainst,
+          "style": linkStyleMapping[row.DirectOrIndirect][isAgainst],
+          "color": markerColorMapping[isAgainst],
+          "isRefund": row.Amount < 0 ? true : false
+        };
+      }
+    }
+  }
+
+  console.log("SQL query: " + sqlQuery);
+  dbWrapper.fetchAll(sqlQuery,
+      null,
+      function(err, result) {
+        console.log("Error: " + err);
+        result.forEach(handleOneRow);
         for (var contributionKey in aggregateLinks) {
           links.push(aggregateLinks[contributionKey]);
           console.log("Adding aggregate link with key: " + contributionKey);
         }
+        console.log(JSON.stringify(links));
         res.write(JSON.stringify(links));
         res.end();
-        db.close();
+        dbWrapper.close();
       });
 }
-
+      
 function queryAllCandidates(req, res) {
-  var db = new Sqlite3.Database(contributionsDbFile);
-  res.writeHead(200, {"Content-Type": "application/json"});
+  var dbWrapper = new DBWrapper('sqlite3', dbConnectionConfig);
+  dbWrapper.connect();  res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
-  db.each("select distinct CID, FirstLastP from Candidates "
-      + "where Cycle = 2014 and CycleCand = 'Y' order by FirstLastP asc",
-      function(err, row) {
-        candidates.push(row);
-      },
-      function() {
+  dbWrapper.fetchAll(
+      "select distinct CID, FirstLastP from Candidates "
+          + "where Cycle = 2014 and CycleCand = 'Y' order by FirstLastP asc",
+      null,
+      function(err, result) {
+        result.forEach(function(row) {
+          candidates.push(row);
+        });
         res.write(JSON.stringify(candidates));
         res.end();
-        db.close();
+        dbWrapper.close();
       });
 }
 
