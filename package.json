@@ -1,0 +1,29 @@
+{
+  "name": "SeeTheStrings",
+  "version": "1.0.0",
+  "description": "A web app to visualize political campaign contributions",
+  "main": "server.js",
+  "dependencies": {
+    "serve-static": "^1.9.2",
+    "router": "^1.0.0",
+    "finalhandler": "^0.3.4",
+    "sqlite3": "^3.0.5",
+    "url": "^0.10.3",
+    "util": "^0.10.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ajchovanec/SeeTheStrings.git"
+  },
+  "author": "Alex Chovanec (alex.chovanec@gmail.com)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ajchovanec/SeeTheStrings/issues"
+  },
+  "homepage": "https://github.com/ajchovanec/SeeTheStrings"
+}
