@@ -202,7 +202,7 @@ function queryAllCandidates(req, res) {
   dbWrapper.connect();
   dbWrapper.fetchAll(
       "select distinct CID, FirstLastP from Candidates "
-          + "where Cycle = 2014 and CycleCand = 'Y' order by FirstLastP asc",
+          + "where Cycle = '2014' and CycleCand = 'Y' order by FirstLastP asc",
       null,
       function(err, result) {
         dbWrapper.close(function(err) { console.log('Connection closed !'); });
