@@ -167,6 +167,7 @@ function queryContributions(req, res) {
   dbWrapper.fetchAll(sqlQuery,
       null,
       function(err, result) {
+        dbWrapper.close();
         console.log("Error: " + err);
         result.forEach(handleOneRow);
         for (var contributionKey in aggregateLinks) {
@@ -176,7 +177,6 @@ function queryContributions(req, res) {
         console.log(JSON.stringify(links));
         res.write(JSON.stringify(links));
         res.end();
-        dbWrapper.close();
       });
 }
       
@@ -189,12 +189,12 @@ function queryAllCandidates(req, res) {
           + "where Cycle = 2014 and CycleCand = 'Y' order by FirstLastP asc",
       null,
       function(err, result) {
+        dbWrapper.close();
         result.forEach(function(row) {
           candidates.push(row);
         });
         res.write(JSON.stringify(candidates));
         res.end();
-        dbWrapper.close();
       });
 }
 
