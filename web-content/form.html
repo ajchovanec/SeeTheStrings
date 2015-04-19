@@ -1,14 +1,32 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
+<style>
+.header img {
+  float: left;
+  width: 75px;
+  height: 75px;
+  background: #FFF;
+}
+.header h1 {
+  position: relative;
+  top: 18px;
+  left: 0px;
+}
+</style>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <link rel="shortcut icon" type="image/jpg" href="marionette.jpg" />
   <title>"See the Strings"</title>
 </head>
-<body>
-  <h1>"See the Strings"</h1>
+<body background="">
+  <div class="header">
+    <img src="marionette.jpg" alt="logo" />
+    <h1>"See the Strings"</h1>
+  </div>
+  <br><br>
   <form id="graphForm" action="graph.html" method="GET">
-    Select one or more candidates from the 2014 campaign cycle for whom to visualize contributions
-    <br>
+    Select one or more candidates from the 2014 campaign cycle for whom to visualize contributions:
+    <br><br>
     <select id="candidatesList" name="candidates" multiple="multiple" size=20>
     </select>
     <br><br>
