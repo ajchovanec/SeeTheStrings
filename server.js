@@ -48,7 +48,6 @@ function queryContributions(req, res) {
   var groupContributionsBy = queryParams["groupContributionsBy"];
   var contributionTypes = queryParams["contributionTypes"];
   var maxContributionLinks = queryParams["maxContributionLinks"];
-  var dbWrapper = new DBWrapper('sqlite3', dbConnectionConfig);
   res.writeHead(200, {"Content-Type": "application/json"});
   var sqlQuery;
   var outerSelectTargets = (groupCandidatesBy == "Selection")
