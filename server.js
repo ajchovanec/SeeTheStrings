@@ -180,4 +180,6 @@ var server = Http.createServer(function(req, res) {
   router(req, res, Finalhandler(req, res))
 })
 
-server.listen(port);
+server.listen(port, function() {
+    console.log('Listening on http://localhost:' + port);
+});
