@@ -197,7 +197,6 @@ function queryContributions(req, res) {
       
 function queryAllCandidates(req, res) {
   console.log("Querying list of candidates");
-  var dbWrapper = new DBWrapper('sqlite3', dbConnectionConfig);
   res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
   dbWrapper.connect();
