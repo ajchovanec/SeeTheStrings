@@ -10,12 +10,20 @@ var port = process.env.PORT || 3000;
 var dbWrapper;
 switch (process.env.DB_INSTANCE) {
 case "heroku":
+  function getEnvVarOrDie(envVarName) {
+    var envVar = process.env[envVarName];
+    if (envVar == null) {
+      console.log("Environment variable " + envVarName + " is required when DB_INSTANCE=heroku, "
+          + "but is undefined! Aborting.");
+      process.exit(1);
+    }
+    return envVar;
+  }
   var dbConnectionConfig = {
-    // TODO: Fill this in with the right values for heroku.
-    host: 'fake host',
-    user: 'fake user',
-    password: 'fake password',
-    database: 'fake database'
+    host: getEnvVarOrDie("PG_HOST"),
+    user: getEnvVarOrDie("PG_USER"),
+    password: getEnvVarOrDie("PG_PASSWORD"),
+    database: getEnvVarOrDie("PG_DATABASE")
   };
   dbWrapper = new DBWrapper('pg', dbConnectionConfig);
   break;
