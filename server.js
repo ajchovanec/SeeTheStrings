@@ -7,8 +7,25 @@ var DBWrapper = require('node-dbi').DBWrapper;
 
 var port = process.env.PORT || 3000;
 
-var contributionsDbFile = "data/sqlite/CampaignFin14.db";
-var dbConnectionConfig = { path: contributionsDbFile };
+var dbWrapper;
+switch (process.env.DB_INSTANCE) {
+case "heroku":
+  var dbConnectionConfig = {
+    // TODO: Fill this in with the right values for heroku.
+    host: 'fake host',
+    user: 'fake user',
+    password: 'fake password',
+    database: 'fake database'
+  };
+  dbWrapper = new DBWrapper('pg', dbConnectionConfig);
+  break;
+default:
+  console.log("DB_INSTANCE environment variable not set. Defaulting to 'local'.")
+case "local":
+  var dbConnectionConfig = { path: "data/sqlite/CampaignFin14.db" };
+  dbWrapper = new DBWrapper('sqlite3', dbConnectionConfig);
+};
+console.log("Setting up database configuration: " + JSON.stringify(dbConnectionConfig));
 
 function queryContributions(req, res) {
   // TODO: Figure out how to display both positive and negative contributions from the same source.
