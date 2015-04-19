@@ -196,13 +196,13 @@ function queryContributions(req, res) {
 }
       
 function queryAllCandidates(req, res) {
-  console.log("Querying list of candidates");
+  var sqlQuery = "select distinct CID, FirstLastP from Candidates where Cycle = '2014' "
+    + "and CycleCand = 'Y' order by FirstLastP asc";
+  console.log("SQL query for list of candidates: " + sqlQuery);
   res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
   dbWrapper.connect();
-  dbWrapper.fetchAll(
-      "select distinct CID, FirstLastP from Candidates "
-          + "where Cycle = '2014' and CycleCand = 'Y' order by FirstLastP asc",
+  dbWrapper.fetchAll(sqlQuery,
       null,
       function(err, result) {
         dbWrapper.close(function(err) { console.log('Connection closed !'); });
