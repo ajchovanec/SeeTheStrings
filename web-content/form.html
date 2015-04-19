@@ -109,10 +109,15 @@ function addOptionToSelectBox(selectbox, text, value) {
   selectbox.options.add(option);
 }
 
+console.log("Trying to fetch candidates list from HTML page...");
 d3.json("/candidates", doStuff);
 
 function doStuff(err, candidates) {
-  // TODO: Check for errors.
+  if (err != null) {
+    console.log("Error fetching candidates list from HTML page: " + JSON.stringify(err));
+  } else {
+    console.log("Got a list of " + candidates.length + " candidates on HTML page");
+  }
 
   var selectBox = document.getElementById("candidatesList");
   candidates.forEach(
