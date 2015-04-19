@@ -54,10 +54,10 @@ function queryContributions(req, res) {
                 + "order by Amount desc ";
   } else if (groupContributionsBy == "Sector") {
     sqlQuery =
-      "select Sector as source, CatOrder as sourceId, "
-          + "FirstLastP as target, CID as targetId, DirectOrIndirect, Type, "
+      "select Sector as source, Sector as sourceId, "
+          + "FirstLastP as target, CID as targetId, Party, DirectOrIndirect, Type, "
           + "totalAmount as Amount from "
-          + "(select Sector, CatOrder, FirstLastP, Candidates.Party, Candidates.CID, Party, DirectOrIndirect, Type, "
+          + "(select Sector, FirstLastP, Candidates.Party, Candidates.CID, DirectOrIndirect, Type, "
               + "sum(Amount) as totalAmount from PACsToCandidates "
               + "inner join Candidates inner join Committees inner join Categories "
                   + "on PACsToCandidates.CID = Candidates.CID "
@@ -65,7 +65,7 @@ function queryContributions(req, res) {
                   + "and Categories.CatCode = Committees.PrimCode "
               + "where Candidates.CID in (" + seedCandidates + ") "
               + "and DirectOrIndirect in (" + contributionTypes + ") "
-              + "group by Sector, CatOrder, FirstLastP, Candidates.CID, DirectOrIndirect, Type) "
+              + "group by Sector, FirstLastP, Candidates.CID, DirectOrIndirect, Type) "
               + "order by Amount desc ";
   } else {
     // TODO
