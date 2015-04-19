@@ -33,7 +33,9 @@ case "local":
   var dbConnectionConfig = { path: "data/sqlite/CampaignFin14.db" };
   dbWrapper = new DBWrapper('sqlite3', dbConnectionConfig);
 };
-console.log("Setting up database configuration: " + JSON.stringify(dbConnectionConfig));
+var loggableDbConnectionConfig = dbConnectionConfig;
+loggableDbConnectionConfig.password = "[redacted]";
+console.log("Setting up database configuration: " + JSON.stringify(obfuscateDbConnectionConfig));
 
 function queryContributions(req, res) {
   // TODO: Figure out how to display both positive and negative contributions from the same source.
