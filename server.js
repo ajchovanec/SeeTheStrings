@@ -213,8 +213,8 @@ function queryContributions(req, res) {
 }
       
 function queryAllCandidates(req, res) {
-  var sqlQuery = "select distinct cid, FirstLastP from Candidates where Cycle = '2014' "
-    + "and CycleCand = 'Y' order by FirstLastP asc";
+  var sqlQuery = "select distinct cid, firstlastp from Candidates where cycle = '2014' "
+    + "and cyclecand = 'Y' order by firstlastp asc";
   console.log("SQL query for list of candidates: " + sqlQuery);
   res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
