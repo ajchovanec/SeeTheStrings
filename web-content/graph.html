@@ -88,14 +88,14 @@ function doStuff(err, links) {
   // Compute the distinct nodes from the links.
   links.forEach(
       function(link) {
-        var reportedSource = nodes[link.sourceId] ||
-            (nodes[link.sourceId] = {
+        var reportedSource = nodes[link.sourceid] ||
+            (nodes[link.sourceid] = {
               name: link.source
             });
-        var reportedTarget = nodes[link.targetId] ||
-            (nodes[link.targetId] = {
+        var reportedTarget = nodes[link.targetid] ||
+            (nodes[link.targetid] = {
               name: link.target,
-              party: link.Party
+              party: link.party
             });
         link.source = link.isRefund ? reportedTarget : reportedSource;
         link.target = link.isRefund ? reportedSource : reportedTarget;

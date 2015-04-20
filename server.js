@@ -127,47 +127,47 @@ function queryContributions(req, res) {
   function handleOneRow(row) {
     // TODO: Find a way to keep multiple links for contributions of separate types from the same
     // to the same target from being superimposed on top of each other.
-    var isAgainst = (["24A", "24N"].indexOf(row.Type) != -1);
-    var contributionKey = "key " + row.targetId + " " + row.DirectOrIndirect + " " + isAgainst;
+    var isAgainst = (["24A", "24N"].indexOf(row.type) != -1);
+    var contributionKey = "key " + row.targetid + " " + row.directorindirect + " " + isAgainst;
     var numContributions =
         contributionCounts[contributionKey] || (contributionCounts[contributionKey] = 0);
 
     if (numContributions < maxContributionLinks) {
       row.isAgainst = isAgainst
-      row.style = linkStyleMapping[row.DirectOrIndirect][isAgainst];
+      row.style = linkStyleMapping[row.directorindirect][isAgainst];
       row.color = markerColorMapping[isAgainst];
-      row.isRefund = row.Amount < 0 ? true : false;
-      row.label = (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount);
+      row.isRefund = row.amount < 0 ? true : false;
+      row.label = (row.amount >= 0 ? "+" : "-") + "$" + Math.abs(row.amount);
       links.push(row);
       contributionCounts[contributionKey] = numContributions + 1;
     } else {
       var existingAggregateLink = aggregateLinks[contributionKey];
       if (existingAggregateLink) {
-        var newAmount = existingAggregateLink.Amount + row.Amount;
+        var newAmount = existingAggregateLink.amount + row.amount;
         aggregateLinks[contributionKey] = {
-          "sourceId": contributionKey,
+          "sourceid": contributionKey,
           "source": "Misc. contributors",
-          "targetId": row.targetId,
+          "targetid": row.targetid,
           "target": row.target,
-          "Amount": newAmount,
+          "amount": newAmount,
           "label": (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount),
           "isAgainst": isAgainst,
-          "style": linkStyleMapping[row.DirectOrIndirect][isAgainst],
+          "style": linkStyleMapping[row.directorindirect][isAgainst],
           "color": markerColorMapping[isAgainst],
           "isRefund": newAmount < 0 ? true : false
         };
       } else {
         aggregateLinks[contributionKey] = {
-          "sourceId": contributionKey,
+          "sourceid": contributionKey,
           "source": row.source,
-          "targetId": row.targetId,
+          "targetid": row.targetid,
           "target": row.target,
-          "Amount": row.Amount,
-          "label": (row.Amount >= 0 ? "+" : "-") + "$" + Math.abs(row.Amount),
+          "amount": row.amount,
+          "label": (row.amount >= 0 ? "+" : "-") + "$" + Math.abs(row.amount),
           "isAgainst": isAgainst,
-          "style": linkStyleMapping[row.DirectOrIndirect][isAgainst],
+          "style": linkStyleMapping[row.directorindirect][isAgainst],
           "color": markerColorMapping[isAgainst],
-          "isRefund": row.Amount < 0 ? true : false
+          "isRefund": row.amount < 0 ? true : false
         };
       }
     }
