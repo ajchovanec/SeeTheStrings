@@ -91,7 +91,7 @@ function queryContributions(req, res) {
           + "directorindirect, type, totalamount as amount from "
           + "(select sector, " + innerSelectTargets + "directorindirect, type, "
               + "sum(amount) as totalamount from PACsToCandidates "
-              + "inner join Candidates on PACsToCandidates.cid = Candidates.cid " +
+              + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
               + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
               + "inner join Categories on Categories.catcode = Committees.primcode "
               + "where Candidates.cid in (" + seedCandidates + ") "
