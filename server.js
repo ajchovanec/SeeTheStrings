@@ -53,7 +53,6 @@ function getDbWrapper() {
               function (cacheCallback) {
                 parentDbWrapper.fetchAll(sqlQuery, null, cacheCallback);
               },
-              100,
               callback);
         }
   };
