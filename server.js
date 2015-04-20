@@ -57,7 +57,7 @@ function queryContributions(req, res) {
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "FirstLastP, Candidates.CID, Candidates.Party, ";
   var innerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
-      : "Candidates.CID, FirstLastP, ";
+      : "Candidates.CID, Candidates.Party, FirstLastP, ";
   console.log("groupCandidatesBy: " + groupCandidatesBy);
   console.log("outerSelectTargets: " + outerSelectTargets);
   if (groupContributionsBy == "PAC") {
@@ -71,7 +71,7 @@ function queryContributions(req, res) {
                 + "where Candidates.CID in (" + seedCandidates + ") "
                 + "and DirectOrIndirect in (" + contributionTypes + ") "
                 + "group by PACShort, CmteID, " + innerGroupByTargets + "DirectOrIndirect, Type) "
-                + "order by Amount desc ";
+            + "as Subquery order by Amount desc ";
   } else if (groupContributionsBy == "Industry") {
     sqlQuery =
         "select CatName as source, CatCode as sourceId, " + outerSelectTargets
