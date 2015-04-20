@@ -52,7 +52,7 @@ function queryContributions(req, res) {
   res.writeHead(200, {"Content-Type": "application/json"});
   var sqlQuery;
   var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "\"Misc candidates\" as target, -1 as targetid, "
+      ? "'Misc candidates' as target, -1 as targetid, "
       : "firstlastp as target, cid as targetid, party, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
