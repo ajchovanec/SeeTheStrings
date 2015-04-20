@@ -57,20 +57,20 @@ function queryContributions(req, res) {
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
   var innerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
-      : "Candidates.cid, Candidates.party, firstlastp, ";
+      : "firstlastp, Candidates.cid, Candidates.party, ";
   console.log("groupCandidatesBy: " + groupCandidatesBy);
   console.log("outerSelectTargets: " + outerSelectTargets);
   if (groupContributionsBy == "PAC") {
     sqlQuery =
         "select pacshort as source, cmteid as sourceid, " + outerSelectTargets
             + "directorindirect, type, totalamount as amount from "
-            + "(select pacshort, cmteid, " + innerSelectTargets + "directorindirect, Type, "
+            + "(select pacshort, cmteid, " + innerSelectTargets + "directorindirect, type, "
                 + "sum(amount) as totalamount from PACsToCandidates "
                 + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
                 + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
                 + "where Candidates.cid in (" + seedCandidates + ") "
                 + "and directorindirect in (" + contributionTypes + ") "
-                + "group by pacshort, cmteid, " + innerGroupByTargets + "directorindirect, Type) "
+                + "group by pacshort, cmteid, " + innerGroupByTargets + "directorindirect, type) "
             + "as Subquery order by amount desc ";
   } else if (groupContributionsBy == "Industry") {
     sqlQuery =
@@ -83,21 +83,21 @@ function queryContributions(req, res) {
                 + "inner join Categories on Categories.catcode = Committees.primcode "
                 + "where Candidates.cid in (" + seedCandidates + ") "
                 + "and directorindirect in (" + contributionTypes + ") "
-                + "group by catname, catcode, " + innerGroupByTargets + "directorindirect) "
+                + "group by catname, catcode, " + innerGroupByTargets + "directorindirect, type) "
             + "as Subquery order by amount desc ";
   } else if (groupContributionsBy == "Sector") {
     sqlQuery =
-      "select sector as source, sector as sourceid, " + outerSelectTargets
-          + "directorindirect, type, totalamount as amount from "
-          + "(select sector, " + innerSelectTargets + "directorindirect, type, "
-              + "sum(amount) as totalamount from PACsToCandidates "
-              + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
-              + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
-              + "inner join Categories on Categories.catcode = Committees.primcode "
-              + "where Candidates.cid in (" + seedCandidates + ") "
-              + "and directorindirect in (" + contributionTypes + ") "
-              + "group by sector, " + innerGroupByTargets + "directorindirect, type) "
-          + "as Subquery order by amount desc ";
+        "select sector as source, sector as sourceid, " + outerSelectTargets
+            + "directorindirect, type, totalamount as amount from "
+            + "(select sector, " + innerSelectTargets + "directorindirect, type, "
+                + "sum(amount) as totalamount from PACsToCandidates "
+                + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
+                + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
+                + "inner join Categories on Categories.catcode = Committees.primcode "
+                + "where Candidates.cid in (" + seedCandidates + ") "
+                + "and directorindirect in (" + contributionTypes + ") "
+                + "group by sector, " + innerGroupByTargets + "directorindirect, type) "
+            + "as Subquery order by amount desc ";
   } else {
     // TODO
   }
