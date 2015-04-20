@@ -52,54 +52,52 @@ function queryContributions(req, res) {
   res.writeHead(200, {"Content-Type": "application/json"});
   var sqlQuery;
   var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "\"Misc candidates\" as target, -1 as targetId, "
-      : "FirstLastP as target, CID as targetId, Party, ";
+      ? "\"Misc candidates\" as target, -1 as targetid, "
+      : "firstlastp as target, cid as targetid, party, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
-      : "FirstLastP, Candidates.CID, Candidates.Party, ";
+      : "firstlastp, Candidates.cid, Candidates.party, ";
   var innerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
-      : "Candidates.CID, Candidates.Party, FirstLastP, ";
+      : "Candidates.cid, Candidates.party, firstlastp, ";
   console.log("groupCandidatesBy: " + groupCandidatesBy);
   console.log("outerSelectTargets: " + outerSelectTargets);
   if (groupContributionsBy == "PAC") {
     sqlQuery =
-        "select PACShort as source, CmteID as sourceId, " + outerSelectTargets
-            + "DirectOrIndirect, Type, totalAmount as Amount from "
-            + "(select PACShort, CmteID, " + innerSelectTargets + "DirectOrIndirect, Type, "
-                + "sum(Amount) as totalAmount from PACsToCandidates "
-                + "inner join Candidates on PACsToCandidates.CID = Candidates.CID "
-                + "inner join Committees on PACsToCandidates.PACID = Committees.CmteID "
-                + "where Candidates.CID in (" + seedCandidates + ") "
-                + "and DirectOrIndirect in (" + contributionTypes + ") "
-                + "group by PACShort, CmteID, " + innerGroupByTargets + "DirectOrIndirect, Type) "
-            + "as Subquery order by Amount desc ";
+        "select pacshort as source, cmteid as sourceid, " + outerSelectTargets
+            + "directorindirect, type, totalamount as amount from "
+            + "(select pacshort, cmteid, " + innerSelectTargets + "directorindirect, Type, "
+                + "sum(amount) as totalamount from PACsToCandidates "
+                + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
+                + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
+                + "where Candidates.cid in (" + seedCandidates + ") "
+                + "and directorindirect in (" + contributionTypes + ") "
+                + "group by pacshort, cmteid, " + innerGroupByTargets + "directorindirect, Type) "
+            + "as Subquery order by amount desc ";
   } else if (groupContributionsBy == "Industry") {
     sqlQuery =
-        "select CatName as source, CatCode as sourceId, " + outerSelectTargets
-            + "DirectOrIndirect, Type, totalAmount as Amount from "
-            + "(select CatName, CatCode, " + innerSelectTargets + "DirectOrIndirect, Type, "
-                + "sum(Amount) as totalAmount from PACsToCandidates "
-                + "inner join Candidates inner join Committees inner join Categories "
-                    + "on PACsToCandidates.CID = Candidates.CID "
-                    + "and PACsToCandidates.PACID = Committees.CmteID "
-                    + "and Categories.CatCode = Committees.PrimCode "
-                + "where Candidates.CID in (" + seedCandidates + ") "
-                + "and DirectOrIndirect in (" + contributionTypes + ") "
-                + "group by CatName, CatCode, " + innerGroupByTargets + "DirectOrIndirect) "
-                + "order by Amount desc ";
+        "select catname as source, catcode as sourceid, " + outerSelectTargets
+            + "directorindirect, type, totalamount as amount from "
+            + "(select catname, catcode, " + innerSelectTargets + "directorindirect, type, "
+                + "sum(amount) as totalamount from PACsToCandidates "
+                + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
+                + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
+                + "inner join Categories on Categories.catcode = Committees.primcode "
+                + "where Candidates.cid in (" + seedCandidates + ") "
+                + "and directorindirect in (" + contributionTypes + ") "
+                + "group by catname, catcode, " + innerGroupByTargets + "directorindirect) "
+            + "as Subquery order by amount desc ";
   } else if (groupContributionsBy == "Sector") {
     sqlQuery =
-      "select Sector as source, Sector as sourceId, " + outerSelectTargets
-          + "DirectOrIndirect, Type, totalAmount as Amount from "
-          + "(select Sector, " + innerSelectTargets + "DirectOrIndirect, Type, "
-              + "sum(Amount) as totalAmount from PACsToCandidates "
-              + "inner join Candidates inner join Committees inner join Categories "
-                  + "on PACsToCandidates.CID = Candidates.CID "
-                  + "and PACsToCandidates.PACID = Committees.CmteID "
-                  + "and Categories.CatCode = Committees.PrimCode "
-              + "where Candidates.CID in (" + seedCandidates + ") "
-              + "and DirectOrIndirect in (" + contributionTypes + ") "
-              + "group by Sector, " + innerGroupByTargets + "DirectOrIndirect, Type) "
-              + "order by Amount desc ";
+      "select sector as source, sector as sourceid, " + outerSelectTargets
+          + "directorindirect, type, totalamount as amount from "
+          + "(select sector, " + innerSelectTargets + "directorindirect, type, "
+              + "sum(amount) as totalamount from PACsToCandidates "
+              + "inner join Candidates on PACsToCandidates.cid = Candidates.cid " +
+              + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
+              + "inner join Categories on Categories.catcode = Committees.primcode "
+              + "where Candidates.cid in (" + seedCandidates + ") "
+              + "and directorindirect in (" + contributionTypes + ") "
+              + "group by sector, " + innerGroupByTargets + "directorindirect, type) "
+          + "as Subquery order by amount desc ";
   } else {
     // TODO
   }
@@ -196,7 +194,7 @@ function queryContributions(req, res) {
 }
       
 function queryAllCandidates(req, res) {
-  var sqlQuery = "select distinct CID, FirstLastP from Candidates where Cycle = '2014' "
+  var sqlQuery = "select distinct cid, FirstLastP from Candidates where Cycle = '2014' "
     + "and CycleCand = 'Y' order by FirstLastP asc";
   console.log("SQL query for list of candidates: " + sqlQuery);
   res.writeHead(200, {"Content-Type": "application/json"});
