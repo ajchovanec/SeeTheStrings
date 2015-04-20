@@ -58,7 +58,7 @@
   <h2>Ready to build your visualization?</h2>
   Let's get started then.
   <br><br>
-  <form id="graphForm" action="graph.html" method="GET">
+  <form id="graphForm" action="graph.html" method="GET" target="blank_">
     Which candidates' 2014 campaign contributions would you like to see? (Select one or more.)
     <br>
     <select id="candidatesList" name="candidates" multiple="multiple" size=20>
@@ -97,7 +97,8 @@
     <br>
     <input name="maxContributionLinks" type="text" value=5>
     <br><br><br><br>
-    <input type="button" style="width:400px;font-size:16pt" onclick="document.getElementById('graphForm').submit()" value="See the contributions!">
+    <input type="button" style="width:400px;font-size:16pt"
+        onclick="document.getElementById('graphForm').submit()" value="See the contributions!">
     <br><br><br><br>
   </form>
 </body>
