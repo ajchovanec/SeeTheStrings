@@ -7,7 +7,8 @@ var DBWrapper = require('node-dbi').DBWrapper;
 
 var port = process.env.PORT || 3000;
 
-var dbWrapper;
+var dbType;
+var dbConnectionConfig;
 switch (process.env.DB_INSTANCE) {
 case "heroku":
   function getEnvVarOrDie(envVarName) {
@@ -19,25 +20,29 @@ case "heroku":
     }
     return envVar;
   }
-  var dbConnectionConfig = {
+  dbType = "pg";
+  dbConnectionConfig = {
     host: getEnvVarOrDie("PG_HOST"),
     user: getEnvVarOrDie("PG_USER"),
     password: getEnvVarOrDie("PG_PASSWORD"),
     database: getEnvVarOrDie("PG_DATABASE")
   };
-  dbWrapper = new DBWrapper('pg', dbConnectionConfig);
   break;
 default:
   console.log("DB_INSTANCE environment variable not set. Defaulting to 'local'.")
 case "local":
-  var dbConnectionConfig = { path: "data/sqlite/CampaignFin14.db" };
-  dbWrapper = new DBWrapper('sqlite3', dbConnectionConfig);
+  dbType = "sqlite3";
+  dbConnectionConfig = { path: "data/sqlite/CampaignFin14.db" };
 };
 var loggableDbConnectionConfig = dbConnectionConfig;
 if (loggableDbConnectionConfig.password != null) {
   loggableDbConnectionConfig.password = "[redacted]";
 }
-console.log("Setting up database configuration: " + JSON.stringify(loggableDbConnectionConfig));
+console.log("Using database configuration: " + JSON.stringify(loggableDbConnectionConfig));
+
+function getDbWrapper() {
+  return new DBWrapper(dbType, dbConnectionConfig);
+}
 
 function queryContributions(req, res) {
   // TODO: Figure out how to display both positive and negative contributions from the same source.
@@ -173,12 +178,12 @@ function queryContributions(req, res) {
     }
   }
 
+  var dbWrapper = getDbWrapper();
   dbWrapper.connect();
   console.log("SQL query: " + sqlQuery);
   dbWrapper.fetchAll(sqlQuery,
       null,
       function(err, result) {
-        dbWrapper.close(function(err) { console.log('Connection closed !'); });
         if (err != null) {
           console.log("queryAllCandidatesError: " + JSON.stringify(err));
           // TODO: Should we exit here?
@@ -190,6 +195,7 @@ function queryContributions(req, res) {
           console.log("Adding aggregate link with key: " + contributionKey);
         }
         console.log(JSON.stringify(links));
+        dbWrapper.close(function(err) { console.log('Connection closed!'); });
         res.write(JSON.stringify(links));
         res.end();
       });
@@ -201,6 +207,7 @@ function queryAllCandidates(req, res) {
   console.log("SQL query for list of candidates: " + sqlQuery);
   res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
+  var dbWrapper = getDbWrapper();
   dbWrapper.connect();
   dbWrapper.fetchAll(sqlQuery,
       null,
@@ -213,7 +220,7 @@ function queryAllCandidates(req, res) {
         result.forEach(function(row) {
           candidates.push(row);
         });
-        dbWrapper.close(function(err) { console.log('Connection closed !'); });
+        dbWrapper.close(function(err) { console.log('Connection closed!'); });
         res.write(JSON.stringify(candidates));
         res.end();
       });
