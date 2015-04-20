@@ -4,6 +4,7 @@ var Router = require('router')
 var Url = require('url');
 var ServeStatic = require('serve-static')
 var DBWrapper = require('node-dbi').DBWrapper;
+var CacheManager = require('cache-manager');
 
 var port = process.env.PORT || 3000;
 
@@ -36,8 +37,27 @@ case "local":
 };
 console.log("Using database type " + dbType);
 
+var memoryCache = CacheManager.caching({store: 'memory', max: 10, ttl: 604800 /* 1 week */});
 function getDbWrapper() {
-  return new DBWrapper(dbType, dbConnectionConfig);
+  var cachingDbWrapper = {
+    dbWrapper: new DBWrapper(dbType, dbConnectionConfig),
+    connect:
+        function() {
+          this.dbWrapper.connect();
+        },
+    fetchAll:
+        function(sqlQuery, callback) {
+          var parentDbWrapper = this.dbWrapper;
+          memoryCache.wrap(
+              sqlQuery,
+              function (cacheCallback) {
+                parentDbWrapper.fetchAll(sqlQuery, null, cacheCallback);
+              },
+              100,
+              callback);
+        }
+  };
+  return cachingDbWrapper;
 }
 
 function queryContributions(req, res) {
@@ -175,10 +195,9 @@ function queryContributions(req, res) {
   dbWrapper.connect();
   console.log("SQL query: " + sqlQuery);
   dbWrapper.fetchAll(sqlQuery,
-      null,
       function(err, result) {
         if (err != null) {
-          console.log("queryAllCandidatesError: " + JSON.stringify(err));
+          console.log("query error: " + JSON.stringify(err));
           // TODO: Should we exit here?
         }
         console.log("Got " + result.length + " raw links ");
@@ -202,10 +221,9 @@ function queryAllCandidates(req, res) {
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
   dbWrapper.fetchAll(sqlQuery,
-      null,
       function(err, result) {
         if (err != null) {
-          console.log("queryAllCandidatesError: " + JSON.stringify(err));
+          console.log("queryAllCandidates error: " + JSON.stringify(err));
           // TODO: Should we exit here?
         }
         console.log("Got a list of " + result.length + " candidates");
