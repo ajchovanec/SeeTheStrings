@@ -189,7 +189,6 @@ function queryContributions(req, res) {
           links.push(aggregateLinks[contributionKey]);
           console.log("Adding aggregate link with key: " + contributionKey);
         }
-        console.log(JSON.stringify(links));
         //dbWrapper.close(function(err) { console.log('Connection closed!'); });
         res.write(JSON.stringify(links));
         res.end();
