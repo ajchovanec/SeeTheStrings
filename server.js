@@ -45,7 +45,7 @@ function getDbWrapper() {
         function() {
           this.dbWrapper.connect();
         },
-    fetchCached:
+    fetchRenamed:
         function(sqlQuery, callback) {
           var parentDbWrapper = this.dbWrapper;
           memoryCache.wrap(
@@ -194,7 +194,7 @@ function queryContributions(req, res) {
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
   console.log("SQL query: " + sqlQuery);
-  dbWrapper.fetchCached(sqlQuery,
+  dbWrapper.fetchRenamed(sqlQuery,
       function(err, result) {
         if (err != null) {
           console.log("query error: " + JSON.stringify(err));
@@ -214,13 +214,13 @@ function queryContributions(req, res) {
       
 function queryAllCandidates(req, res) {
   var sqlQuery = "select distinct cid, firstlastp from Candidates where cycle = '2014' "
-    + "and cyclecand = 'Y' order by firstlastp asc";
+      + "and cyclecand = 'Y' order by firstlastp asc ";
   console.log("SQL query for list of candidates: " + sqlQuery);
   res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
-  dbWrapper.fetchCached(sqlQuery,
+  dbWrapper.fetchRenamed(sqlQuery,
       function(err, result) {
         if (err != null) {
           console.log("queryAllCandidates error: " + JSON.stringify(err));
