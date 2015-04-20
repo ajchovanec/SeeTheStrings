@@ -60,7 +60,7 @@
   <br><br>
   <form id="graphForm" action="graph.html" method="GET">
     Which candidates' 2014 campaign contributions would you like to see? (Select one or more.)
-    <br><br>
+    <br>
     <select id="candidatesList" name="candidates" multiple="multiple" size=20>
     </select>
     <br><br>
@@ -92,7 +92,9 @@
     <input type="checkbox" name="contributionTypes" value="'I'" checked="true">
       Indirect expenditures to influence candidates' election prospects
     <br><br>
-    What's the max number of "links" you'd like to see per contribution type, per candidate?
+    What's the max number of "links" you'd like to see per contribution type, per candidate
+    (or for all of the selected candidates if you chose that option)?
+    <br>
     <input name="maxContributionLinks" type="text" value=5>
     <br><br><br><br>
     <input type="button" style="width:400px;font-size:16pt" onclick="document.getElementById('graphForm').submit()" value="See the contributions!">
