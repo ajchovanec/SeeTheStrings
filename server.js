@@ -34,11 +34,7 @@ case "local":
   dbType = "sqlite3";
   dbConnectionConfig = { path: "data/sqlite/CampaignFin14.db" };
 };
-var loggableDbConnectionConfig = dbConnectionConfig;
-if (loggableDbConnectionConfig.password != null) {
-  loggableDbConnectionConfig.password = "[redacted]";
-}
-console.log("Using database configuration: " + JSON.stringify(loggableDbConnectionConfig));
+console.log("Using database type " + dbType);
 
 function getDbWrapper() {
   return new DBWrapper(dbType, dbConnectionConfig);
@@ -195,7 +191,7 @@ function queryContributions(req, res) {
           console.log("Adding aggregate link with key: " + contributionKey);
         }
         console.log(JSON.stringify(links));
-        dbWrapper.close(function(err) { console.log('Connection closed!'); });
+        //dbWrapper.close(function(err) { console.log('Connection closed!'); });
         res.write(JSON.stringify(links));
         res.end();
       });
@@ -220,7 +216,7 @@ function queryAllCandidates(req, res) {
         result.forEach(function(row) {
           candidates.push(row);
         });
-        dbWrapper.close(function(err) { console.log('Connection closed!'); });
+        //dbWrapper.close(function(err) { console.log('Connection closed!'); });
         res.write(JSON.stringify(candidates));
         res.end();
       });
