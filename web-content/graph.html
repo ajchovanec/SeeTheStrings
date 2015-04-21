@@ -173,8 +173,7 @@ function doStuff(err, links) {
 
   function linkLine(d) {
     var dx = d.target.x - d.source.x,
-        dy = d.target.y - d.source.y,
-        dr = Math.sqrt(dx * dx + dy * dy);
+        dy = d.target.y - d.source.y;
     return "M" + d.source.x + "," + d.source.y + "L" + d.target.x + "," + d.target.y;
   }
 
