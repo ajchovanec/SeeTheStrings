@@ -163,11 +163,12 @@ function doStuff(err, links) {
       .attr("y", ".31em")
       .text(function(d) { return d.label; });
 
-  // TODO: Considre going back to elliptical arc path segments to doubly-encode directionality.
+  // TODO: Consider going back to elliptical arc path segments to doubly-encode directionality.
   function tick() {
     path.attr("d", linkLine);
     circle.attr("transform", transformNodes);
     nodeText.attr("transform", transformNodes);
+    
     linkText.attr("transform", transformLinkText);
   }
 
