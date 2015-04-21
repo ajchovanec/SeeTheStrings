@@ -45,12 +45,13 @@ function getDbWrapper() {
         function() {
           this.dbWrapper.connect();
         },
-    fetchRenamed:
+    fetchAll:
         function(sqlQuery, callback) {
           var parentDbWrapper = this.dbWrapper;
           memoryCache.wrap(
               sqlQuery,
               function (cacheCallback) {
+                console.log("Cache miss, querying the SQL database")
                 parentDbWrapper.fetchAll(sqlQuery, null, cacheCallback);
               },
               604800 /* 1 week */,
@@ -194,7 +195,7 @@ function queryContributions(req, res) {
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
   console.log("SQL query: " + sqlQuery);
-  dbWrapper.fetchRenamed(sqlQuery,
+  dbWrapper.fetchAll(sqlQuery,
       function(err, result) {
         if (err != null) {
           console.log("query error: " + JSON.stringify(err));
@@ -220,7 +221,7 @@ function queryAllCandidates(req, res) {
   var candidates = [];
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
-  dbWrapper.fetchRenamed(sqlQuery,
+  dbWrapper.fetchAll(sqlQuery,
       function(err, result) {
         if (err != null) {
           console.log("queryAllCandidates error: " + JSON.stringify(err));
