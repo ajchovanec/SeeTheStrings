@@ -163,20 +163,19 @@ function doStuff(err, links) {
       .attr("y", ".31em")
       .text(function(d) { return d.label; });
 
-  // Use elliptical arc path segments to doubly-encode directionality.
+  // TODO: Considre going back to elliptical arc path segments to doubly-encode directionality.
   function tick() {
-    path.attr("d", linkArc);
+    path.attr("d", linkLine);
     circle.attr("transform", transformNodes);
     nodeText.attr("transform", transformNodes);
     linkText.attr("transform", transformLinks);
   }
 
-  function linkArc(d) {
+  function linkLine(d) {
     var dx = d.target.x - d.source.x,
         dy = d.target.y - d.source.y,
         dr = Math.sqrt(dx * dx + dy * dy);
-    return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 "
-        + d.target.x + "," + d.target.y;
+    return "M" + d.source.x + "," + d.source.y + "L" + d.target.x + "," + d.target.y;
   }
 
   function transformNodes(d) {
