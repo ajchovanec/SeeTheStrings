@@ -168,7 +168,7 @@ function doStuff(err, links) {
     path.attr("d", linkLine);
     circle.attr("transform", transformNodes);
     nodeText.attr("transform", transformNodes);
-    linkText.attr("transform", transformLinks);
+    linkText.attr("transform", transformLinkText);
   }
 
   function linkLine(d) {
@@ -181,7 +181,7 @@ function doStuff(err, links) {
     return "translate(" + d.x + "," + d.y + ")";
   }
 
-  function transformLinks(d) {
+  function transformLinkText(d) {
     return "translate(" + (d.source.x + d.target.x) / 2 + "," + (d.source.y + d.target.y) / 2 + ")";
   }
 }
