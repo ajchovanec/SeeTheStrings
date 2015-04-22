@@ -139,32 +139,35 @@ function queryContributions(req, res) {
   }
 
   var links = [];
+  var linkExistenceMap = {};
   var aggregateLinks = {};
-  var contributionCounts = {};
-  var negContributionCounte = {};
+  var linkCounts = {};
 
   function handleOneRow(row) {
     // TODO: Find a way to keep multiple links for contributions of separate types from the same
     // to the same target from being superimposed on top of each other.
     var isAgainst = (["24A", "24N"].indexOf(row.type) != -1);
-    var contributionKey = "key " + row.targetid + " " + row.directorindirect + " " + isAgainst;
-    var numContributions =
-        contributionCounts[contributionKey] || (contributionCounts[contributionKey] = 0);
+    var targetAndType = "key " + row.targetid + " " + row.directorindirect + " " + isAgainst;
+    var numLinks = linkCounts[targetAndType] || (linkCounts[targetAndType] = 0);
 
-    if (numContributions < maxContributionLinks) {
-      row.isAgainst = isAgainst
+    if (numLinks < maxContributionLinks || linkExistenceMap[row.sourceid + ", " + row.targetid]) {
+      row.isAgainst = isAgainst;
       row.style = linkStyleMapping[row.directorindirect][isAgainst];
       row.color = markerColorMapping[isAgainst];
       row.isRefund = row.amount < 0 ? true : false;
       row.label = (row.amount >= 0 ? "+" : "-") + "$" + Math.abs(row.amount);
       links.push(row);
-      contributionCounts[contributionKey] = numContributions + 1;
+      linkCounts[targetAndType] = numLinks + 1;
+      // TODO: Uncomment this once there's a better way to render multiple links between the same
+      // two nodes.
+      //
+      //linkExistenceMap[row.sourceid + ", " + row.targetid] = true;
     } else {
-      var existingAggregateLink = aggregateLinks[contributionKey];
+      var existingAggregateLink = aggregateLinks[targetAndType];
       if (existingAggregateLink) {
         var newAmount = existingAggregateLink.amount + row.amount;
-        aggregateLinks[contributionKey] = {
-          "sourceid": contributionKey,
+        aggregateLinks[targetAndType] = {
+          "sourceid": targetAndType,
           "source": "Misc contributors",
           "targetid": row.targetid,
           "target": row.target,
@@ -176,8 +179,8 @@ function queryContributions(req, res) {
           "isRefund": newAmount < 0 ? true : false
         };
       } else {
-        aggregateLinks[contributionKey] = {
-          "sourceid": contributionKey,
+        aggregateLinks[targetAndType] = {
+          "sourceid": targetAndType,
           "source": "Misc contributors",
           "targetid": row.targetid,
           "target": row.target,
