@@ -165,7 +165,7 @@ function queryContributions(req, res) {
         var newAmount = existingAggregateLink.amount + row.amount;
         aggregateLinks[contributionKey] = {
           "sourceid": contributionKey,
-          "source": "Misc. contributors",
+          "source": "Misc contributors",
           "targetid": row.targetid,
           "target": row.target,
           "amount": newAmount,
@@ -178,7 +178,7 @@ function queryContributions(req, res) {
       } else {
         aggregateLinks[contributionKey] = {
           "sourceid": contributionKey,
-          "source": row.source,
+          "source": "Misc contributors",
           "targetid": row.targetid,
           "target": row.target,
           "amount": row.amount,
