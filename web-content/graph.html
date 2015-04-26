@@ -61,7 +61,7 @@ text {
 
 </style>
 <head>
-  <!-- TODO: What Content-Type should we set here?ß -->
+  <!-- TODO: What Content-Type should we set here? -->
   <link rel="shortcut icon" type="image/jpg" href="marionette.jpg" />
   <title>"See the Strings"</title>
 </head>
@@ -90,11 +90,21 @@ function doStuff(err, links) {
       function(link) {
         var reportedSource = nodes[link.sourceid] ||
             (nodes[link.sourceid] = {
-              name: link.source
+              name: link.source,
+              id: link.sourceid,
+              // TODO: We may need this if we start supportig
+              //party: link.party
             });
+        // TODO: What if the aggregate link is a net refund?
+        if (link.subLinks != null) {
+          reportedSource.outgoingAggregateLink = link;
+          console.log("Top level aggregate link has " + link.subLinks.length + " sublinks. First two "
+              + "have values " + link.subLinks[0].amount + ", " + link.subLinks[1].amount);
+        }
         var reportedTarget = nodes[link.targetid] ||
             (nodes[link.targetid] = {
               name: link.target,
+              id: link.targetid,
               party: link.party
             });
         link.source = link.isRefund ? reportedTarget : reportedSource;
@@ -133,32 +143,39 @@ function doStuff(err, links) {
     .append("path")
       .attr("d", "M0,-5L10,0L0,5");
 
-  var path = svg.append("g").selectAll("path")
+  var path = svg.append("g").attr("class", "gPaths").selectAll("path")
       .data(force.links())
     .enter().append("path")
       .attr("class", function(d) { return "link " + d.style; })
       .attr("marker-end", function(d) { return "url(#" + d.color + ")"; });
 
-  var circle = svg.append("g").selectAll("circle")
+  var circle = svg.append("g").attr("class", "gCircles").selectAll("circle")
       .data(force.nodes())
     .enter().append("circle")
       .attr("r", 6)
+      .attr("nodeId",
+          function (d) {
+            return d.id;
+          })
       .attr("class",
           function (d) {
             return "circle " + (d.party != null ? getStyleForParty(d.party) : "gray");
           })
+      .on("dblclick", dblclick)
       .call(force.drag);
 
-  var nodeText = svg.append("g").selectAll("text")
+  var nodeText = svg.append("g").attr("class", "gTextNode").selectAll(".textNode")
       .data(force.nodes())
     .enter().append("text")
+      .attr("class", "textNode")
       .attr("x", "8")
       .attr("y", ".31em")
       .text(function(d) { return d.name; });
  
-  var linkText = svg.append("g").selectAll("text")
+  var linkText = svg.append("g").attr("class", "gTextLink").selectAll(".textLink")
       .data(force.links())
     .enter().append("text")
+      .attr("class", "textLink")
       .attr("x", "-8")
       .attr("y", ".31em")
       .text(function(d) { return d.label; });
@@ -183,6 +200,113 @@ function doStuff(err, links) {
 
   function transformLinkText(d) {
     return "translate(" + (d.source.x + d.target.x) / 2 + "," + (d.source.y + d.target.y) / 2 + ")";
+  }
+
+  // action to take on mouse double click
+  function dblclick() {
+    var nodeId = d3.select(this).attr("nodeId");
+    var clickedNode = null;  // = force.nodes()[nodeId];  // nodes[nodeId]
+    var forceNodes = force.nodes();
+    var forceLinks = force.links();
+    for (i = 0; i < forceNodes.length; ++i) {
+      if (forceNodes[i]["id"] == nodeId) {
+        clickedNode = forceNodes[i];
+        break;
+      }
+    }
+    if (clickedNode == null) {
+      return;
+    }
+    if (clickedNode["outgoingAggregateLink"]) {
+      console.log("Link for clicked node has " + clickedNode.outgoingAggregateLink.subLinks.length + " sub links");
+      var subLinks = clickedNode.outgoingAggregateLink.subLinks;
+      for (i = 0; i < subLinks.length; ++i) {
+        var link = subLinks[i];
+        console.log("Sub link " + i + " has amount " + link.amount);
+        var reportedSource = nodes[link.sourceid];  // should get fully populated value from force?
+        if (reportedSource == null) {
+          reportedSource = nodes[link.sourceid] = {
+            name: link.source,
+            id: link.sourceid,
+            x: clickedNode.x,
+            y: clickedNode.y
+            // TODO: We may need this if we start supportig
+            //party: link.party
+          };
+          console.log("Adding new source node " + reportedSource.name + " at " + reportedSource.x
+              + ", " + reportedSource.y);
+          forceNodes.push(reportedSource);
+        }
+        // TODO: What if the aggregate link is a net refund?
+        if (link.subLinks != null) {
+          reportedSource.outgoingAggregateLink = link;
+        }
+        var reportedTarget = nodes[link.targetid];  // should get fully populated value from force?
+        if (reportedTarget == null) {
+          reportedTarget = nodes[link.targetid] = {
+            name: link.target,
+            id: link.targetid,
+            party: link.party
+          };
+          forceNodes.push(reportedTarget);
+        }
+        link.source = link.isRefund ? reportedTarget : reportedSource;
+        link.target = link.isRefund ? reportedSource : reportedTarget;
+        link.isRefund = null;
+        // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
+        // data().enter() may not return the new version of the link, in which case, style and color
+        // changes might not take effect.
+        var replaced = false;
+        for (j = 0; j < forceLinks.length; ++j) {
+          if (forceLinks[j].id == link.id) {
+            forceLinks[j] = link;
+            replaced = true;
+            console.log("Replacing an existing link");
+            break;
+          }
+        }
+        if (!replaced) {
+          forceLinks.push(link);
+          console.log("Appending a new link")
+        }
+      }
+
+      path = svg.select(".gPaths").selectAll("path")
+          .data(forceLinks, function(d) { return d.id + "; " + d.amount; });
+      path.exit().remove();
+      path.enter().append("path")
+          .attr("class", function(d) { return "link " + d.style; })
+          .attr("marker-end", function(d) { return "url(#" + d.color + ")"; });
+
+      circle = svg.select(".gCircles").selectAll("circle").data(forceNodes);
+      circle.enter().append("circle")
+          .attr("r", 6)
+          .attr("nodeId", function (d) { return d.id; })
+          .attr("class",
+              function (d) {
+                return "circle " + (d.party != null ? getStyleForParty(d.party) : "gray");
+              })
+          .on("dblclick", dblclick)
+          .call(force.drag);
+
+      nodeText = svg.select(".gTextNode").selectAll(".textNode").data(forceNodes);
+      nodeText.enter().append("text")
+          .attr("class", "textNode")
+          .attr("x", "8")
+          .attr("y", ".31em")
+          .text(function(d) { return d.name; });
+
+      linkText = svg.select(".gTextLink").selectAll(".textLink")
+          .data(forceLinks, function(d) { return d.id + "; " + d.amount; });
+      linkText.exit().remove();
+      linkText.enter().append("text")
+          .attr("class", "textLink")
+          .attr("x", "-8")
+          .attr("y", ".31em")
+          .text(function(d) { return d.label; });
+
+      force.start();
+    }
   }
 }
 

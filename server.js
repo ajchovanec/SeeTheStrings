@@ -143,6 +143,25 @@ function queryContributions(req, res) {
   var aggregateLinks = {};
   var linkCounts = {};
 
+  function newAggregateLink(sourceid, firstLink, isAgainst, style, color) {
+    var newLink = {
+      "id": sourceid,  // == targetAndType
+      "sourceid": sourceid,
+      "source": "Misc contributors",
+      "targetid": firstLink.targetid,
+      "target": firstLink.target,
+      "amount": firstLink.amount,
+      "label": (firstLink.amount >= 0 ? "+" : "-") + "$" + Math.abs(firstLink.amount),
+      "isAgainst": isAgainst,
+      "style": style,
+      "color": markerColorMapping[isAgainst],
+      "isRefund": firstLink.amount < 0 ? true : false,
+      "subLinks": [ firstLink ]
+    };
+    console.log("New aggregate link for " + sourceid + " with amount " + firstLink.amount);
+    return newLink;
+  }
+
   function handleOneRow(row) {
     // TODO: Find a way to keep multiple links for contributions of separate types from the same
     // to the same target from being superimposed on top of each other.
@@ -150,12 +169,15 @@ function queryContributions(req, res) {
     var targetAndType = "key " + row.targetid + " " + row.directorindirect + " " + isAgainst;
     var numLinks = linkCounts[targetAndType] || (linkCounts[targetAndType] = 0);
 
+    row.id = row.sourceid + "; " + targetAndType;
+    row.isAgainst = isAgainst;
+    row.style = linkStyleMapping[row.directorindirect][isAgainst];
+    row.color = markerColorMapping[isAgainst];
+    // TODO: Revisit logic around the display of refunds. If we're going to reverse the direction of
+    // the arrow, should we also drop the minus sign?
+    row.isRefund = row.amount < 0 ? true : false;
+    row.label = (row.amount >= 0 ? "+" : "-") + "$" + Math.abs(row.amount);
     if (numLinks < maxContributionLinks || linkExistenceMap[row.sourceid + ", " + row.targetid]) {
-      row.isAgainst = isAgainst;
-      row.style = linkStyleMapping[row.directorindirect][isAgainst];
-      row.color = markerColorMapping[isAgainst];
-      row.isRefund = row.amount < 0 ? true : false;
-      row.label = (row.amount >= 0 ? "+" : "-") + "$" + Math.abs(row.amount);
       links.push(row);
       linkCounts[targetAndType] = numLinks + 1;
       // TODO: Uncomment this once there's a better way to render multiple links between the same
@@ -166,31 +188,20 @@ function queryContributions(req, res) {
       var existingAggregateLink = aggregateLinks[targetAndType];
       if (existingAggregateLink) {
         var newAmount = existingAggregateLink.amount + row.amount;
-        aggregateLinks[targetAndType] = {
-          "sourceid": targetAndType,
-          "source": "Misc contributors",
-          "targetid": row.targetid,
-          "target": row.target,
-          "amount": newAmount,
-          "label": (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount),
-          "isAgainst": isAgainst,
-          "style": linkStyleMapping[row.directorindirect][isAgainst],
-          "color": markerColorMapping[isAgainst],
-          "isRefund": newAmount < 0 ? true : false
-        };
+        if (existingAggregateLink.subLinks.length >= maxContributionLinks) {
+          aggregateLinks[targetAndType] = newAggregateLink(targetAndType, existingAggregateLink,
+              isAgainst, linkStyleMapping[row.directorindirect][isAgainst],
+              markerColorMapping[isAgainst]);
+        }
+        aggregateLinks[targetAndType].subLinks.push(row);
+        aggregateLinks[targetAndType].amount = newAmount;
+        aggregateLinks[targetAndType].label =
+            (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount);
+        aggregateLinks[targetAndType].isRefund = (newAmount < 0) ? true : false;
       } else {
-        aggregateLinks[targetAndType] = {
-          "sourceid": targetAndType,
-          "source": "Misc contributors",
-          "targetid": row.targetid,
-          "target": row.target,
-          "amount": row.amount,
-          "label": (row.amount >= 0 ? "+" : "-") + "$" + Math.abs(row.amount),
-          "isAgainst": isAgainst,
-          "style": linkStyleMapping[row.directorindirect][isAgainst],
-          "color": markerColorMapping[isAgainst],
-          "isRefund": row.amount < 0 ? true : false
-        };
+        aggregateLinks[targetAndType] = newAggregateLink(targetAndType, row,
+            isAgainst, linkStyleMapping[row.directorindirect][isAgainst],
+            markerColorMapping[isAgainst]);
       }
     }
   }
@@ -208,7 +219,7 @@ function queryContributions(req, res) {
         result.forEach(handleOneRow);
         for (var contributionKey in aggregateLinks) {
           links.push(aggregateLinks[contributionKey]);
-          console.log("Adding aggregate link with key: " + contributionKey);
+          //console.log("Adding aggregate link with key: " + contributionKey);
         }
         //dbWrapper.close(function(err) { console.log('Connection closed!'); });
         res.write(JSON.stringify(links));
