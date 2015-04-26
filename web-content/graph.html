@@ -77,6 +77,11 @@ text {
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
 
+var isAgainstToMarkerColor = {
+  "true": "red",
+  "false": "black"
+}
+
 function getStyleForParty(party) {
   switch (party) {
   case "R": return "red";
@@ -162,7 +167,10 @@ function doStuff(err, links) {
       .data(force.links())
     .enter().append("path")
       .attr("class", function(d) { return "link " + d.style; })
-      .attr("marker-end", function(d) { return "url(#" + d.color + ")"; });
+      .attr("marker-end",
+          function(d) {
+            return "url(#" + isAgainstToMarkerColor[d.isAgainst] + ")";
+          });
 
   var circle = svg.append("g").attr("class", "gCircles").selectAll("circle")
       .data(force.nodes())
@@ -316,7 +324,10 @@ function doStuff(err, links) {
       path.exit().remove();
       path.enter().append("path")
           .attr("class", function(d) { return "link " + d.style; })
-          .attr("marker-end", function(d) { return "url(#" + d.color + ")"; });
+          .attr("marker-end",
+              function(d) {
+                return "url(#" + isAgainstToMarkerColor[d.isAgaist] + ")";
+              });
 
       circle = svg.select(".gCircles").selectAll("circle")
           .data(forceNodes, function(d) { return d.id + "; " + d.name; });

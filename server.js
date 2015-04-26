@@ -135,10 +135,6 @@ function queryContributions(req, res) {
       "false": "dashed gray",
     },
   }
-  var markerColorMapping = {
-    "true": "red",
-    "false": "black"
-  }
 
   var links = [];
   var linkExistenceMap = {};
@@ -146,7 +142,7 @@ function queryContributions(req, res) {
   var aggregateLinks = {};
   var linkCounts = {};
 
-  function newAggregateLink(sourceid, firstLink, isAgainst, style, color) {
+  function newAggregateLink(sourceid, firstLink, isAgainst, style) {
     var newCount = firstLink.count || 1;
     var newLink = {
       "id": sourceid,  // == targetAndType
@@ -159,7 +155,6 @@ function queryContributions(req, res) {
       "label": (firstLink.amount >= 0 ? "+" : "-") + "$" + Math.abs(firstLink.amount),
       "isAgainst": isAgainst,
       "style": style,
-      "color": markerColorMapping[isAgainst],
       "isRefund": firstLink.amount < 0 ? true : false,
       "subLinks": [ firstLink ]
     };
@@ -175,7 +170,6 @@ function queryContributions(req, res) {
     row.id = row.sourceid + "; " + targetAndType;
     row.isAgainst = isAgainst;
     row.style = linkStyleMapping[row.directorindirect][isAgainst];
-    row.color = markerColorMapping[isAgainst];
     // TODO: Revisit logic around the display of refunds. If we're going to reverse the direction of
     // the arrow, should we also drop the minus sign?
     row.isRefund = row.amount < 0 ? true : false;
@@ -207,8 +201,7 @@ function queryContributions(req, res) {
       var newCount = existingAggregateLink.count + 1;
       if (existingAggregateLink.subLinks.length > newLinksPerExpansion) {
         aggregateLinks[targetAndType] = newAggregateLink(targetAndType, existingAggregateLink,
-            row.isAgainst, linkStyleMapping[row.directorindirect][row.isAgainst],
-            markerColorMapping[row.isAgainst]);
+            row.isAgainst, linkStyleMapping[row.directorindirect][row.isAgainst]);
       }
       aggregateLinks[targetAndType].subLinks.push(row);
       aggregateLinks[targetAndType].count = newCount;
@@ -219,8 +212,7 @@ function queryContributions(req, res) {
       aggregateLinks[targetAndType].isRefund = (newAmount < 0) ? true : false;
     } else {
       aggregateLinks[targetAndType] = newAggregateLink(targetAndType, row,
-          row.isAgainst, linkStyleMapping[row.directorindirect][row.isAgainst],
-          markerColorMapping[row.isAgainst]);
+          row.isAgainst, linkStyleMapping[row.directorindirect][row.isAgainst]);
     }
   }
 
