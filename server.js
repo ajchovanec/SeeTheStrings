@@ -140,6 +140,7 @@ function queryContributions(req, res) {
 
   var links = [];
   var linkExistenceMap = {};
+  var linksToAggregate = [];
   var aggregateLinks = {};
   var linkCounts = {};
 
@@ -163,8 +164,6 @@ function queryContributions(req, res) {
   }
 
   function handleOneRow(row) {
-    // TODO: Find a way to keep multiple links for contributions of separate types from the same
-    // to the same target from being superimposed on top of each other.
     var isAgainst = (["24A", "24N"].indexOf(row.type) != -1);
     var targetAndType = "key " + row.targetid + " " + row.directorindirect + " " + isAgainst;
     var numLinks = linkCounts[targetAndType] || (linkCounts[targetAndType] = 0);
@@ -177,6 +176,7 @@ function queryContributions(req, res) {
     // the arrow, should we also drop the minus sign?
     row.isRefund = row.amount < 0 ? true : false;
     row.label = (row.amount >= 0 ? "+" : "-") + "$" + Math.abs(row.amount);
+
     if (numLinks < maxContributionLinks || linkExistenceMap[row.sourceid + ", " + row.targetid]) {
       links.push(row);
       linkCounts[targetAndType] = numLinks + 1;
@@ -185,24 +185,34 @@ function queryContributions(req, res) {
       //
       //linkExistenceMap[row.sourceid + ", " + row.targetid] = true;
     } else {
-      var existingAggregateLink = aggregateLinks[targetAndType];
-      if (existingAggregateLink) {
-        var newAmount = existingAggregateLink.amount + row.amount;
-        if (existingAggregateLink.subLinks.length >= maxContributionLinks) {
-          aggregateLinks[targetAndType] = newAggregateLink(targetAndType, existingAggregateLink,
-              isAgainst, linkStyleMapping[row.directorindirect][isAgainst],
-              markerColorMapping[isAgainst]);
-        }
-        aggregateLinks[targetAndType].subLinks.push(row);
-        aggregateLinks[targetAndType].amount = newAmount;
-        aggregateLinks[targetAndType].label =
-            (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount);
-        aggregateLinks[targetAndType].isRefund = (newAmount < 0) ? true : false;
-      } else {
-        aggregateLinks[targetAndType] = newAggregateLink(targetAndType, row,
-            isAgainst, linkStyleMapping[row.directorindirect][isAgainst],
-            markerColorMapping[isAgainst]);
+      // We have enough source links for this target node to display already We'll aggregate the
+      // remaining links later.
+      linksToAggregate.push(row);
+    }
+  }
+
+  function aggregateOneRow(row) {
+    // TODO: Find a way to keep multiple links for contributions of separate types from the same
+    // to the same target from being superimposed on top of each other.
+    var targetAndType = "key " + row.targetid + " " + row.directorindirect + " " + row.isAgainst;
+
+    var existingAggregateLink = aggregateLinks[targetAndType];
+    if (existingAggregateLink) {
+      var newAmount = existingAggregateLink.amount + row.amount;
+      if (existingAggregateLink.subLinks.length >= maxContributionLinks) {  // TODO: - 1
+        aggregateLinks[targetAndType] = newAggregateLink(targetAndType, existingAggregateLink,
+            row.isAgainst, linkStyleMapping[row.directorindirect][row.isAgainst],
+            markerColorMapping[row.isAgainst]);
       }
+      aggregateLinks[targetAndType].subLinks.push(row);
+      aggregateLinks[targetAndType].amount = newAmount;
+      aggregateLinks[targetAndType].label =
+          (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount);
+      aggregateLinks[targetAndType].isRefund = (newAmount < 0) ? true : false;
+    } else {
+      aggregateLinks[targetAndType] = newAggregateLink(targetAndType, row,
+          row.isAgainst, linkStyleMapping[row.directorindirect][row.isAgainst],
+          markerColorMapping[row.isAgainst]);
     }
   }
 
@@ -217,9 +227,14 @@ function queryContributions(req, res) {
         }
         console.log("Got " + result.length + " raw links ");
         result.forEach(handleOneRow);
+        // Aggregate the outstanding links in reverse order, to ensure that the ones with the
+        // highest amounts will be displayed first if the user chooses to expand them.
+        for (i = linksToAggregate.length - 1; i >= 0; --i) {
+          aggregateOneRow(linksToAggregate[i]);
+        }
         for (var contributionKey in aggregateLinks) {
           links.push(aggregateLinks[contributionKey]);
-          //console.log("Adding aggregate link with key: " + contributionKey);
+          console.log("Adding aggregate link with key: " + contributionKey);
         }
         //dbWrapper.close(function(err) { console.log('Connection closed!'); });
         res.write(JSON.stringify(links));
