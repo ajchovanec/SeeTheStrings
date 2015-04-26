@@ -145,13 +145,15 @@ function queryContributions(req, res) {
   var linkCounts = {};
 
   function newAggregateLink(sourceid, firstLink, isAgainst, style, color) {
+    var newCount = firstLink.count || 1;
     var newLink = {
       "id": sourceid,  // == targetAndType
       "sourceid": sourceid,
-      "source": "Misc contributors",
+      "source": newCount + " more contributors. Double click...",
       "targetid": firstLink.targetid,
       "target": firstLink.target,
       "amount": firstLink.amount,
+      "count": newCount,
       "label": (firstLink.amount >= 0 ? "+" : "-") + "$" + Math.abs(firstLink.amount),
       "isAgainst": isAgainst,
       "style": style,
@@ -159,7 +161,7 @@ function queryContributions(req, res) {
       "isRefund": firstLink.amount < 0 ? true : false,
       "subLinks": [ firstLink ]
     };
-    console.log("New aggregate link for " + sourceid + " with amount " + firstLink.amount);
+    //console.log("New aggregate link for " + sourceid + " with amount " + firstLink.amount);
     return newLink;
   }
 
@@ -177,7 +179,8 @@ function queryContributions(req, res) {
     row.isRefund = row.amount < 0 ? true : false;
     row.label = (row.amount >= 0 ? "+" : "-") + "$" + Math.abs(row.amount);
 
-    if (numLinks < maxContributionLinks || linkExistenceMap[row.sourceid + ", " + row.targetid]) {
+    if (numLinks < maxContributionLinks - 1
+        || linkExistenceMap[row.sourceid + ", " + row.targetid]) {
       links.push(row);
       linkCounts[targetAndType] = numLinks + 1;
       // TODO: Uncomment this once there's a better way to render multiple links between the same
@@ -199,13 +202,16 @@ function queryContributions(req, res) {
     var existingAggregateLink = aggregateLinks[targetAndType];
     if (existingAggregateLink) {
       var newAmount = existingAggregateLink.amount + row.amount;
-      if (existingAggregateLink.subLinks.length >= maxContributionLinks) {  // TODO: - 1
+      var newCount = existingAggregateLink.count + 1;
+      if (existingAggregateLink.subLinks.length > maxContributionLinks) {
         aggregateLinks[targetAndType] = newAggregateLink(targetAndType, existingAggregateLink,
             row.isAgainst, linkStyleMapping[row.directorindirect][row.isAgainst],
             markerColorMapping[row.isAgainst]);
       }
       aggregateLinks[targetAndType].subLinks.push(row);
+      aggregateLinks[targetAndType].count = newCount;
       aggregateLinks[targetAndType].amount = newAmount;
+      aggregateLinks[targetAndType].source = newCount + " more contributors. Double click..."
       aggregateLinks[targetAndType].label =
           (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount);
       aggregateLinks[targetAndType].isRefund = (newAmount < 0) ? true : false;

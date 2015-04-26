@@ -24,12 +24,17 @@
   stroke-dasharray: 0,2 1;
 }
 .link.dashed.gray {
-  stroke: #666
+  stroke: #666;
 }
 .link.dashed.red {
-  stroke: red
+  stroke: red;
 }
 
+.halo {
+  stroke: #ccc;
+  stroke-width: 4px;
+  fill: none
+}
 .circle {
   stroke: #333;
   stroke-width: 1.5px;
@@ -164,6 +169,18 @@ function doStuff(err, links) {
       .on("dblclick", dblclick)
       .call(force.drag);
 
+  var halo = svg.append("g").attr("class", "gHalos").selectAll(".halo")
+      .data(force.nodes().filter(function (d) { return d.outgoingAggregateLink != null; }))
+    .enter().append("circle")
+      .attr("r", 11)
+      .attr("nodeId",
+          function (d) {
+            return d.id;
+          })
+      .attr("class", function (d) { return "halo"; })
+      .on("dblclick", dblclick)
+      .call(force.drag);
+
   var nodeText = svg.append("g").attr("class", "gTextNode").selectAll(".textNode")
       .data(force.nodes())
     .enter().append("text")
@@ -184,6 +201,7 @@ function doStuff(err, links) {
   function tick() {
     path.attr("d", linkLine);
     circle.attr("transform", transformNodes);
+    halo.attr("transform", transformNodes);
     nodeText.attr("transform", transformNodes);
     linkText.attr("transform", transformLinkText);
   }
@@ -208,36 +226,44 @@ function doStuff(err, links) {
     var clickedNode = null;  // = force.nodes()[nodeId];  // nodes[nodeId]
     var forceNodes = force.nodes();
     var forceLinks = force.links();
-    for (i = 0; i < forceNodes.length; ++i) {
-      if (forceNodes[i]["id"] == nodeId) {
-        clickedNode = forceNodes[i];
+    var n = 0;
+    for (; n < forceNodes.length; ++n) {
+      if (forceNodes[n]["id"] == nodeId) {
+        clickedNode = forceNodes[n];
         break;
       }
     }
     if (clickedNode == null) {
       return;
     }
+    var nodeReplaced = false;
     if (clickedNode["outgoingAggregateLink"]) {
       console.log("Link for clicked node has " + clickedNode.outgoingAggregateLink.subLinks.length + " sub links");
       var subLinks = clickedNode.outgoingAggregateLink.subLinks;
       for (i = 0; i < subLinks.length; ++i) {
         var link = subLinks[i];
-        console.log("Sub link " + i + " has amount " + link.amount);
+        console.log("Sub link " + i + " has name " + link.source + " and amount " + link.amount);
         var reportedSource = nodes[link.sourceid];  // should get fully populated value from force?
-        if (reportedSource == null) {
+        if (reportedSource == null || reportedSource.name != link.source) {
           reportedSource = nodes[link.sourceid] = {
             name: link.source,
             id: link.sourceid,
-            // TODO: We may need this if we start supportig
+            // TODO: We may need this if we start color coding PACs by party affiliation.
             //party: link.party
           };
-          console.log("Adding new source node " + reportedSource.name + " at " + reportedSource.x
-              + ", " + reportedSource.y);
-          forceNodes.push(reportedSource);
-        }
-        // TODO: What if the aggregate link is a net refund?
-        if (link.subLinks != null) {
-          reportedSource.outgoingAggregateLink = link;
+          if (reportedSource.id == clickedNode.id && !nodeReplaced) {
+            console.log("Replacing clicked source node " + clickedNode.name + " with "
+                + reportedSource.name);
+            forceNodes[n] = reportedSource;
+            nodeReplaced = true;
+          } else {
+            console.log("Adding new source node " + reportedSource.name);
+            forceNodes.push(reportedSource);
+          }
+          // TODO: What if the aggregate link is a net refund?
+          if (link.subLinks != null) {
+            reportedSource.outgoingAggregateLink = link;
+          }
         }
         var reportedTarget = nodes[link.targetid];  // should get fully populated value from force?
         if (reportedTarget == null) {
@@ -254,19 +280,24 @@ function doStuff(err, links) {
         // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
         // data().enter() may not return the new version of the link, in which case, style and color
         // changes might not take effect.
-        var replaced = false;
+        var linkReplaced = false;
         for (j = 0; j < forceLinks.length; ++j) {
           if (forceLinks[j].id == link.id) {
-            forceLinks[j] = link;
-            replaced = true;
             console.log("Replacing an existing link");
+            forceLinks[j] = link;
+            linkReplaced = true;
             break;
           }
         }
-        if (!replaced) {
+        if (!linkReplaced) {
+          console.log("Appending a new link");
           forceLinks.push(link);
-          console.log("Appending a new link")
         }
+      }
+      if (!nodeReplaced) {
+        console.log("Removing existing source node " + clickedNode.name
+            + ", because it has no sub links");
+        forceNodes.splice(n, 1);
       }
 
       path = svg.select(".gPaths").selectAll("path")
@@ -276,7 +307,9 @@ function doStuff(err, links) {
           .attr("class", function(d) { return "link " + d.style; })
           .attr("marker-end", function(d) { return "url(#" + d.color + ")"; });
 
-      circle = svg.select(".gCircles").selectAll("circle").data(forceNodes);
+      circle = svg.select(".gCircles").selectAll("circle")
+          .data(forceNodes, function(d) { return d.id + "; " + d.name; });
+      circle.exit().remove();
       circle.enter().append("circle")
           .attr("r", 6)
           .attr("nodeId", function (d) { return d.id; })
@@ -287,7 +320,23 @@ function doStuff(err, links) {
           .on("dblclick", dblclick)
           .call(force.drag);
 
-      nodeText = svg.select(".gTextNode").selectAll(".textNode").data(forceNodes);
+      halo = svg.select(".gHalos").selectAll(".halo")
+          .data(forceNodes.filter(function (d) { return d.outgoingAggregateLink != null; }),
+              function(d) { return d.id + "; " + d.name; });
+      halo.exit().remove();
+      halo.enter().append("circle")
+          .attr("r", 11)
+          .attr("nodeId",
+              function (d) {
+                return d.id;
+              })
+          .attr("class", function (d) { return "halo"; })
+          .on("dblclick", dblclick)
+          .call(force.drag);
+
+      nodeText = svg.select(".gTextNode").selectAll(".textNode")
+          .data(forceNodes, function(d) { return d.id + "; " + d.name; });
+      nodeText.exit().remove();
       nodeText.enter().append("text")
           .attr("class", "textNode")
           .attr("x", "8")
