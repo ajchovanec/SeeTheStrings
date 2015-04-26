@@ -71,6 +71,9 @@ text {
   <title>"See the Strings"</title>
 </head>
 <body>
+
+<!-- object data="legend.svg" type="image/svg+xml" width="400"></object> -->
+
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
 
@@ -119,6 +122,18 @@ function doStuff(err, links) {
   var width = 1600,
       height = 1000;
 
+  var svg = d3.select("body").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+  var images = svg.append("g").attr("class", "gImgs").selectAll("image").data([0]);
+  images.enter().append("image")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", 450)
+      .attr("height", 300)
+      .attr("xlink:href","legend.svg")
+
   var force = d3.layout.force()
       .nodes(d3.values(nodes))
       .links(links)
@@ -128,10 +143,6 @@ function doStuff(err, links) {
       .friction(.75)
       .on("tick", tick)
       .start();
-
-  var svg = d3.select("body").append("svg")
-      .attr("width", width)
-      .attr("height", height);
 
   // Per-color markers, as they don't inherit styles.
   svg.append("defs").selectAll("marker")
