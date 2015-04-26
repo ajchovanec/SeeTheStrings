@@ -61,6 +61,9 @@ function getDbWrapper() {
   return cachingDbWrapper;
 }
 
+var initLinksPerTargetAndType = 5;
+var newLinksPerExpansion = 5;
+
 function queryContributions(req, res) {
   // TODO: Figure out how to display both positive and negative contributions from the same source.
   var url = req.url;
@@ -69,7 +72,6 @@ function queryContributions(req, res) {
   var groupCandidatesBy = queryParams["groupCandidatesBy"];
   var groupContributionsBy = queryParams["groupContributionsBy"];
   var contributionTypes = queryParams["contributionTypes"];
-  var maxContributionLinks = queryParams["maxContributionLinks"];
   res.writeHead(200, {"Content-Type": "application/json"});
   var sqlQuery;
   var outerSelectTargets = (groupCandidatesBy == "Selection")
@@ -179,7 +181,7 @@ function queryContributions(req, res) {
     row.isRefund = row.amount < 0 ? true : false;
     row.label = (row.amount >= 0 ? "+" : "-") + "$" + Math.abs(row.amount);
 
-    if (numLinks < maxContributionLinks - 1
+    if (numLinks < initLinksPerTargetAndType
         || linkExistenceMap[row.sourceid + ", " + row.targetid]) {
       links.push(row);
       linkCounts[targetAndType] = numLinks + 1;
@@ -203,7 +205,7 @@ function queryContributions(req, res) {
     if (existingAggregateLink) {
       var newAmount = existingAggregateLink.amount + row.amount;
       var newCount = existingAggregateLink.count + 1;
-      if (existingAggregateLink.subLinks.length > maxContributionLinks) {
+      if (existingAggregateLink.subLinks.length > newLinksPerExpansion) {
         aggregateLinks[targetAndType] = newAggregateLink(targetAndType, existingAggregateLink,
             row.isAgainst, linkStyleMapping[row.directorindirect][row.isAgainst],
             markerColorMapping[row.isAgainst]);

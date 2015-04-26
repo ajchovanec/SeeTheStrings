@@ -103,8 +103,7 @@ function doStuff(err, links) {
         // TODO: What if the aggregate link is a net refund?
         if (link.subLinks != null) {
           reportedSource.outgoingAggregateLink = link;
-          console.log("Top level aggregate link has " + link.subLinks.length + " sublinks. First two "
-              + "have values " + link.subLinks[0].amount + ", " + link.subLinks[1].amount);
+          console.log("Top level aggregate link has " + link.subLinks.length + " sublinks");
         }
         var reportedTarget = nodes[link.targetid] ||
             (nodes[link.targetid] = {
@@ -238,7 +237,8 @@ function doStuff(err, links) {
     }
     var nodeReplaced = false;
     if (clickedNode["outgoingAggregateLink"]) {
-      console.log("Link for clicked node has " + clickedNode.outgoingAggregateLink.subLinks.length + " sub links");
+      console.log("Link for clicked node has " + clickedNode.outgoingAggregateLink.subLinks.length
+          + " sub links");
       var subLinks = clickedNode.outgoingAggregateLink.subLinks;
       for (i = 0; i < subLinks.length; ++i) {
         var link = subLinks[i];
