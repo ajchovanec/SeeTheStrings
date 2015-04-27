@@ -104,9 +104,9 @@ function getStyleForParty(party) {
 }
 
 function getLabelForLink(link) {
-  // TODO: Revisit UI decisions around refunds. If we're going to reverse the direction of the
-  // arrow, should we also drop the minus sign?
-  return link.amount >= 0 ? "+" : "-" + "$" + Math.abs(link.amount);
+  // TODO: When rendering refunds, if we're going to reverse the direction of the arrow,
+  // should we also drop the minus sign?
+  return new Number(link.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
 d3.json("/data" + window.location.search, doStuff);
