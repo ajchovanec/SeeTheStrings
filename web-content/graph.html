@@ -317,9 +317,9 @@ function doStuff(err, links) {
           forceLinks.push(link);
         }
       }
-      if (!linkReplaced ) {
+      if (!linkReplaced) {
         for (j = 0; j < forceLinks.length; ++j) {
-          if (forceLinks[j].id == link.id) {
+          if (forceLinks[j].id == clickedNode["outgoingAggregateLink"].id) {
             console.log("Removing existing link because it has no sub links");
             forceLinks.splice(j, 1);
           }
