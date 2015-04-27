@@ -163,8 +163,7 @@ function doStuff(err, links) {
       .linkDistance(200)
       .charge(-300)
       .friction(.75)
-      .on("tick", tick)
-      .start();
+      .on("tick", tick);
 
   // Per-color markers, as they don't inherit styles.
   svg.append("defs").selectAll("marker")
@@ -180,60 +179,7 @@ function doStuff(err, links) {
     .append("path")
       .attr("d", "M0,-5L10,0L0,5");
 
-  var path = svg.append("g").attr("class", "gPaths").selectAll("path")
-      .data(force.links())
-    .enter().append("path")
-      .attr("class",
-          function(d) {
-            return "link " + linkStyleMapping[d.directorindirect][d.isAgainst];
-          })
-      .attr("marker-end",
-          function(d) {
-            return "url(#" + isAgainstToMarkerColor[d.isAgainst] + ")";
-          });
-
-  var circle = svg.append("g").attr("class", "gCircles").selectAll("circle")
-      .data(force.nodes())
-    .enter().append("circle")
-      .attr("r", 6)
-      .attr("nodeId",
-          function (d) {
-            return d.id;
-          })
-      .attr("class",
-          function (d) {
-            return "circle " + (d.party != null ? getStyleForParty(d.party) : "gray");
-          })
-      .on("dblclick", dblclick)
-      .call(force.drag);
-
-  var halo = svg.append("g").attr("class", "gHalos").selectAll(".halo")
-      .data(force.nodes().filter(function (d) { return d.outgoingAggregateLink != null; }))
-    .enter().append("circle")
-      .attr("r", 11)
-      .attr("nodeId",
-          function (d) {
-            return d.id;
-          })
-      .attr("class", function (d) { return "halo"; })
-      .on("dblclick", dblclick)
-      .call(force.drag);
-
-  var nodeText = svg.append("g").attr("class", "gTextNode").selectAll(".textNode")
-      .data(force.nodes())
-    .enter().append("text")
-      .attr("class", "textNode")
-      .attr("x", "8")
-      .attr("y", ".31em")
-      .text(function(d) { return d.name; });
- 
-  var linkText = svg.append("g").attr("class", "gTextLink").selectAll(".textLink")
-      .data(force.links())
-    .enter().append("text")
-      .attr("class", "textLink")
-      .attr("x", "-8")
-      .attr("y", ".31em")
-      .text(function(d) { return getLabelForLink(d); });
+  start();
 
   // TODO: Consider going back to elliptical arc path segments to doubly-encode directionality.
   function tick() {
@@ -351,66 +297,93 @@ function doStuff(err, links) {
         forceNodes.splice(n, 1);
       }
 
-      path = svg.select(".gPaths").selectAll("path")
-          .data(forceLinks, function(d) { return d.id + "; " + d.amount; });
-      path.exit().remove();
-      path.enter().append("path")
-          .attr("class",
-              function(d) {
-                return "link " + linkStyleMapping[d.directorindirect][d.isAgainst];
-              })
-          .attr("marker-end",
-              function(d) {
-                return "url(#" + isAgainstToMarkerColor[d.isAgaist] + ")";
-              });
-
-      circle = svg.select(".gCircles").selectAll("circle")
-          .data(forceNodes, function(d) { return d.id + "; " + d.name; });
-      circle.exit().remove();
-      circle.enter().append("circle")
-          .attr("r", 6)
-          .attr("nodeId", function (d) { return d.id; })
-          .attr("class",
-              function (d) {
-                return "circle " + (d.party != null ? getStyleForParty(d.party) : "gray");
-              })
-          .on("dblclick", dblclick)
-          .call(force.drag);
-
-      halo = svg.select(".gHalos").selectAll(".halo")
-          .data(forceNodes.filter(function (d) { return d.outgoingAggregateLink != null; }),
-              function(d) { return d.id + "; " + d.name; });
-      halo.exit().remove();
-      halo.enter().append("circle")
-          .attr("r", 11)
-          .attr("nodeId",
-              function (d) {
-                return d.id;
-              })
-          .attr("class", function (d) { return "halo"; })
-          .on("dblclick", dblclick)
-          .call(force.drag);
-
-      nodeText = svg.select(".gTextNode").selectAll(".textNode")
-          .data(forceNodes, function(d) { return d.id + "; " + d.name; });
-      nodeText.exit().remove();
-      nodeText.enter().append("text")
-          .attr("class", "textNode")
-          .attr("x", "8")
-          .attr("y", ".31em")
-          .text(function(d) { return d.name; });
-
-      linkText = svg.select(".gTextLink").selectAll(".textLink")
-          .data(forceLinks, function(d) { return d.id + "; " + d.amount; });
-      linkText.exit().remove();
-      linkText.enter().append("text")
-          .attr("class", "textLink")
-          .attr("x", "-8")
-          .attr("y", ".31em")
-          .text(function(d) { return getLabelForLink(d); });
-
-      force.start();
+      restart();
     }
+  }
+
+  function start() {
+    restart(true);  // init = true
+  }
+
+  function restart(init) {
+    if (init) {
+      svg.append("g").attr("class", "gPaths");
+      svg.append("g").attr("class", "gTextLink");
+      svg.append("g").attr("class", "gCircles");
+      svg.append("g").attr("class", "gHalos");
+      svg.append("g").attr("class", "gTextNode");
+    }
+
+    // Define a special key function with different behavior depending on whether UI elements are
+    // being initialized or updated.
+    //   - If they're being intialized, simulate the default, by index behavior.
+    //   - If they're being updated, use a link or node specific key function.
+    function getJoinFunc(keyFunc) {
+      return init ? function(d, i) { return i; } : keyFunc;
+    }
+
+    function linkKeyFunc(d) { return d.id + "; " + d.amount; }
+    function nodeKeyFunc(d) { return d.id + "; " + d.name; }
+
+    function isAggregateNode(d) { return d.outgoingAggregateLink != null; }
+
+    // Global variables representing UI element selections are defined below.
+
+    path = svg.select(".gPaths").selectAll("path")
+        .data(force.links(), getJoinFunc(linkKeyFunc));
+    path.exit().remove();
+    path.enter().append("path")
+        .attr("class",
+            function(d) {
+              return "link " + linkStyleMapping[d.directorindirect][d.isAgainst];
+            })
+        .attr("marker-end",
+            function(d) {
+              return "url(#" + isAgainstToMarkerColor[d.isAgainst] + ")";
+            });
+
+    linkText = svg.select(".gTextLink").selectAll(".textLink")
+        .data(force.links(), getJoinFunc(linkKeyFunc));
+    linkText.exit().remove();
+    linkText.enter().append("text")
+        .attr("class", "textLink")
+        .attr("x", "-8")
+        .attr("y", ".31em")
+        .text(function(d) { return getLabelForLink(d); });
+
+    circle = svg.select(".gCircles").selectAll("circle")
+        .data(force.nodes(), getJoinFunc(nodeKeyFunc));
+    circle.exit().remove();
+    circle.enter().append("circle")
+        .attr("r", 6)
+        .attr("nodeId", function (d) { return d.id; })
+        .attr("class",
+            function (d) {
+              return "circle " + (d.party != null ? getStyleForParty(d.party) : "gray");
+            })
+        .on("dblclick", dblclick)
+        .call(force.drag);
+
+    halo = svg.select(".gHalos").selectAll(".halo")
+        .data(force.nodes().filter(isAggregateNode), getJoinFunc(nodeKeyFunc));
+    halo.exit().remove();
+    halo.enter().append("circle")
+        .attr("r", 11)
+        .attr("nodeId", function (d) { return d.id; })
+        .attr("class", "halo")
+        .on("dblclick", dblclick)
+        .call(force.drag);
+
+    nodeText = svg.select(".gTextNode").selectAll(".textNode")
+        .data(force.nodes(), getJoinFunc(nodeKeyFunc));
+    nodeText.exit().remove();
+    nodeText.enter().append("text")
+        .attr("class", "textNode")
+        .attr("x", "8")
+        .attr("y", ".31em")
+        .text(function(d) { return d.name; });
+
+    force.start();
   }
 }
 
