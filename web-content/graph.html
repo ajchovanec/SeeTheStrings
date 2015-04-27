@@ -254,6 +254,7 @@ function doStuff(err, links) {
     if (clickedNode == null) {
       return;
     }
+    var linkReplaced = false;
     var nodeReplaced = false;
     if (clickedNode["outgoingAggregateLink"]) {
       console.log("Link for clicked node has " + clickedNode.outgoingAggregateLink.subLinks.length
@@ -299,18 +300,29 @@ function doStuff(err, links) {
         // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
         // data().enter() may not return the new version of the link, in which case, style and color
         // changes might not take effect.
-        var linkReplaced = false;
-        for (j = 0; j < forceLinks.length; ++j) {
-          if (forceLinks[j].id == link.id) {
-            console.log("Replacing an existing link");
-            forceLinks[j] = link;
-            linkReplaced = true;
-            break;
+        var linkAdded = false;
+        if (!linkReplaced) {
+          for (j = 0; j < forceLinks.length; ++j) {
+            if (forceLinks[j].id == link.id) {
+              console.log("Replacing an existing link");
+              forceLinks[j] = link;
+              linkReplaced = true;
+              linkAdded = true;
+              break;
+            }
           }
         }
-        if (!linkReplaced) {
+        if (!linkAdded) {
           console.log("Appending a new link");
           forceLinks.push(link);
+        }
+      }
+      if (!linkReplaced ) {
+        for (j = 0; j < forceLinks.length; ++j) {
+          if (forceLinks[j].id == link.id) {
+            console.log("Removing existing link because it has no sub links");
+            forceLinks.splice(j, 1);
+          }
         }
       }
       if (!nodeReplaced) {
