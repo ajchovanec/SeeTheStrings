@@ -141,7 +141,6 @@ function queryContributions(req, res) {
       "target": firstLink.target,
       "amount": firstLink.amount,
       "count": newCount,
-      "label": (firstLink.amount >= 0 ? "+" : "-") + "$" + Math.abs(firstLink.amount),
       "directorindirect": firstLink.directorindirect,
       "isAgainst": isAgainst,
       "isRefund": firstLink.amount < 0 ? true : false,
@@ -158,10 +157,7 @@ function queryContributions(req, res) {
 
     row.id = row.sourceid + "; " + targetAndType;
     row.isAgainst = isAgainst;
-    // TODO: Revisit logic around the display of refunds. If we're going to reverse the direction of
-    // the arrow, should we also drop the minus sign?
     row.isRefund = row.amount < 0 ? true : false;
-    row.label = (row.amount >= 0 ? "+" : "-") + "$" + Math.abs(row.amount);
 
     if (numLinks < initLinksPerTargetAndType
         || linkExistenceMap[row.sourceid + ", " + row.targetid]) {
@@ -195,8 +191,6 @@ function queryContributions(req, res) {
       aggregateLinks[targetAndType].count = newCount;
       aggregateLinks[targetAndType].amount = newAmount;
       aggregateLinks[targetAndType].source = newCount + " more contributors. Double click..."
-      aggregateLinks[targetAndType].label =
-          (newAmount >= 0 ? "+" : "-") + "$" + Math.abs(newAmount);
       aggregateLinks[targetAndType].isRefund = (newAmount < 0) ? true : false;
     } else {
       aggregateLinks[targetAndType] = newAggregateLink(targetAndType, row,
