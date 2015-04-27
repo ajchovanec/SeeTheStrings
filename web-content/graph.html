@@ -70,11 +70,14 @@ text {
   <link rel="shortcut icon" type="image/jpg" href="marionette.jpg" />
   <title>"See the Strings"</title>
 </head>
+
 <body>
 
 <!-- object data="legend.svg" type="image/svg+xml" width="400"></object> -->
 
 <script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="db-shim.js"></script>
+
 <script>
 
 var linkStyleMapping = {
@@ -109,11 +112,15 @@ function getLabelForLink(link) {
   return new Number(link.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
-d3.json("/data" + window.location.search, buildGraph);
+d3.json("/data" + window.location.search, handleResponse);
 
-function buildGraph(err, links) {
+function handleResponse(err, rows) {
   // TODO: Check for errors.
+  var links = processRows(rows);
+  buildGraph(links);
+}
 
+function buildGraph(links) {
   var nodes = {};
   // Compute the distinct nodes from the links.
   links.forEach(
