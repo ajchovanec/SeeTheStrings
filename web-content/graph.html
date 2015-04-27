@@ -208,18 +208,14 @@ function doStuff(err, links) {
   // action to take on mouse double click
   function dblclick() {
     var nodeId = d3.select(this).attr("nodeId");
-    var clickedNode = null;  // = force.nodes()[nodeId];  // nodes[nodeId]
+    var clickedNode = nodes[nodeId];  // = force.nodes()[nodeId];  // nodes[nodeId]
     var forceNodes = force.nodes();
     var forceLinks = force.links();
-    var n = 0;
-    for (; n < forceNodes.length; ++n) {
-      if (forceNodes[n]["id"] == nodeId) {
-        clickedNode = forceNodes[n];
-        break;
-      }
-    }
-    if (clickedNode == null) {
-      return;
+    var n = forceNodes.indexOf(clickedNode);
+    if (clickedNode == null || n == -1) {
+      console.log("Clicked node can't be found!");
+      // Leaving this commented out for now to see if this ever causes an error.
+      //return;
     }
     var linkReplaced = false;
     var nodeReplaced = false;
@@ -285,12 +281,8 @@ function doStuff(err, links) {
         }
       }
       if (!linkReplaced) {
-        for (j = 0; j < forceLinks.length; ++j) {
-          if (forceLinks[j].id == clickedNode["outgoingAggregateLink"].id) {
-            console.log("Removing existing link because it has no sub links");
-            forceLinks.splice(j, 1);
-          }
-        }
+        console.log("Removing existing link because it has no sub links");
+        forceLinks.splice(forceLinks.indexOf(clickedNode.outgoingAggregateLink), 1);
       }
       if (!nodeReplaced) {
         console.log("Removing existing source node " + clickedNode.name
