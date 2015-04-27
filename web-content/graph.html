@@ -216,9 +216,8 @@ function buildGraph(links) {
   function dblclick() {
     var nodeId = d3.select(this).attr("nodeId");
     var clickedNode = nodes[nodeId];  // = force.nodes()[nodeId];  // nodes[nodeId]
-    var forceNodes = force.nodes();
     var forceLinks = force.links();
-    var n = forceNodes.indexOf(clickedNode);
+    var n = force.nodes().indexOf(clickedNode);
     if (clickedNode == null || n == -1) {
       console.log("Clicked node can't be found!");
       // Leaving this commented out for now to see if this ever causes an error.
@@ -244,11 +243,11 @@ function buildGraph(links) {
           if (reportedSource.id == clickedNode.id && !nodeReplaced) {
             console.log("Replacing clicked source node " + clickedNode.name + " with "
                 + reportedSource.name);
-            forceNodes[n] = reportedSource;
+            force.nodes()[n] = reportedSource;
             nodeReplaced = true;
           } else {
             console.log("Adding new source node " + reportedSource.name);
-            forceNodes.push(reportedSource);
+            force.nodes().push(reportedSource);
           }
           // TODO: What if the aggregate link is a net refund?
           if (link.subLinks != null) {
@@ -262,7 +261,7 @@ function buildGraph(links) {
             id: link.targetid,
             party: link.party
           };
-          forceNodes.push(reportedTarget);
+          force.nodes().push(reportedTarget);
         }
         link.source = link.isRefund ? reportedTarget : reportedSource;
         link.target = link.isRefund ? reportedSource : reportedTarget;
@@ -294,7 +293,7 @@ function buildGraph(links) {
       if (!nodeReplaced) {
         console.log("Removing existing source node " + clickedNode.name
             + ", because it has no sub links");
-        forceNodes.splice(n, 1);
+        force.nodes().splice(n, 1);
       }
 
       restart();
