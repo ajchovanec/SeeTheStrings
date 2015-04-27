@@ -109,9 +109,9 @@ function getLabelForLink(link) {
   return new Number(link.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
-d3.json("/data" + window.location.search, doStuff);
+d3.json("/data" + window.location.search, buildGraph);
 
-function doStuff(err, links) {
+function buildGraph(err, links) {
   // TODO: Check for errors.
 
   var nodes = {};
