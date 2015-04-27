@@ -125,24 +125,13 @@ function queryContributions(req, res) {
     // TODO
   }
 
-  var linkStyleMapping = {
-    "D": {
-      "true": "plain red",
-      "false": "plain gray",
-    },
-    "I": {
-      "true": "dashed red",
-      "false": "dashed gray",
-    },
-  }
-
   var links = [];
   var linkExistenceMap = {};
   var linksToAggregate = [];
   var aggregateLinks = {};
   var linkCounts = {};
 
-  function newAggregateLink(sourceid, firstLink, isAgainst, style) {
+  function newAggregateLink(sourceid, firstLink, isAgainst) {
     var newCount = firstLink.count || 1;
     var newLink = {
       "id": sourceid,  // == targetAndType
@@ -153,8 +142,8 @@ function queryContributions(req, res) {
       "amount": firstLink.amount,
       "count": newCount,
       "label": (firstLink.amount >= 0 ? "+" : "-") + "$" + Math.abs(firstLink.amount),
+      "directorindirect": firstLink.directorindirect,
       "isAgainst": isAgainst,
-      "style": style,
       "isRefund": firstLink.amount < 0 ? true : false,
       "subLinks": [ firstLink ]
     };
@@ -169,7 +158,6 @@ function queryContributions(req, res) {
 
     row.id = row.sourceid + "; " + targetAndType;
     row.isAgainst = isAgainst;
-    row.style = linkStyleMapping[row.directorindirect][isAgainst];
     // TODO: Revisit logic around the display of refunds. If we're going to reverse the direction of
     // the arrow, should we also drop the minus sign?
     row.isRefund = row.amount < 0 ? true : false;
@@ -201,7 +189,7 @@ function queryContributions(req, res) {
       var newCount = existingAggregateLink.count + 1;
       if (existingAggregateLink.subLinks.length > newLinksPerExpansion) {
         aggregateLinks[targetAndType] = newAggregateLink(targetAndType, existingAggregateLink,
-            row.isAgainst, linkStyleMapping[row.directorindirect][row.isAgainst]);
+            row.isAgainst);
       }
       aggregateLinks[targetAndType].subLinks.push(row);
       aggregateLinks[targetAndType].count = newCount;
@@ -212,7 +200,7 @@ function queryContributions(req, res) {
       aggregateLinks[targetAndType].isRefund = (newAmount < 0) ? true : false;
     } else {
       aggregateLinks[targetAndType] = newAggregateLink(targetAndType, row,
-          row.isAgainst, linkStyleMapping[row.directorindirect][row.isAgainst]);
+          row.isAgainst);
     }
   }
 

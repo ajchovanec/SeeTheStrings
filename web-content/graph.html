@@ -77,10 +77,21 @@ text {
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
 
+var linkStyleMapping = {
+  "D": {
+    "true": "plain red",
+    "false": "plain gray",
+  },
+  "I": {
+    "true": "dashed red",
+    "false": "dashed gray",
+  },
+};
+
 var isAgainstToMarkerColor = {
   "true": "red",
   "false": "black"
-}
+};
 
 function getStyleForParty(party) {
   switch (party) {
@@ -166,7 +177,10 @@ function doStuff(err, links) {
   var path = svg.append("g").attr("class", "gPaths").selectAll("path")
       .data(force.links())
     .enter().append("path")
-      .attr("class", function(d) { return "link " + d.style; })
+      .attr("class",
+          function(d) {
+            return "link " + linkStyleMapping[d.directorindirect][d.isAgainst];
+          })
       .attr("marker-end",
           function(d) {
             return "url(#" + isAgainstToMarkerColor[d.isAgainst] + ")";
@@ -335,7 +349,10 @@ function doStuff(err, links) {
           .data(forceLinks, function(d) { return d.id + "; " + d.amount; });
       path.exit().remove();
       path.enter().append("path")
-          .attr("class", function(d) { return "link " + d.style; })
+          .attr("class",
+              function(d) {
+                return "link " + linkStyleMapping[d.directorindirect][d.isAgainst];
+              })
           .attr("marker-end",
               function(d) {
                 return "url(#" + isAgainstToMarkerColor[d.isAgaist] + ")";
