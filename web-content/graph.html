@@ -216,7 +216,6 @@ function buildGraph(links) {
   function dblclick() {
     var nodeId = d3.select(this).attr("nodeId");
     var clickedNode = nodes[nodeId];  // = force.nodes()[nodeId];  // nodes[nodeId]
-    var forceLinks = force.links();
     var n = force.nodes().indexOf(clickedNode);
     if (clickedNode == null || n == -1) {
       console.log("Clicked node can't be found!");
@@ -271,10 +270,10 @@ function buildGraph(links) {
         // changes might not take effect.
         var linkAdded = false;
         if (!linkReplaced) {
-          for (j = 0; j < forceLinks.length; ++j) {
-            if (forceLinks[j].id == link.id) {
+          for (j = 0; j < force.links().length; ++j) {
+            if (force.links()[j].id == link.id) {
               console.log("Replacing an existing link");
-              forceLinks[j] = link;
+              force.links()[j] = link;
               linkReplaced = true;
               linkAdded = true;
               break;
@@ -283,12 +282,12 @@ function buildGraph(links) {
         }
         if (!linkAdded) {
           console.log("Appending a new link");
-          forceLinks.push(link);
+          force.links().push(link);
         }
       }
       if (!linkReplaced) {
         console.log("Removing existing link because it has no sub links");
-        forceLinks.splice(forceLinks.indexOf(clickedNode.outgoingAggregateLink), 1);
+        force.links().splice(force.links().indexOf(clickedNode.outgoingAggregateLink), 1);
       }
       if (!nodeReplaced) {
         console.log("Removing existing source node " + clickedNode.name
