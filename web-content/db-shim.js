@@ -43,6 +43,10 @@ function processRows(rows) {
   }
   
   function handleOneRow(row) {
+    // This is necessary to normalize behavior between SQLite and PostgreSQL, since the former
+    // resolved boolean expressions to 1 or 0, whereas the latter resolves them to true or false.
+    row.isagainst = row.isagainst ? true : false;
+
     var targetAndType = "key " + row.targetid + " " + row.directorindirect + " " + row.isagainst;
     var numLinks = linkCounts[targetAndType] || (linkCounts[targetAndType] = 0);
   
