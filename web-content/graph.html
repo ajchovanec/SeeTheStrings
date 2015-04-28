@@ -273,10 +273,7 @@ function buildGraph(links) {
         if (!linkReplaced) {
           for (j = 0; j < force.links().length; ++j) {
             if (force.links()[j].id == link.id) {
-              console.log("Replacing existing link with id: [" + link.id + "], source name: ["
-                  + force.links()[j].source.nam + "], amount: [" + force.links()[j].amount
-                  + "] with another with the same id and with source name: [" + link.source.name
-                  + "], amount: [" + link.amount + "]");
+              console.log("Replacing an existing link with");
               // TODO: We're assuming that because we found another link with the same id as the
               // current sub link, that must mean that it's the aggregate link from the clicked
               // node, and furthermore that the current sub link must be a smaller aggregate link
