@@ -23,7 +23,7 @@ function processRows(rows) {
   }
   return links;
 
-  function newAggregateLink(sourceid, firstLink, isAgainst) {
+  function newAggregateLink(sourceid, firstLink, isagainst) {
     var newCount = firstLink.count || 1;
     var newLink = {
       "id": sourceid,  // == targetAndType
@@ -34,7 +34,7 @@ function processRows(rows) {
       "amount": firstLink.amount,
       "count": newCount,
       "directorindirect": firstLink.directorindirect,
-      "isAgainst": isAgainst,
+      "isagainst": isagainst,
       "isRefund": firstLink.amount < 0 ? true : false,
       "subLinks": [ firstLink ]
     };
@@ -43,12 +43,10 @@ function processRows(rows) {
   }
   
   function handleOneRow(row) {
-    var isAgainst = (["24A", "24N"].indexOf(row.type) != -1);
-    var targetAndType = "key " + row.targetid + " " + row.directorindirect + " " + isAgainst;
+    var targetAndType = "key " + row.targetid + " " + row.directorindirect + " " + row.isagainst;
     var numLinks = linkCounts[targetAndType] || (linkCounts[targetAndType] = 0);
   
     row.id = row.sourceid + "; " + targetAndType;
-    row.isAgainst = isAgainst;
     row.isRefund = row.amount < 0 ? true : false;
   
     if (numLinks < initLinksPerTargetAndType
@@ -69,7 +67,7 @@ function processRows(rows) {
   function aggregateOneRow(row) {
     // TODO: Find a way to keep multiple links for contributions of separate types from the same
     // source to the same target from being superimposed on top of each other.
-    var targetAndType = "key " + row.targetid + " " + row.directorindirect + " " + row.isAgainst;
+    var targetAndType = "key " + row.targetid + " " + row.directorindirect + " " + row.isagainst;
 
     var existingAggregateLink = aggregateLinks[targetAndType];
     if (existingAggregateLink) {
@@ -77,7 +75,7 @@ function processRows(rows) {
       var newCount = existingAggregateLink.count + 1;
       if (existingAggregateLink.subLinks.length > newLinksPerExpansion) {
         aggregateLinks[targetAndType] = newAggregateLink(targetAndType, existingAggregateLink,
-            row.isAgainst);
+            row.isagainst);
       }
       var aggregateLink = aggregateLinks[targetAndType];
       aggregateLink.subLinks.push(row);
@@ -87,7 +85,7 @@ function processRows(rows) {
       aggregateLink.isRefund = (newAmount < 0) ? true : false;
     } else {
       aggregateLinks[targetAndType] = newAggregateLink(targetAndType, row,
-          row.isAgainst);
+          row.isagainst);
     }
   }
 }
