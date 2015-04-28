@@ -74,10 +74,10 @@ function queryContributions(req, res) {
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "'Misc candidates' as target, -1 as targetid, "
       : "firstlastp as target, cid as targetid, party, ";
+  var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
+      : "target, targetid, party, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
-  var innerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
-      : "target, targetid, party, ";
   console.log("groupCandidatesBy: " + groupCandidatesBy);
   console.log("outerSelectTargets: " + outerSelectTargets);
   if (groupContributionsBy == "PAC") {
@@ -91,7 +91,7 @@ function queryContributions(req, res) {
                 + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
                 + "where Candidates.cid in (" + seedCandidates + ") "
                 + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
-            + "group by source, sourceid, " + innerGroupByTargets + "directorindirect, isagainst "
+            + "group by source, sourceid, " + outerGroupByTargets + "directorindirect, isagainst "
             + "order by amount desc ";
   } else if (groupContributionsBy == "Industry") {
     sqlQuery =
@@ -105,7 +105,7 @@ function queryContributions(req, res) {
                 + "inner join Categories on Categories.catcode = Committees.primcode "
                 + "where Candidates.cid in (" + seedCandidates + ") "
                 + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
-            + "group by source, sourceid, " + innerGroupByTargets + "directorindirect, isagainst "
+            + "group by source, sourceid, " + outerGroupByTargets + "directorindirect, isagainst "
             + "order by amount desc ";
   } else if (groupContributionsBy == "Sector") {
     sqlQuery =
@@ -119,7 +119,7 @@ function queryContributions(req, res) {
                 + "inner join Categories on Categories.catcode = Committees.primcode "
                 + "where Candidates.cid in (" + seedCandidates + ") "
                 + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
-            + "group by source, sourceid, " + innerGroupByTargets + "directorindirect, isagainst "
+            + "group by source, sourceid, " + outerGroupByTargets + "directorindirect, isagainst "
             + "order by amount desc ";
   } else {
     // TODO
