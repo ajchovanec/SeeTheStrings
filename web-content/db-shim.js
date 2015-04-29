@@ -36,7 +36,11 @@ function processRows(rows) {
       "directorindirect": firstLink.directorindirect,
       "isagainst": isagainst,
       "isRefund": firstLink.amount < 0 ? true : false,
-      "subLinks": [ firstLink ]
+      "subLinks": [ firstLink ],
+      "childType": "source",
+      "childIdType": "sourceid",
+      "relationType": "target",
+      "relationIdType": "targetid"
     };
     //console.log("New aggregate link for " + sourceid + " with amount " + firstLink.amount);
     return newLink;

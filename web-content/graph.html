@@ -134,15 +134,10 @@ function buildGraph(links) {
               // TODO: We may need this if we start supportig
               //party: link.party
             });
-        // TODO: What if the aggregate link is a net refund?
         if (link.subLinks != null) {
-          reportedSource.aggregateLinkInfo = {
-            childType: "source",
-            childIdType: "sourceid",
-            relationType: "target",
-            relationIdType: "targetid",
-            link: link
-          };
+          // It's an aggregate link. Put a pointer to it in the node so that we can expand it when
+          // the user takes action on the node.
+          reportedSource.aggregateLink = link;
           console.log("Top level aggregate link has " + link.subLinks.length + " sublinks");
         }
         var reportedTarget = nodes[link.targetid] ||
@@ -231,13 +226,14 @@ function buildGraph(links) {
     }
     var linkReplaced = false;
     var nodeReplaced = false;
-    if (clickedNode.aggregateLinkInfo) {
-      var childType = clickedNode.aggregateLinkInfo.childType,
-          childIdType = clickedNode.aggregateLinkInfo.childIdType,
-          relationType = clickedNode.aggregateLinkInfo.relationType,
-          relationIdType = clickedNode.aggregateLinkInfo.relationIdType;
-      var aggregateLink = clickedNode.aggregateLinkInfo.link;
+    if (clickedNode.aggregateLink) {
+      var aggregateLink = clickedNode.aggregateLink;
       var subLinks = aggregateLink.subLinks;
+      var childType = aggregateLink.childType,
+          childIdType = aggregateLink.childIdType,
+          relationType = aggregateLink.relationType,
+          relationIdType = aggregateLink.relationIdType;
+
       console.log("Clicked node has id " + clickedNode.id + " and name " + clickedNode.name)
       console.log("Link for clicked node has " + subLinks.length + " sub links");
       for (i = 0; i < subLinks.length; ++i) {
@@ -265,13 +261,7 @@ function buildGraph(links) {
           // TODO: This transitive logic for setting up the next, finer grained aggregate will
           // probably break in a graph where we have both aggregate source and child nodes.
           if (link.subLinks != null) {
-            reportedChild.aggregateLinkInfo = {
-              childType: childType,
-              childIdType: childIdType,
-              relationType: relationType,
-              relationIdType: relationIdType,
-              link: link
-            };
+            reportedChild.aggregateLink = link;
           }
         }
         // TODO: Should we get fully populated value from force.nodes()?
@@ -319,7 +309,7 @@ function buildGraph(links) {
       }
       if (!linkReplaced) {
         console.log("Removing existing link because it has no sub links");
-        force.links().splice(force.links().indexOf(clickedNode.aggregateLinkInfo.link), 1);
+        force.links().splice(force.links().indexOf(clickedNode.aggregateLink), 1);
       }
       if (!nodeReplaced) {
         console.log("Removing existing " + childType + " node " + clickedNode.name
@@ -356,7 +346,7 @@ function buildGraph(links) {
     function linkKeyFunc(d) { return d.id + "; " + d.amount; }
     function nodeKeyFunc(d) { return d.id + "; " + d.name; }
 
-    function isAggregateNode(d) { return d.aggregateLinkInfo != null; }
+    function isAggregateNode(d) { return d.aggregateLink != null; }
 
     // Global variables representing UI element selections are defined below.
 
