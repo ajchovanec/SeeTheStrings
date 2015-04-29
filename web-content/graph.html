@@ -232,10 +232,10 @@ function buildGraph(links) {
     var linkReplaced = false;
     var nodeReplaced = false;
     if (clickedNode.aggregateLinkInfo) {
-      var childType = clickedNode.aggregateLinkInfo.childType;
-      var childIdType = clickedNode.aggregateLinkInfo.childIdType;
-      var relationType = clickedNode.aggregateLinkInfo.relationType;
-      var relationIdType = clickedNode.aggregateLinkInfo.relationIdType;
+      var childType = clickedNode.aggregateLinkInfo.childType,
+          childIdType = clickedNode.aggregateLinkInfo.childIdType,
+          relationType = clickedNode.aggregateLinkInfo.relationType,
+          relationIdType = clickedNode.aggregateLinkInfo.relationIdType;
       var aggregateLink = clickedNode.aggregateLinkInfo.link;
       var subLinks = aggregateLink.subLinks;
       console.log("Clicked node has id " + clickedNode.id + " and name " + clickedNode.name)
