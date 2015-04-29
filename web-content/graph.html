@@ -274,6 +274,9 @@ function buildGraph(links) {
         }
         var reportedRelation = nodes[link[relationId]];  // should get fully populated value from force?
         if (reportedRelation == null) {
+          // TODO: This probably can't actually happen. The child node should be related to the same
+          // node as the aggregate node is. And if the already displayed aggregate has a link to
+          // that node, then it must be defined. This can probably be removed.
           reportedRelation = nodes[link[relationId]] = {
             name: link[relation],
             id: link[relationId],
