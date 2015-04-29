@@ -118,7 +118,7 @@ d3.json("/data" + window.location.search, handleResponse);
 
 function handleResponse(err, rows) {
   // TODO: Check for errors.
-  var links = processRows(rows);
+  var links = processRows(rows, "source");
   buildGraph(links);
 }
 

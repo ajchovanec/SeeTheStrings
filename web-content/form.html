@@ -62,7 +62,7 @@
   <h2>Ready to build your visualization?</h2>
   Let's get started then.
   <br><br>
-  <form>
+  <form id="graphForm" action="graph.html" method="GET" target="blank_">
     <b>Do you want to see contributions to a particular candidate, or <i>from</i> a particular
     political action committee?</b>
     <br>
@@ -73,8 +73,6 @@
         onclick="updateSeedType()">
       Political action committee
     <br><br>
-  </form>
-  <form id="graphForm" action="graph.html" method="GET" target="blank_">
     <div id="candidateFormSection" style="display:none">
       Which candidates' 2014 campaign contributions would you like to see? (Select one or more.)
       <br>

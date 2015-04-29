@@ -2,8 +2,13 @@
 var initLinksPerTargetAndType = 5;
 var newLinksPerExpansion = 5;
 
-function processRows(rows) {
+function processRows(rows, aggregationType) {
   console.log("Got " + rows.length + " raw links ");
+
+  var childType = aggregationType;
+  var childIdType = childType + "id";
+  var relationType = aggregationType == "source" ? "target" : "source";
+  var relationIdType = relationType + "id";
 
   var links = [];
   var linkExistenceMap = {};
@@ -37,15 +42,15 @@ function processRows(rows) {
       "isagainst": isagainst,
       "isRefund": firstLink.amount < 0 ? true : false,
       "subLinks": [ firstLink ],
-      "childType": "source",
-      "childIdType": "sourceid",
-      "relationType": "target",
-      "relationIdType": "targetid"
+      "childType": childType,
+      "childIdType": childIdType,
+      "relationType": relationType,
+      "relationIdType": relationIdType
     };
     //console.log("New aggregate link for " + sourceid + " with amount " + firstLink.amount);
     return newLink;
   }
-  
+
   function handleOneRow(row) {
     // This is necessary to normalize behavior between SQLite and PostgreSQL, since the former
     // resolved boolean expressions to 1 or 0, whereas the latter resolves them to true or false.

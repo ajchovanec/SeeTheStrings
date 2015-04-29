@@ -67,6 +67,7 @@ function queryContributions(req, res) {
   var queryParams = Url.parse(url, true).query;
   var seedType = queryParams["seedType"];
   var seedCandidates = queryParams["candidates"];
+  var seedPacs = queryParams["pacs"];
   var groupCandidatesBy = queryParams["groupCandidatesBy"];
   var groupContributionsBy = queryParams["groupContributionsBy"];
   var contributionTypes = queryParams["contributionTypes"];
@@ -79,6 +80,14 @@ function queryContributions(req, res) {
       : "target, targetid, party, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
+  var seedMatchingCriteria;
+  if (seedType == "Candidate") {
+    seedMatchingCriteria = "Candidates.cid in (" + seedCandidates + ") ";
+  } else if (seedType == "PAC") {
+    seedMatchingCriteria = "Committees.cmteid in (" + seedPacs + ") ";
+  } else {
+    // TODO
+  }
   console.log("groupCandidatesBy: " + groupCandidatesBy);
   console.log("outerSelectTargets: " + outerSelectTargets);
   if (groupContributionsBy == "PAC") {
@@ -90,7 +99,7 @@ function queryContributions(req, res) {
                 + "amount from PACsToCandidates "
                 + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
                 + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
-                + "where Candidates.cid in (" + seedCandidates + ") "
+                + "where " + seedMatchingCriteria
                 + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
             + "group by source, sourceid, " + outerGroupByTargets + "directorindirect, isagainst "
             + "order by amount desc ";
@@ -104,7 +113,7 @@ function queryContributions(req, res) {
                 + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
                 + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
                 + "inner join Categories on Categories.catcode = Committees.primcode "
-                + "where Candidates.cid in (" + seedCandidates + ") "
+                + "where " + seedMatchingCriteria
                 + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
             + "group by source, sourceid, " + outerGroupByTargets + "directorindirect, isagainst "
             + "order by amount desc ";
@@ -118,7 +127,7 @@ function queryContributions(req, res) {
                 + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
                 + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
                 + "inner join Categories on Categories.catcode = Committees.primcode "
-                + "where Candidates.cid in (" + seedCandidates + ") "
+                + "where " + seedMatchingCriteria
                 + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
             + "group by source, sourceid, " + outerGroupByTargets + "directorindirect, isagainst "
             + "order by amount desc ";
