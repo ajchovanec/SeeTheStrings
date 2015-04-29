@@ -107,9 +107,11 @@ function getStyleForParty(party) {
 }
 
 function getLabelForLink(link) {
-  // TODO: When rendering refunds, if we're going to reverse the direction of the arrow,
-  // should we also drop the minus sign?
-  return new Number(link.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  // TODO: Consider displaying a refund by reversing the direction of the arrow, rather than by
+  // showing a negative amount.
+  var formattedAmount =
+      Number(link.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  return formattedAmount + (link.isRefund ? " (refund)" : "");
 }
 
 d3.json("/data" + window.location.search, handleResponse);
@@ -143,9 +145,8 @@ function buildGraph(links) {
               id: link.targetid,
               party: link.party
             });
-        link.source = link.isRefund ? reportedTarget : reportedSource;
-        link.target = link.isRefund ? reportedSource : reportedTarget;
-        link.isRefund = null;
+        link.source = reportedSource;
+        link.target = reportedTarget;
       });
 
   var width = 1600,
@@ -263,9 +264,8 @@ function buildGraph(links) {
           };
           force.nodes().push(reportedTarget);
         }
-        link.source = link.isRefund ? reportedTarget : reportedSource;
-        link.target = link.isRefund ? reportedSource : reportedTarget;
-        link.isRefund = null;
+        link.source = reportedSource;
+        link.target = reportedTarget;
         // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
         // data().enter() may not return the new version of the link, in which case, style and color
         // changes might not take effect.
