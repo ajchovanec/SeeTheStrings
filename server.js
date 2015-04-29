@@ -65,6 +65,7 @@ function queryContributions(req, res) {
   // TODO: Figure out how to display both positive and negative contributions from the same source.
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
+  var seedType = queryParams["seedType"];
   var seedCandidates = queryParams["candidates"];
   var groupCandidatesBy = queryParams["groupCandidatesBy"];
   var groupContributionsBy = queryParams["groupContributionsBy"];
@@ -140,7 +141,7 @@ function queryContributions(req, res) {
       });
 }
       
-function queryAllCandidates(req, res) {
+function queryCandidates(req, res) {
   var sqlQuery = "select distinct cid, firstlastp from Candidates where cycle = '2014' "
       + "and cyclecand = 'Y' order by firstlastp asc ";
   console.log("SQL query for list of candidates: " + sqlQuery);
@@ -151,7 +152,7 @@ function queryAllCandidates(req, res) {
   dbWrapper.fetchAll(sqlQuery,
       function(err, result) {
         if (err != null) {
-          console.log("queryAllCandidates error: " + JSON.stringify(err));
+          console.log("queryCandidates error: " + JSON.stringify(err));
           // TODO: Should we exit here?
         }
         console.log("Got a list of " + result.length + " candidates");
@@ -164,9 +165,34 @@ function queryAllCandidates(req, res) {
       });
 }
 
+function queryPacs(req, res) {
+  var sqlQuery = "select distinct cmteid, pacshort from Committees where cycle = '2014' "
+      + "and pacshort != '' order by pacshort asc";
+  console.log("SQL query for list of PACs: " + sqlQuery);
+  res.writeHead(200, {"Content-Type": "application/json"});
+  var pacs = [];
+  var dbWrapper = getDbWrapper();
+  dbWrapper.connect();
+  dbWrapper.fetchAll(sqlQuery,
+      function(err, result) {
+        if (err != null) {
+          console.log("queryPacs error: " + JSON.stringify(err));
+          // TODO: Should we exit here?
+        }
+        console.log("Got a list of " + result.length + " PACs");
+        result.forEach(function(row) {
+          pacs.push(row);
+        });
+        //dbWrapper.close(function(err) { console.log('Connection closed!'); });
+        res.write(JSON.stringify(pacs));
+        res.end();
+      });
+}
+
 var router = Router()
 router.get('/data', queryContributions);
-router.get('/candidates', queryAllCandidates);
+router.get('/candidates', queryCandidates);
+router.get('/pacs', queryPacs);
 router.use('/', ServeStatic('web-content', {'index': ['form.html']}));
 
 var server = Http.createServer(function(req, res) {

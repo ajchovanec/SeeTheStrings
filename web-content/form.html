@@ -28,9 +28,8 @@
   <p>
   This tool makes it possible to generate <a href="http://en.wikipedia.org/wiki/Graph_drawing">
   graph drawings</a> to visualize the contributions and expenditures made by Political Action
-  Committees (PACs) during past U.S. Congressional campaign cycles. (Currently, only the 2014
-  campaign cycle is supported.) These drawings represent PACs and candidates as "nodes", and the
-  cash flows between them as "links" connecting the nodes.
+  Committees (PACs) during the 2014 U.S. Congressional campaign cycle. These drawings represent
+  PACs and candidates as "nodes", and the cash flows between them as "links" connecting the nodes.
   </p>
   <p>
   A political action committee exists to raise and spend money for and against political candidates,
@@ -63,43 +62,66 @@
   <h2>Ready to build your visualization?</h2>
   Let's get started then.
   <br><br>
+  <form>
+    <b>Do you want to see contributions to a particular candidate, or <i>from</i> a particular
+    political action committee?</b>
+    <br>
+    <input type="radio" name="seedType" id="candidateButton" value="Candidate"
+        onclick="updateSeedType()" checked="true">
+      Candidate
+    <input type="radio" name="seedType" id="pacButton" value="PAC"
+        onclick="updateSeedType()">
+      Political action committee
+    <br><br>
+  </form>
   <form id="graphForm" action="graph.html" method="GET" target="blank_">
-    Which candidates' 2014 campaign contributions would you like to see? (Select one or more.)
-    <br>
-    <select id="candidatesList" name="candidates" multiple="multiple" size=1>
-    </select>
+    <div id="candidateFormSection" style="display:none">
+      Which candidates' 2014 campaign contributions would you like to see? (Select one or more.)
+      <br>
+      <select name="candidates" id="candidatesList" multiple="multiple" size=1>
+      </select>
+    </div>
+    <div id="pacFormSection" style="display:none">
+      Which political action committees' 2014 campaign contributions would you like to see?
+      (Select one or more.)
+      <br>
+      <select name="pacs" id="pacsList" multiple="multiple" size=1>
+      </select>
+    </div>
     <br><br>
-    Would you like to see the contributions for each candidate <i>separately</i>, or for all of the
-    selected candidates <i>combined</i>?
-    <br>
-    <input type="radio" name="groupCandidatesBy" value="Candidate" checked="true">
-      Separate
-    <br>
-    <input type="radio" name="groupCandidatesBy" value="Selection">
-      Combined
-    <br><br>
-    How would you like their contributions to be aggregated?
-    <br>
-    <input type="radio" name="groupContributionsBy" value="PAC" checked="true">
-      By individual Political Action Committee
-    <br>
-    <input type="radio" name="groupContributionsBy" value="Industry">
-      By industry (aggregated)
-    <br>
-    <input type="radio" name="groupContributionsBy" value="Sector">
-      By sector (more aggregated)
-    <br><br>
-    Which contribution types would you like to see?
-    <br>
-    <input type="checkbox" name="contributionTypes" value="'D'" checked="true">
-      Direct contributions to candidate committees
-    <br>
-    <input type="checkbox" name="contributionTypes" value="'I'" checked="true">
-      Indirect expenditures to influence candidates' election prospects
-    <br><br><br><br>
-    <input type="button" style="width:400px;font-size:16pt"
-        onclick="document.getElementById('graphForm').submit()" value="See the contributions!">
-    <br><br><br><br>
+    <div id="detailsFormSection" style="display:none">
+      Would you like to see the contributions for each candidate <i>separately</i>, or for all of the
+      selected candidates <i>combined</i>?
+      <br>
+      <input type="radio" name="groupCandidatesBy" value="Candidate" checked="true">
+        Separate
+      <br>
+      <input type="radio" name="groupCandidatesBy" value="Selection">
+        Combined
+      <br><br>
+      How would you like their contributions to be aggregated?
+      <br>
+      <input type="radio" name="groupContributionsBy" value="PAC" checked="true">
+        By individual Political Action Committee
+      <br>
+      <input type="radio" name="groupContributionsBy" value="Industry">
+        By industry (aggregated)
+      <br>
+      <input type="radio" name="groupContributionsBy" value="Sector">
+        By sector (more aggregated)
+      <br><br>
+      Which contribution types would you like to see?
+      <br>
+      <input type="checkbox" name="contributionTypes" value="'D'" checked="true">
+        Direct contributions to candidate committees
+      <br>
+      <input type="checkbox" name="contributionTypes" value="'I'" checked="true">
+        Indirect expenditures to influence candidates' election prospects
+      <br><br><br><br>
+      <input type="button" style="width:400px;font-size:16pt"
+          onclick="document.getElementById('graphForm').submit()" value="See the contributions!">
+      <br><br><br><br>
+    </div>
   </form>
 </body>
 <script src="http://d3js.org/d3.v3.min.js"></script>
@@ -113,9 +135,38 @@ function addOptionToSelectBox(selectbox, text, value) {
 }
 
 console.log("Trying to fetch candidates list from HTML page...");
-d3.json("/candidates", doStuff);
+d3.json("/candidates", showCandidates);
 
-function doStuff(err, candidates) {
+console.log("Trying to fetch PACs list from HTML page...");
+d3.json("/pacs", showPacs);
+
+updateSeedType();
+
+function updateSeedType() {
+  console.log("Updating seed type.")
+  var candidateButton = document.getElementById("candidateButton");
+  var pacButton = document.getElementById("pacButton");
+  var candidateFormSection = document.getElementById("candidateFormSection");
+  var pacFormSection = document.getElementById("pacFormSection");
+  if (candidateButton.checked == true) {
+    console.log("Candidate mode");
+    candidateFormSection.style.display = "inline";
+    pacFormSection.style.display = "none";
+    // Clear existing selection of PACs.
+    document.getElementById("pacsList").value = null;
+  }
+  if (pacButton.checked == true) {
+    console.log("PAC mode");
+    candidateFormSection.style.display = "none";
+    pacFormSection.style.display = "inline";
+    // Clear existing selection of Candidates.
+    document.getElementById("candidatesList").value = null;
+  }
+  var detailsFormSection = document.getElementById("detailsFormSection");
+  detailsFormSection.style.display = "inline";
+}
+
+function showCandidates(err, candidates) {
   if (err != null) {
     console.log("Error fetching candidates list from HTML page: " + JSON.stringify(err));
     // TODO: What should we do here?
@@ -127,6 +178,22 @@ function doStuff(err, candidates) {
   candidates.forEach(
       function(row) {
         addOptionToSelectBox(selectBox, row.firstlastp, "'" + row.cid + "'");
+      });
+  selectBox.setAttribute("size", 20);
+}
+
+function showPacs(err, pacs) {
+  if (err != null) {
+    console.log("Error fetching PACs list from HTML page: " + JSON.stringify(err));
+    // TODO: What should we do here?
+  } else {
+    console.log("Got a list of " + pacs.length + " PACs on HTML page");
+  }
+
+  var selectBox = document.getElementById("pacsList");
+  pacs.forEach(
+      function(row) {
+        addOptionToSelectBox(selectBox, row.pacshort, "'" + row.pacid + "'");
       });
   selectBox.setAttribute("size", 20);
 }
