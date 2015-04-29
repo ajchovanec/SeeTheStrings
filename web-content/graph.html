@@ -118,8 +118,12 @@ d3.json("/data" + window.location.search, handleResponse);
 
 function handleResponse(err, rows) {
   // TODO: Check for errors.
+
+  // TODO: Extract seedType from the URL query params, and use that to decide what aggregationType
+  // to pass into processRows.
   var links = processRows(rows, "source");
-  buildGraph(links);
+
+buildGraph(links);
 }
 
 function buildGraph(links) {

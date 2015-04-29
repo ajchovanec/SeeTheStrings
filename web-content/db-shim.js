@@ -10,6 +10,9 @@ function processRows(rows, aggregationType) {
   var relationType = aggregationType == "source" ? "target" : "source";
   var relationIdType = relationType + "id";
 
+  // TODO: The code below needs to be modified to respect the parameter-specified choice of
+  // aggregation type (i.e., by source or by target).
+
   var links = [];
   var linkExistenceMap = {};
   var linksToAggregate = [];
@@ -31,7 +34,7 @@ function processRows(rows, aggregationType) {
   function newAggregateLink(sourceid, firstLink, isagainst) {
     var newCount = firstLink.count || 1;
     var newLink = {
-      "id": sourceid,  // == targetAndType
+      "id": sourceid,
       "sourceid": sourceid,
       "source": newCount + " more contributors. Double click...",
       "targetid": firstLink.targetid,
