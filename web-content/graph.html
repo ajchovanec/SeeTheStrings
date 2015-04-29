@@ -273,6 +273,8 @@ function buildGraph(links) {
           reportedRelation = nodes[link[relationIdType]] = {
             name: link[relationType],
             id: link[relationIdType],
+            // TODO: Seeing as we're trying to make this code more generic, it's a little awkward
+            // that we need to set this field here.
             party: link.party
           };
           force.nodes().push(reportedRelation);
