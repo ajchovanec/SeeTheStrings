@@ -265,8 +265,8 @@ function buildGraph(links) {
       var subLinks = aggregateLink.subLinks;
       var childType = aggregateLink.childType,
           childIdType = aggregateLink.childIdType,
-          relationType = aggregateLink.relationType,
-          relationIdType = aggregateLink.relationIdType;
+          relativeType = aggregateLink.relativeType,
+          relativeIdType = aggregateLink.relativeIdType;
 
       console.log("Clicked node has id " + clickedNode.id + " and name " + clickedNode.name)
       console.log("Link for clicked node has " + subLinks.length + " sub links");
@@ -300,22 +300,22 @@ function buildGraph(links) {
           }
         }
         // TODO: Should we get fully populated value from force.nodes()?
-        var reportedRelation = nodes[link[relationIdType]];
-        if (reportedRelation == null) {
+        var reportedRelative = nodes[link[relativeIdType]];
+        if (reportedRelative == null) {
           // TODO: This probably can't actually happen. The child node should be related to the same
           // node as the aggregate node is. And if the already displayed aggregate has a link to
           // that node, then it must be defined. This can probably be removed.
-          reportedRelation = nodes[link[relationIdType]] = {
-            name: link[relationType],
-            id: link[relationIdType],
+          reportedRelative = nodes[link[relativeIdType]] = {
+            name: link[relativeType],
+            id: link[relativeIdType],
             // TODO: Seeing as we're trying to make this code more generic, it's a little awkward
             // that we need to set this field here.
             party: link.party
           };
-          force.nodes().push(reportedRelation);
+          force.nodes().push(reportedRelative);
         }
         link[childType] = reportedChild;
-        link[relationType] = reportedRelation;
+        link[relativeType] = reportedRelative;
         // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
         // data().enter() may not return the new version of the link, in which case, style and color
         // changes might not take effect.

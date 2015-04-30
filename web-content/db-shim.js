@@ -1,5 +1,5 @@
 
-var initLinksPerRelation = 5;
+var initLinksPerRelative= 5;
 var newLinksPerExpansion = 5;
 
 function processRows(rows, aggregationType) {
@@ -7,8 +7,8 @@ function processRows(rows, aggregationType) {
 
   var childType = aggregationType;
   var childIdType = childType + "id";
-  var relationType = aggregationType == "source" ? "target" : "source";
-  var relationIdType = relationType + "id";
+  var relativeType = aggregationType == "source" ? "target" : "source";
+  var relativeIdType = relativeType + "id";
 
   var links = [];
   var linkExistenceMap = {};
@@ -40,19 +40,19 @@ function processRows(rows, aggregationType) {
       "subLinks": [ firstLink ],
       "childType": childType,
       "childIdType": childIdType,
-      "relationType": relationType,
-      "relationIdType": relationIdType
+      "relativeType": relativeType,
+      "relativeIdType": relativeIdType
     };
     // It's up to the caller to set newLink[childType], since that's a pretty-printed string whose
     // format depends on the application-specific rendering of aggregate nodes.
     newLink[childIdType] = aggregateId;
-    newLink[relationIdType] = firstLink[relationIdType];
-    newLink[relationType] = firstLink[relationType];
+    newLink[relativeIdType] = firstLink[relativeIdType];
+    newLink[relativeType] = firstLink[relativeType];
     return newLink;
   }
 
   function getAggregateNodeId(row) {
-    return "key " + row[relationIdType] + " " + row.directorindirect + " " + row.isagainst;
+    return "key " + row[relativeIdType] + " " + row.directorindirect + " " + row.isagainst;
   }
 
   function handleOneRow(row) {
@@ -60,46 +60,46 @@ function processRows(rows, aggregationType) {
     // resolved boolean expressions to 1 or 0, whereas the latter resolves them to true or false.
     row.isagainst = row.isagainst ? true : false;
 
-    var relationAndType = getAggregateNodeId(row);
+    var relativeAndType = getAggregateNodeId(row);
         + row.isagainst;
-    var numLinks = linkCounts[relationAndType] || (linkCounts[relationAndType] = 0);
+    var numLinks = linkCounts[relativeAndType] || (linkCounts[relativeAndType] = 0);
   
-    row.id = row[childIdType] + "; " + relationAndType;
+    row.id = row[childIdType] + "; " + relativeAndType;
     row.isRefund = row.amount < 0 ? true : false;
   
-    if (numLinks < initLinksPerRelation
-        || linkExistenceMap[row[childIdType] + ", " + row[relationIdType]]) {
+    if (numLinks < initLinksPerRelative
+        || linkExistenceMap[row[childIdType] + ", " + row[relativeIdType]]) {
       links.push(row);
-      linkCounts[relationAndType] = numLinks + 1;
+      linkCounts[relativeAndType] = numLinks + 1;
       // TODO: Uncomment this once there's a better way to render multiple links between the same
       // two nodes.
       //
-      //linkExistenceMap[row[childIdType] + ", " + row.[relationIdType]] = true;
+      //linkExistenceMap[row[childIdType] + ", " + row.[relativeIdType]] = true;
     } else {
-      // We have enough links for to relation node to display already. We'll aggregate the remaining
+      // We have enough links for to relative node to display already. We'll aggregate the remaining
       // links later.
       linksToAggregate.push(row);
     }
   }
 
   function aggregateOneRow(row) {
-    var relationAndType = getAggregateNodeId(row);
+    var relativeAndType = getAggregateNodeId(row);
 
-    var existingAggregateLink = aggregateLinks[relationAndType];
+    var existingAggregateLink = aggregateLinks[relativeAndType];
     if (existingAggregateLink) {
       var newAmount = existingAggregateLink.amount + row.amount;
       var newCount = existingAggregateLink.count + 1;
       if (existingAggregateLink.subLinks.length > newLinksPerExpansion) {
-        aggregateLinks[relationAndType] = newAggregateLink(relationAndType, existingAggregateLink,
+        aggregateLinks[relativeAndType] = newAggregateLink(relativeAndType, existingAggregateLink,
             row.isagainst);
       }
-      var aggregateLink = aggregateLinks[relationAndType];
+      var aggregateLink = aggregateLinks[relativeAndType];
       aggregateLink.subLinks.push(row);
       aggregateLink.count = newCount;
       aggregateLink.amount = newAmount;
       aggregateLink.isRefund = (newAmount < 0) ? true : false;
     } else {
-      aggregateLinks[relationAndType] = newAggregateLink(relationAndType, row,
+      aggregateLinks[relativeAndType] = newAggregateLink(relativeAndType, row,
           row.isagainst);
     }
   }
