@@ -73,9 +73,8 @@ text {
 
 <body>
 
-<!-- object data="legend.svg" type="image/svg+xml" width="400"></object> -->
-
 <script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="url-bundle.js"></script>
 <script src="db-shim.js"></script>
 
 <script>
@@ -119,11 +118,23 @@ d3.json("/data" + window.location.search, handleResponse);
 function handleResponse(err, rows) {
   // TODO: Check for errors.
 
+  var queryParams = Url.parse(window.location.search, true).query;
+  var seedType = queryParams["seedType"];
+  var aggregateType;
+  if (seedType == "Candidate") {
+    aggregateType = "source";
+  } else if (seedType == "PAC") {
+    aggregateType = "target";
+  } else {
+    console.log("Error: unknown seedType: " + seedType);
+  }
+  console.log("Got seedType: " + seedType);
+
   // TODO: Extract seedType from the URL query params, and use that to decide what aggregationType
   // to pass into processRows.
   var links = processRows(rows, "source");
 
-buildGraph(links);
+  buildGraph(links);
 }
 
 function buildGraph(links) {
