@@ -1,5 +1,5 @@
 
-var initLinksPerTargetAndType = 5;
+var initLinksPerRelation = 5;
 var newLinksPerExpansion = 5;
 
 function processRows(rows, aggregationType) {
@@ -9,9 +9,6 @@ function processRows(rows, aggregationType) {
   var childIdType = childType + "id";
   var relationType = aggregationType == "source" ? "target" : "source";
   var relationIdType = relationType + "id";
-
-  // TODO: The code below needs to be modified to respect the parameter-specified choice of
-  // aggregation type (i.e., by source or by target).
 
   var links = [];
   var linkExistenceMap = {};
@@ -31,14 +28,10 @@ function processRows(rows, aggregationType) {
   }
   return links;
 
-  function newAggregateLink(sourceid, firstLink, isagainst) {
+  function newAggregateLink(aggregateId, firstLink, isagainst) {
     var newCount = firstLink.count || 1;
     var newLink = {
-      "id": sourceid,
-      "sourceid": sourceid,
-      "source": newCount + " more contributors. Double click...",
-      "targetid": firstLink.targetid,
-      "target": firstLink.target,
+      "id": aggregateId,
       "amount": firstLink.amount,
       "count": newCount,
       "directorindirect": firstLink.directorindirect,
@@ -50,8 +43,16 @@ function processRows(rows, aggregationType) {
       "relationType": relationType,
       "relationIdType": relationIdType
     };
-    //console.log("New aggregate link for " + sourceid + " with amount " + firstLink.amount);
+    // It's up to the caller to set newLink[childType], since that's a pretty-printed string whose
+    // format depends on the application-specific rendering of aggregate nodes.
+    newLink[childIdType] = aggregateId;
+    newLink[relationIdType] = firstLink[relationIdType];
+    newLink[relationType] = firstLink[relationType];
     return newLink;
+  }
+
+  function getAggregateNodeId(row) {
+    return "key " + row[relationIdType] + " " + row.directorindirect + " " + row.isagainst;
   }
 
   function handleOneRow(row) {
@@ -59,48 +60,46 @@ function processRows(rows, aggregationType) {
     // resolved boolean expressions to 1 or 0, whereas the latter resolves them to true or false.
     row.isagainst = row.isagainst ? true : false;
 
-    var targetAndType = "key " + row.targetid + " " + row.directorindirect + " " + row.isagainst;
-    var numLinks = linkCounts[targetAndType] || (linkCounts[targetAndType] = 0);
+    var relationAndType = getAggregateNodeId(row);
+        + row.isagainst;
+    var numLinks = linkCounts[relationAndType] || (linkCounts[relationAndType] = 0);
   
-    row.id = row.sourceid + "; " + targetAndType;
+    row.id = row[childIdType] + "; " + relationAndType;
     row.isRefund = row.amount < 0 ? true : false;
   
-    if (numLinks < initLinksPerTargetAndType
-        || linkExistenceMap[row.sourceid + ", " + row.targetid]) {
+    if (numLinks < initLinksPerRelation
+        || linkExistenceMap[row[childIdType] + ", " + row[relationIdType]]) {
       links.push(row);
-      linkCounts[targetAndType] = numLinks + 1;
+      linkCounts[relationAndType] = numLinks + 1;
       // TODO: Uncomment this once there's a better way to render multiple links between the same
       // two nodes.
       //
-      //linkExistenceMap[row.sourceid + ", " + row.targetid] = true;
+      //linkExistenceMap[row[childIdType] + ", " + row.[relationIdType]] = true;
     } else {
-      // We have enough source links for this target node to display already We'll aggregate the
-      // remaining links later.
+      // We have enough links for to relation node to display already. We'll aggregate the remaining
+      // links later.
       linksToAggregate.push(row);
     }
   }
 
   function aggregateOneRow(row) {
-    // TODO: Find a way to keep multiple links for contributions of separate types from the same
-    // source to the same target from being superimposed on top of each other.
-    var targetAndType = "key " + row.targetid + " " + row.directorindirect + " " + row.isagainst;
+    var relationAndType = getAggregateNodeId(row);
 
-    var existingAggregateLink = aggregateLinks[targetAndType];
+    var existingAggregateLink = aggregateLinks[relationAndType];
     if (existingAggregateLink) {
       var newAmount = existingAggregateLink.amount + row.amount;
       var newCount = existingAggregateLink.count + 1;
       if (existingAggregateLink.subLinks.length > newLinksPerExpansion) {
-        aggregateLinks[targetAndType] = newAggregateLink(targetAndType, existingAggregateLink,
+        aggregateLinks[relationAndType] = newAggregateLink(relationAndType, existingAggregateLink,
             row.isagainst);
       }
-      var aggregateLink = aggregateLinks[targetAndType];
+      var aggregateLink = aggregateLinks[relationAndType];
       aggregateLink.subLinks.push(row);
       aggregateLink.count = newCount;
       aggregateLink.amount = newAmount;
-      aggregateLink.source = newCount + " more contributors. Double click..."
       aggregateLink.isRefund = (newAmount < 0) ? true : false;
     } else {
-      aggregateLinks[targetAndType] = newAggregateLink(targetAndType, row,
+      aggregateLinks[relationAndType] = newAggregateLink(relationAndType, row,
           row.isagainst);
     }
   }

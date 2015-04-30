@@ -87,7 +87,7 @@
       </select>
     </div>
     <br><br>
-    <div id="detailsFormSection" style="display:none">
+    <div id="detailsFormSection" style="display:inline">
       Would you like to see the contributions for each candidate <i>separately</i>, or for all of the
       selected candidates <i>combined</i>?
       <br>
@@ -160,8 +160,6 @@ function updateSeedType() {
     // Clear existing selection of Candidates.
     document.getElementById("candidatesList").value = null;
   }
-  var detailsFormSection = document.getElementById("detailsFormSection");
-  detailsFormSection.style.display = "inline";
 }
 
 function showCandidates(err, candidates) {
@@ -191,7 +189,7 @@ function showPacs(err, pacs) {
   var selectBox = document.getElementById("pacsList");
   pacs.forEach(
       function(row) {
-        addOptionToSelectBox(selectBox, row.pacshort, "'" + row.pacid + "'");
+        addOptionToSelectBox(selectBox, row.pacshort, "'" + row.cmteid + "'");
       });
   selectBox.setAttribute("size", 20);
 }

@@ -113,6 +113,35 @@ function getLabelForLink(link) {
   return formattedAmount + (link.isRefund ? " (refund)" : "");
 }
 
+// TODO: It seems like this file shouldn't need to know about candidates or PACs.
+//
+// Can we pull this logic up into the form?
+function getAggregateTypeForSeedType(seedType) {
+  if (seedType == "Candidate") {
+    return "source";
+  } else if (seedType == "PAC") {
+    return "target";
+  } else {
+    console.log("Error: unknown seedType " + seedType);
+    return null;
+  }
+}
+function getLabelForAggregateCandidateNode(link) {
+  return link.count + " candidates. Double click..."
+}
+function getLabelForAggregatePacNode(link) {
+  return link.count + " contributors. Double click..."
+}
+function getLabelForAggregateNode(link, aggregateType) {
+  if (aggregateType == "source") {
+    return getLabelForAggregatePacNode(link);
+  } else if (aggregateType == "target") {
+    return getLabelForAggregateCandidateNode(link);
+  } else {
+    console.log("Error: unknown aggregateType " + aggregateType);
+  }
+}
+
 d3.json("/data" + window.location.search, handleResponse);
 
 function handleResponse(err, rows) {
@@ -120,19 +149,10 @@ function handleResponse(err, rows) {
 
   var queryParams = Url.parse(window.location.search, true).query;
   var seedType = queryParams["seedType"];
-  var aggregateType;
-  if (seedType == "Candidate") {
-    aggregateType = "source";
-  } else if (seedType == "PAC") {
-    aggregateType = "target";
-  } else {
-    console.log("Error: unknown seedType: " + seedType);
-  }
   console.log("Got seedType: " + seedType);
 
-  // TODO: Extract seedType from the URL query params, and use that to decide what aggregationType
-  // to pass into processRows.
-  var links = processRows(rows, "source");
+  var aggregateType = getAggregateTypeForSeedType(seedType);
+  var links = processRows(rows, aggregateType);
 
   buildGraph(links);
 }
@@ -142,19 +162,16 @@ function buildGraph(links) {
   // Compute the distinct nodes from the links.
   links.forEach(
       function(link) {
+        if (link.subLinks != null) {
+          link[link.childType] = getLabelForAggregateNode(link, link.childType);
+        }
         var reportedSource = nodes[link.sourceid] ||
             (nodes[link.sourceid] = {
               name: link.source,
               id: link.sourceid,
-              // TODO: We may need this if we start supportig
+              // TODO: Do we need this? Possibly, if we want to show party affiliations for PACs.
               //party: link.party
             });
-        if (link.subLinks != null) {
-          // It's an aggregate link. Put a pointer to it in the node so that we can expand it when
-          // the user takes action on the node.
-          reportedSource.aggregateLink = link;
-          console.log("Top level aggregate link has " + link.subLinks.length + " sublinks");
-        }
         var reportedTarget = nodes[link.targetid] ||
             (nodes[link.targetid] = {
               name: link.target,
@@ -163,8 +180,10 @@ function buildGraph(links) {
             });
         link.source = reportedSource;
         link.target = reportedTarget;
+        if (link.subLinks != null) {
+          link[link.childType].aggregateLink = link;
+        }
       });
-
   var width = 1600,
       height = 1000;
 
@@ -259,7 +278,7 @@ function buildGraph(links) {
         var reportedChild = nodes[link[childIdType]];
         if (reportedChild == null || reportedChild.name != link[childType]) {
           reportedChild = nodes[link[childIdType]] = {
-            name: link[childType],
+            name: link[childType],  // This will be null if the child is another aggregate.
             id: link[childIdType],
             // TODO: We may need this if we start color coding PACs by party affiliation.
             //party: link.party
@@ -277,6 +296,7 @@ function buildGraph(links) {
           // probably break in a graph where we have both aggregate source and child nodes.
           if (link.subLinks != null) {
             reportedChild.aggregateLink = link;
+            reportedChild.name = getLabelForAggregateNode(link, childType);
           }
         }
         // TODO: Should we get fully populated value from force.nodes()?
