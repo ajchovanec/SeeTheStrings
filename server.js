@@ -152,7 +152,7 @@ function queryContributions(req, res) {
       
 function queryCandidates(req, res) {
   var sqlQuery = "select distinct cid, firstlastp from Candidates where cycle = '2014' "
-      + "and cyclecand = 'Y' order by firstlastp asc ";
+      + "and cyclecand = 'Y' order by lower(firstlastp) asc ";
   console.log("SQL query for list of candidates: " + sqlQuery);
   res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
@@ -176,7 +176,7 @@ function queryCandidates(req, res) {
 
 function queryPacs(req, res) {
   var sqlQuery = "select distinct cmteid, pacshort from Committees where cycle = '2014' "
-      + "and pacshort != '' order by pacshort asc";
+      + "and pacshort != '' order by lower(pacshort) asc";
   console.log("SQL query for list of PACs: " + sqlQuery);
   res.writeHead(200, {"Content-Type": "application/json"});
   var pacs = [];
