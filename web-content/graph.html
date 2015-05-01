@@ -184,18 +184,16 @@ function buildGraph(links) {
   // Compute the distinct nodes from the links.
   links.forEach(
       function(link) {
-        var reportedSource = nodes[link.sourceid] ||
+        link.source = nodes[link.sourceid] ||
             (nodes[link.sourceid] = {
               name: link.sourcename,
               id: link.sourceid,
             });
-        var reportedTarget = nodes[link.targetid] ||
+        link.target = nodes[link.targetid] ||
             (nodes[link.targetid] = {
               name: link.targetname,
               id: link.targetid,
             });
-        link.source = reportedSource;
-        link.target = reportedTarget;
         // Set the display properties for both nodes based on the properties of the link.
         setDisplayPropertiesForNode(link.source, link);
         setDisplayPropertiesForNode(link.target, link);
@@ -298,35 +296,32 @@ function buildGraph(links) {
         console.log("Sub link " + i + " has name " + link[childNameType] + " and amount "
             + link.amount);
         // TODO: Should we get fully populated value from force.nodes()?
-        var reportedChild = nodes[link[childIdType]];
-        if (reportedChild == null || reportedChild.name != link[childNameType]) {
-          reportedChild = nodes[link[childIdType]] = {
+        var nodeChild = nodes[link[childIdType]];
+        if (nodeChild == null || nodeChild.name != link[childNameType]) {
+          nodeChild = nodes[link[childIdType]] = {
             name: link[childNameType],  // This will be null if the child is another aggregate.
             id: link[childIdType]
           };
-          if (reportedChild.id == clickedNode.id && !nodeReplaced) {
-            console.log("Replacing clicked " + childNameType + " node " + clickedNode.name
-                + " with " + reportedChild.name);
-            force.nodes()[n] = reportedChild;
+          if (nodeChild.id == clickedNode.id && !nodeReplaced) {
+            force.nodes()[n] = nodeChild;
             nodeReplaced = true;
           } else {
-            console.log("Adding new " + childNameType + " node " + reportedChild.name);
-            force.nodes().push(reportedChild);
+            force.nodes().push(nodeChild);
           }
           // Set the display properties for the new node based on the properties of the link.
-          setDisplayPropertiesForNode(reportedChild, link);
+          setDisplayPropertiesForNode(nodeChild, link);
           if (link.subLinks != null) {
             // Add a reference to the aggregate link to the aggregate node so that we can find the
             // sub links when the user wants to expand it.
-            reportedChild.aggregateLink = link;
+            nodeChild.aggregateLink = link;
           }
         }
-        // The reported relative link should already exist in the graph, because the aggregate was
-        // already linking to it.
+        // The relative of the clicked node should already exist in the graph, because the aggregate
+        // was already linking to it.
         // TODO: Should we get fully populated value from force.nodes()?
-        var reportedRelative = nodes[link[relativeIdType]];
-        link[childType] = reportedChild;
-        link[relativeType] = reportedRelative;
+        var nodeRelative = nodes[link[relativeIdType]];
+        link[childType] = nodeChild;
+        link[relativeType] = nodeRelative;
         // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
         // data().enter() may not return the new version of the link, in which case, style and color
         // changes might not take effect.
