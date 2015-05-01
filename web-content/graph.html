@@ -179,16 +179,14 @@ function buildGraph(links) {
       function(link) {
         var reportedSource = nodes[link.sourceid] ||
             (nodes[link.sourceid] = {
-              name: link.source,
+              name: link.sourcename,
               id: link.sourceid,
             });
         var reportedTarget = nodes[link.targetid] ||
             (nodes[link.targetid] = {
-              name: link.target,
+              name: link.targetname,
               id: link.targetid,
             });
-        link.sourcename = link.source;  // FIXME
-        link.targetname = link.target;  // FIXME
         link.source = reportedSource;
         link.target = reportedTarget;
         // Set the display properties for both nodes based on the properties of the link.
@@ -281,31 +279,31 @@ function buildGraph(links) {
       var subLinks = aggregateLink.subLinks;
       var childType = aggregateLink.childType,
           childIdType = aggregateLink.childIdType,
+          childNameType = aggregateLink.childNameType,
           relativeType = aggregateLink.relativeType,
           relativeIdType = aggregateLink.relativeIdType,
-          childNameType = childType + "name",  // FIXME
-          relativeNameType = relativeType + "name";  // FIXME
+          relativeNameType = aggregateLink.relativeNameType;
 
-      console.log("Clicked node has id " + clickedNode.id + " and name " + clickedNode.name)
+      console.log("Clicked node has id " + clickedNode.id + " and name " + clickedNode.name);
       console.log("Link for clicked node has " + subLinks.length + " sub links");
       for (i = 0; i < subLinks.length; ++i) {
         var link = subLinks[i];
-        console.log("Sub link " + i + " has name " + link[childType] + " and amount "
+        console.log("Sub link " + i + " has name " + link[childNameType] + " and amount "
             + link.amount);
         // TODO: Should we get fully populated value from force.nodes()?
         var reportedChild = nodes[link[childIdType]];
-        if (reportedChild == null || reportedChild.name != link[childType]) {
+        if (reportedChild == null || reportedChild.name != link[childNameType]) {
           reportedChild = nodes[link[childIdType]] = {
-            name: link[childType],  // This will be null if the child is another aggregate.
-            id: link[childIdType],
+            name: link[childNameType],  // This will be null if the child is another aggregate.
+            id: link[childIdType]
           };
           if (reportedChild.id == clickedNode.id && !nodeReplaced) {
-            console.log("Replacing clicked " + childType + " node " + clickedNode.name + " with "
-                + reportedChild.name);
+            console.log("Replacing clicked " + childNameType + " node " + clickedNode.name
+                + " with " + reportedChild.name);
             force.nodes()[n] = reportedChild;
             nodeReplaced = true;
           } else {
-            console.log("Adding new " + childType + " node " + reportedChild.name);
+            console.log("Adding new " + childNameType + " node " + reportedChild.name);
             force.nodes().push(reportedChild);
           }
           // Set the display properties for the new node based on the properties of the link.
@@ -320,8 +318,6 @@ function buildGraph(links) {
         // already linking to it.
         // TODO: Should we get fully populated value from force.nodes()?
         var reportedRelative = nodes[link[relativeIdType]];
-        link[childNameType] = link[childType];  // FIXME
-        link[relativeNameType] = link[relativeType];  // FIXME
         link[childType] = reportedChild;
         link[relativeType] = reportedRelative;
         // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
@@ -351,7 +347,7 @@ function buildGraph(links) {
         force.links().splice(force.links().indexOf(clickedNode.aggregateLink), 1);
       }
       if (!nodeReplaced) {
-        console.log("Removing existing " + childType + " node " + clickedNode.name
+        console.log("Removing existing " + childNameType + " node " + clickedNode.name
             + ", because it has no sub links");
         console.log("Node actually being removed has name " + force.nodes()[n].name)
         force.nodes().splice(n, 1);

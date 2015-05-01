@@ -74,10 +74,10 @@ function queryContributions(req, res) {
   res.writeHead(200, {"Content-Type": "application/json"});
   var sqlQuery;
   var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "'Misc candidates' as target, -1 as targetid, "
-      : "firstlastp as target, cid as targetid, party, ";
+      ? "'Misc candidates' as targetname, -1 as targetid, "
+      : "firstlastp as targetname, cid as targetid, party, ";
   var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
-      : "target, targetid, party, ";
+      : "targetname, targetid, party, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
   var seedMatchingCriteria;
@@ -92,7 +92,7 @@ function queryContributions(req, res) {
   console.log("outerSelectTargets: " + outerSelectTargets);
   if (groupContributionsBy == "PAC") {
     sqlQuery =
-        "select pacshort as source, cmteid as sourceid, " + outerSelectTargets
+        "select pacshort as sourcename, cmteid as sourceid, " + outerSelectTargets
             + "directorindirect, isagainst, sum(amount) as amount from "
             + "(select distinct fecrecno, pacshort, cmteid, " + innerSelectTargets
                 + "directorindirect, type in ('24A', '24N') as isagainst, "
@@ -101,11 +101,12 @@ function queryContributions(req, res) {
                 + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
                 + "where " + seedMatchingCriteria
                 + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
-            + "group by source, sourceid, " + outerGroupByTargets + "directorindirect, isagainst "
+            + "group by sourcename, sourceid, " + outerGroupByTargets
+            + "directorindirect, isagainst "
             + "order by amount desc ";
   } else if (groupContributionsBy == "Industry") {
     sqlQuery =
-        "select catname as source, catcode as sourceid, " + outerSelectTargets
+        "select catname as sourcename, catcode as sourceid, " + outerSelectTargets
             + "directorindirect, isagainst, sum(amount) as amount from "
             + "(select distinct fecrecno, catname, catcode, " + innerSelectTargets
                 + "directorindirect, type in ('24A', '24N') as isagainst, "
@@ -115,11 +116,12 @@ function queryContributions(req, res) {
                 + "inner join Categories on Categories.catcode = Committees.primcode "
                 + "where " + seedMatchingCriteria
                 + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
-            + "group by source, sourceid, " + outerGroupByTargets + "directorindirect, isagainst "
+            + "group by sourcename, sourceid, " + outerGroupByTargets
+            + "directorindirect, isagainst "
             + "order by amount desc ";
   } else if (groupContributionsBy == "Sector") {
     sqlQuery =
-        "select sector as source, sector as sourceid, " + outerSelectTargets
+        "select sector as sourcename, sector as sourceid, " + outerSelectTargets
             + "directorindirect, isagainst, sum(amount) as amount from "
             + "(select distinct fecrecno, sector, " + innerSelectTargets
                 + "directorindirect, type in ('24A', '24N') as isagainst, "
@@ -129,7 +131,8 @@ function queryContributions(req, res) {
                 + "inner join Categories on Categories.catcode = Committees.primcode "
                 + "where " + seedMatchingCriteria
                 + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
-            + "group by source, sourceid, " + outerGroupByTargets + "directorindirect, isagainst "
+            + "group by sourcename, sourceid, " + outerGroupByTargets
+            + "directorindirect, isagainst "
             + "order by amount desc ";
   } else {
     // TODO
