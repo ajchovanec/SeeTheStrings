@@ -93,14 +93,14 @@ function processRows(rows, aggregateType) {
       var newAmount = existingAggregateLink.amount + row.amount;
       var newCount = existingAggregateLink.count + 1;
       if (existingAggregateLink.subLinks.length > newLinksPerExpansion) {
-        aggregateLinks[aggreagateNodeId] = newAggregateLink(aggreagateNodeId, existingAggregateLink,
-            row.isagainst);
+        aggregateLinks[aggreagateNodeId] =
+            newAggregateLink(aggreagateNodeId, existingAggregateLink, row.isagainst);
       }
       var aggregateLink = aggregateLinks[aggreagateNodeId];
       aggregateLink.subLinks.push(row);
       aggregateLink.count = newCount;
       aggregateLink.amount = newAmount;
-      aggregateLink.isRefund = (newAmount < 0) ? true : false;
+      aggregateLink.isRefund = (newAmount < 0);
     } else {
       aggregateLinks[aggreagateNodeId] = newAggregateLink(aggreagateNodeId, row, row.isagainst);
     }
