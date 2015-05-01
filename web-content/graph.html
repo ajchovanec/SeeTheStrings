@@ -127,19 +127,33 @@ function getAggregateTypeForSeedType(seedType) {
     return null;
   }
 }
-function getLabelForAggregateCandidateNode(link) {
-  return link.count + " candidates. Double click..."
-}
-function getLabelForAggregatePacNode(link) {
-  return link.count + " contributors. Double click..."
-}
-function getLabelForAggregateNode(link, aggregateType) {
-  if (aggregateType == "source") {
-    return getLabelForAggregatePacNode(link);
-  } else if (aggregateType == "target") {
-    return getLabelForAggregateCandidateNode(link);
+function setDisplayPropertiesForCandidateNode(node, link) {
+  if (link.targetname != null) {
+    node.name = link.targetname;
+  } else if (link.subLinks != null) {
+    node.name = link.count + " candidates. Double click...";
+  }
+
+  if (link.party != null) {
+    node.party = link.party;
   } else {
-    console.log("Error: unknown aggregateType " + aggregateType);
+    node.party = "U";  // unknown party
+  }
+}
+function setDisplayPropertiesForPacNode(node, link) {
+  if (link.sourcename != null) {
+    node.name = link.sourcename;
+  } else if (link.subLinks != null) {
+    node.name = link.count + " contributors. Double click...";
+  }
+}
+function setDisplayPropertiesForNode(node, link) {
+  if (node.id == link.sourceid) {
+    setDisplayPropertiesForPacNode(node, link);
+  } else if (node.id == link.targetid) {
+    setDisplayPropertiesForCandidateNode(node, link);
+  } else {
+    console.log("Error: node and link passed in are not related to each other");
   }
 }
 
@@ -167,26 +181,23 @@ function buildGraph(links) {
             (nodes[link.sourceid] = {
               name: link.source,
               id: link.sourceid,
-              // TODO: Do we need this? Possibly, if we want to show party affiliations for PACs.
-              //party: link.party
             });
         var reportedTarget = nodes[link.targetid] ||
             (nodes[link.targetid] = {
               name: link.target,
               id: link.targetid,
-              // TODO: Find a way to make this code more generic so that we don't have to "know"
-              // that target nodes hava a party.
-              party: link.party
             });
+        link.sourcename = link.source;  // FIXME
+        link.targetname = link.target;  // FIXME
         link.source = reportedSource;
         link.target = reportedTarget;
+        // Set the display properties for both nodes based on the properties of the link.
+        setDisplayPropertiesForNode(link.source, link);
+        setDisplayPropertiesForNode(link.target, link);
         if (link.subLinks != null) {
           // Add a reference to the aggregate link to the aggregate node so that we can find the
           // sub links when the user wants to expand it.
           link[link.childType].aggregateLink = link;
-          // Set a name for the node, because if it's an aggregate then we won't have gotten one
-          // from the link.
-          link[link.childType].name = getLabelForAggregateNode(link, link.childType);
         }
       });
   var width = 1600,
@@ -271,7 +282,9 @@ function buildGraph(links) {
       var childType = aggregateLink.childType,
           childIdType = aggregateLink.childIdType,
           relativeType = aggregateLink.relativeType,
-          relativeIdType = aggregateLink.relativeIdType;
+          relativeIdType = aggregateLink.relativeIdType,
+          childNameType = childType + "name",  // FIXME
+          relativeNameType = relativeType + "name";  // FIXME
 
       console.log("Clicked node has id " + clickedNode.id + " and name " + clickedNode.name)
       console.log("Link for clicked node has " + subLinks.length + " sub links");
@@ -285,9 +298,6 @@ function buildGraph(links) {
           reportedChild = nodes[link[childIdType]] = {
             name: link[childType],  // This will be null if the child is another aggregate.
             id: link[childIdType],
-            // TODO: Find a way to make this code more generic. We'll end up pointlessly setting
-            // party = null when the child is a PAC node.
-            party: link.party
           };
           if (reportedChild.id == clickedNode.id && !nodeReplaced) {
             console.log("Replacing clicked " + childType + " node " + clickedNode.name + " with "
@@ -298,17 +308,20 @@ function buildGraph(links) {
             console.log("Adding new " + childType + " node " + reportedChild.name);
             force.nodes().push(reportedChild);
           }
-          // TODO: This transitive logic for setting up the next, finer grained aggregate will
-          // probably break in a graph where we have both aggregate source and child nodes.
+          // Set the display properties for the new node based on the properties of the link.
+          setDisplayPropertiesForNode(reportedChild, link);
           if (link.subLinks != null) {
+            // Add a reference to the aggregate link to the aggregate node so that we can find the
+            // sub links when the user wants to expand it.
             reportedChild.aggregateLink = link;
-            reportedChild.name = getLabelForAggregateNode(link, childType);
           }
         }
         // The reported relative link should already exist in the graph, because the aggregate was
         // already linking to it.
         // TODO: Should we get fully populated value from force.nodes()?
         var reportedRelative = nodes[link[relativeIdType]];
+        link[childNameType] = link[childType];  // FIXME
+        link[relativeNameType] = link[relativeType];  // FIXME
         link[childType] = reportedChild;
         link[relativeType] = reportedRelative;
         // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
