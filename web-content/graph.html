@@ -163,11 +163,6 @@ function buildGraph(links) {
   // Compute the distinct nodes from the links.
   links.forEach(
       function(link) {
-        if (link.subLinks != null) {
-          // If the link has sub links, then that means it's an aggregate, which means the DB shim
-          // doesn't know how to assign it a name, which means we need to assign it one here.
-          link[link.childType] = getLabelForAggregateNode(link, link.childType);
-        }
         var reportedSource = nodes[link.sourceid] ||
             (nodes[link.sourceid] = {
               name: link.source,
@@ -189,6 +184,9 @@ function buildGraph(links) {
           // Add a reference to the aggregate link to the aggregate node so that we can find the
           // sub links when the user wants to expand it.
           link[link.childType].aggregateLink = link;
+          // Set a name for the node, because if it's an aggregate then we won't have gotten one
+          // from the link.
+          link[link.childType].name = getLabelForAggregateNode(link, link.childType);
         }
       });
   var width = 1600,
