@@ -128,23 +128,30 @@ function getAggregateTypeForSeedType(seedType) {
   }
 }
 function setDisplayPropertiesForCandidateNode(node, link) {
-  if (link.targetname != null) {
-    node.name = link.targetname;
-  } else if (link.subLinks != null) {
-    node.name = link.count + " candidates. Double click...";
+  if (node.name == null) {
+    if (link.targetname != null) {
+      node.name = link.targetname;
+    } else if (link.subLinks != null) {
+      node.name = link.count + " candidates. Double click...";
+    }
   }
-
-  if (link.party != null) {
-    node.party = link.party;
-  } else {
-    node.party = "U";  // unknown party
+  if (node.party == null || node.party == "U") {
+    if (link.party != null) {
+      node.party = link.party;
+      console.log("Getting party " + node.party + " from link");
+    } else {
+      console.log("Party unknown");
+      node.party = "U";  // unknown party
+    }
   }
 }
 function setDisplayPropertiesForPacNode(node, link) {
-  if (link.sourcename != null) {
-    node.name = link.sourcename;
-  } else if (link.subLinks != null) {
-    node.name = link.count + " contributors. Double click...";
+  if (node.name == null) {
+    if (link.sourcename != null) {
+      node.name = link.sourcename;
+    } else if (link.subLinks != null) {
+      node.name = link.count + " contributors. Double click...";
+    }
   }
 }
 function setDisplayPropertiesForNode(node, link) {
