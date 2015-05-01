@@ -164,6 +164,8 @@ function buildGraph(links) {
   links.forEach(
       function(link) {
         if (link.subLinks != null) {
+          // If the link has sub links, then that means it's an aggregate, which means the DB shim
+          // doesn't know how to assign it a name, which means we need to assign it one here.
           link[link.childType] = getLabelForAggregateNode(link, link.childType);
         }
         var reportedSource = nodes[link.sourceid] ||
@@ -177,11 +179,15 @@ function buildGraph(links) {
             (nodes[link.targetid] = {
               name: link.target,
               id: link.targetid,
+              // TODO: Find a way to make this code more generic so that we don't have to "know"
+              // that target nodes hava a party.
               party: link.party
             });
         link.source = reportedSource;
         link.target = reportedTarget;
         if (link.subLinks != null) {
+          // Add a reference to the aggregate link to the aggregate node so that we can find the
+          // sub links when the user wants to expand it.
           link[link.childType].aggregateLink = link;
         }
       });
@@ -281,8 +287,9 @@ function buildGraph(links) {
           reportedChild = nodes[link[childIdType]] = {
             name: link[childType],  // This will be null if the child is another aggregate.
             id: link[childIdType],
-            // TODO: We may need this if we start color coding PACs by party affiliation.
-            //party: link.party
+            // TODO: Find a way to make this code more generic. We'll end up pointlessly setting
+            // party = null when the child is a PAC node.
+            party: link.party
           };
           if (reportedChild.id == clickedNode.id && !nodeReplaced) {
             console.log("Replacing clicked " + childType + " node " + clickedNode.name + " with "
