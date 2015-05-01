@@ -277,8 +277,6 @@ function buildGraph(links) {
       // Leaving this commented out for now to see if this ever causes an error.
       //return;
     }
-    var linkReplaced = false;
-    var nodeReplaced = false;
     if (clickedNode.aggregateLink) {
       var aggregateLink = clickedNode.aggregateLink;
       var subLinks = aggregateLink.subLinks;
@@ -302,12 +300,7 @@ function buildGraph(links) {
             name: link[childNameType],  // This will be null if the child is another aggregate.
             id: link[childIdType]
           };
-          if (nodeChild.id == clickedNode.id && !nodeReplaced) {
-            force.nodes()[n] = nodeChild;
-            nodeReplaced = true;
-          } else {
-            force.nodes().push(nodeChild);
-          }
+          force.nodes().push(nodeChild);
           // Set the display properties for the new node based on the properties of the link.
           setDisplayPropertiesForNode(nodeChild, link);
           if (link.subLinks != null) {
@@ -325,35 +318,13 @@ function buildGraph(links) {
         // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
         // data().enter() may not return the new version of the link, in which case, style and color
         // changes might not take effect.
-        var linkAdded = false;
-        if (!linkReplaced) {
-          var j = _.findIndex(force.links(), function(l) { return l.id == link.id; });
-          if (j != -1) {
-            // TODO: We're assuming that because we found another link with the same id as the
-            // current sub link, that must mean that it's the aggregate link from the clicked
-            // node, and furthermore that the current sub link must be a smaller aggregate link
-            // which was previously subsumed by the aforesaid larger aggregate link... This might
-            // not be a valid assumption.
-            force.links()[j] = link;
-            linkReplaced = true;
-            linkAdded = true;
-          }
-        }
-        if (!linkAdded) {
-          console.log("Appending a new link");
-          force.links().push(link);
-        }
+        console.log("Appending a new link");
+        force.links().push(link);
       }
-      if (!linkReplaced) {
-        console.log("Removing existing link because it has no sub links");
-        force.links().splice(force.links().indexOf(clickedNode.aggregateLink), 1);
-      }
-      if (!nodeReplaced) {
-        console.log("Removing existing " + childNameType + " node " + clickedNode.name
-            + ", because it has no sub links");
-        console.log("Node actually being removed has name " + force.nodes()[n].name)
-        force.nodes().splice(n, 1);
-      }
+      console.log("Removing existing link");
+      force.links().splice(force.links().indexOf(clickedNode.aggregateLink), 1);
+      console.log("Removing existing " + childNameType + " node");
+      force.nodes().splice(n, 1);
 
       restart();
     }
