@@ -109,8 +109,9 @@ function getStyleForParty(party) {
 function getLabelForLink(link) {
   // TODO: Consider displaying a refund by reversing the direction of the arrow, rather than by
   // showing a negative amount.
-  var formattedAmount =
-      Number(link.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  var absAmount = Math.abs(link.amount);
+  var formattedAmount = (link.amount >= 0 ? "$" : "-$")
+      + Number(absAmount).toLocaleString('en-US');
   return formattedAmount + (link.isRefund ? " (refund)" : "");
 }
 
@@ -281,7 +282,6 @@ function buildGraph(links) {
       return;
     }
     var aggregateLink = clickedNode.aggregateLink;
-
     console.log("Removing existing link");
     force.links().splice(force.links().indexOf(clickedNode.aggregateLink), 1);
     console.log("Removing existing " + childNameType + " node");
