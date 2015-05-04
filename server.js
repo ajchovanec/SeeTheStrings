@@ -83,7 +83,7 @@ function queryContributions(req, res) {
       : "firstlastp, Candidates.cid, Candidates.party, ";
   var seedMatchingCriteria;
   if (seedType == "Race") {
-    seedMatchingCriteria = "Candidates.distidrunfor == " + seedRace
+    seedMatchingCriteria = "Candidates.distidrunfor = " + seedRace
         + " and Candidates.currCand = 'Y'";
   } else if (seedType == "Candidate") {
     seedMatchingCriteria = "Candidates.cid in (" + seedCandidates + ") ";
