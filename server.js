@@ -160,10 +160,9 @@ function queryContributions(req, res) {
 function queryRaces(req, res) {
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
-  var state = queryParams["state"];
 
-  var sqlQuery = "select distinct distidrunfor as raceid from Candidates "
-    + "where currcand = 'Y' and substr(distidrunfor, 1, 2) = " + state + " order by raceid asc ";
+  var sqlQuery = "select distinct substr(distidrunfor, 1, 2) as stateid, distidrunfor as raceid "
+    + "from Candidates where currcand = 'Y' order by stateid asc, raceid asc ";
   console.log("SQL query for list of races: " + sqlQuery);
   res.writeHead(200, {"Content-Type": "application/json"});
   var races = [];
@@ -175,7 +174,7 @@ function queryRaces(req, res) {
           console.log("queryRaces error: " + JSON.stringify(err));
           // TODO: Should we exit here?
         }
-        console.log("Got a list of " + result.length + " states");
+        console.log("Got a list of " + result.length + " races");
         result.forEach(function(row) {
           if (row.raceid.length != 4) {
             console.log("raceid has incorrect length " + row.raceid.length
@@ -190,7 +189,7 @@ function queryRaces(req, res) {
           } else {
             var houseDistNumber = parseInt(suffix);
             if (isNaN(houseDistNumber)) {
-              console.log("raceid " + row.distid + " could be parsed and is being ignored.");
+              console.log("raceid " + row.distid + " could not be parsed and is being ignored.");
               return;
             }
             row.racename = "District " + houseDistNumber;

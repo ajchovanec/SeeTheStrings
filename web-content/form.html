@@ -79,7 +79,7 @@
     <div id="raceFormSection" style="display:none">
       Which U.S. state or territory are you interested in?
       <br>
-      <select name="states" id="statesList" size=1 onclick="queryRaces()">
+      <select name="states" id="statesList" size=1 onchange="queryAndShowRaces()">
       </select>
       <div id="raceFormSubSection" style="display:none">
         <br>
@@ -166,11 +166,14 @@ d3.json("/pacs", showPacs);
 console.log("Trying to fetch states list...")
 d3.json("/states.json", showStates);
 
-function queryRaces() {
-  var statesList = document.getElementById("statesList");
-  if (statesList.value != null) {
-    console.log("Trying to fetch races for state " + statesList.value + "...")
-    d3.json("/races?state=" + statesList.value, showRaces);
+var cachedRaces = null;
+
+function queryAndShowRaces() {
+  if (cachedRaces == null) {
+    console.log("Trying to fetch all races")
+    d3.json("/races", storeAndShowRaces);
+  } else {
+    showRaces();
   }
 }
 
@@ -230,13 +233,16 @@ function showStates(err, states) {
   var selectBox = document.getElementById("statesList");
   states.forEach(
       function(row) {
-        addOptionToSelectBox(selectBox, row.statename, "'" + row.stateid + "'");
+        addOptionToSelectBox(selectBox, row.statename, row.stateid);
       });
 
   selectBox.setAttribute("size", 10);
+  // For some reason we have to manually null out a preselected value, even though we didn't select
+  // any. This only seems to be necessary for single choice select boxes.
+  selectBox.value = null;
 }
 
-function showRaces(err, races) {
+function storeAndShowRaces(err, races) {
   if (err != null) {
     console.log("Error fetching races list from HTML page: " + JSON.stringify(err));
     // TODO: What should we do here?
@@ -244,10 +250,24 @@ function showRaces(err, races) {
     console.log("Got a list of " + races.length + " races on HTML page");
   }
 
+  cachedRaces = {};
+  races.forEach(
+      function(row) {
+        if (cachedRaces[row.stateid] == null) {
+          cachedRaces[row.stateid] = [];
+        }
+        cachedRaces[row.stateid].push(row);
+      });
+
+  showRaces();
+}
+
+function showRaces() {
   var selectBox = document.getElementById("racesList");
   removeOptionsFromSelectBox(selectBox);
 
-  races.forEach(
+  var stateid = document.getElementById("statesList").value;
+  cachedRaces[stateid].forEach(
       function(row) {
         addOptionToSelectBox(selectBox, row.racename, "'" + row.raceid + "'");
       });
