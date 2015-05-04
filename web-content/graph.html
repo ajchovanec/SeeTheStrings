@@ -123,7 +123,7 @@ function getLabelForLink(link) {
 //
 // Can we pull this logic up into the form?
 function getAggregateTypeForSeedType(seedType) {
-  if (seedType == "Candidate") {
+  if (seedType == "Candidate" || seedType == "Race") {
     return "source";
   } else if (seedType == "PAC") {
     return "target";

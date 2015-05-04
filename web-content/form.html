@@ -63,16 +63,32 @@
   Let's get started then.
   <br><br>
   <form id="graphForm" action="graph.html" method="GET" target="blank_">
-    <b>Do you want to see contributions to a particular candidate, or <i>from</i> a particular
-    political action committee?</b>
-    <br>
-    <input type="radio" name="seedType" id="candidateButton" value="Candidate"
+    How would you like to specify which contributions you're interested in? You can choose a
+    specific Congressional race, or you can choose one or more candidates or PACs.
+    <br><br>
+    <input type="radio" name="seedType" id="raceButton" value="Race"
         onclick="updateSeedType()" checked="true">
-      Candidate
+      Choose a race
+    <input type="radio" name="seedType" id="candidateButton" value="Candidate"
+        onclick="updateSeedType()">
+      Choose candidates
     <input type="radio" name="seedType" id="pacButton" value="PAC"
         onclick="updateSeedType()">
-      Political action committee
+      Choose PACs
     <br><br>
+    <div id="raceFormSection" style="display:none">
+      Which state or territory are you interested in?
+      <br>
+      <select name="states" id="statesList" size=1 onclick="queryRaces()">
+      </select>
+      <div id="raceFormSubSection" style="display:none">
+        <br>
+        Which race in the selected state are you interested in?
+        <br>
+        <select name="race" id="racesList" size=1>
+        </select>
+      </div>
+    </div>
     <div id="candidateFormSection" style="display:none">
       Which candidates' 2014 campaign contributions would you like to see? (Select one or more.)
       <br>
@@ -88,8 +104,8 @@
     </div>
     <br><br>
     <div id="detailsFormSection" style="display:inline">
-      Would you like to see the contributions for each candidate <i>separately</i>, or for all of the
-      selected candidates <i>combined</i>?
+      Would you like to see the contributions for each candidate <i>separately</i>, or for all of
+      the selected candidates <i>combined</i>?
       <br>
       <input type="radio" name="groupCandidatesBy" value="Candidate" checked="true">
         Separate
@@ -125,41 +141,119 @@
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
 
-function addOptionToSelectBox(selectbox, text, value) {
+function addOptionToSelectBox(selectBox, text, value) {
   var option = document.createElement("OPTION");
   option.text = text;
   option.value = value;
-  selectbox.options.add(option);
+  selectBox.options.add(option);
 }
 
-console.log("Trying to fetch candidates list from HTML page...");
+function removeOptionsFromSelectBox(selectBox) {
+  if (selectBox.options == null) {
+    return;
+  }
+  while (selectBox.options.length > 0) {
+    selectBox.remove(0);
+  }
+}
+
+console.log("Trying to fetch candidates list...");
 d3.json("/candidates", showCandidates);
 
-console.log("Trying to fetch PACs list from HTML page...");
+console.log("Trying to fetch PACs list...");
 d3.json("/pacs", showPacs);
+
+console.log("Trying to fetch states list...")
+d3.json("/states.json", showStates);
+
+function queryRaces() {
+  var statesList = document.getElementById("statesList");
+  if (statesList.value != null) {
+    console.log("Trying to fetch races for state " + statesList.value + "...")
+    d3.json("/races?state=" + statesList.value, showRaces);
+  }
+}
 
 updateSeedType();
 
 function updateSeedType() {
   console.log("Updating seed type.")
+  var raceButton = document.getElementById("raceButton");
   var candidateButton = document.getElementById("candidateButton");
   var pacButton = document.getElementById("pacButton");
+
+  var raceFormSection = document.getElementById("raceFormSection");
   var candidateFormSection = document.getElementById("candidateFormSection");
   var pacFormSection = document.getElementById("pacFormSection");
+  if (raceButton.checked == true) {
+    console.log("Race mode");
+    raceFormSection.style.display = "inline";
+    candidateFormSection.style.display = "none";
+    pacFormSection.style.display = "none";
+
+    removeOptionsFromSelectBox(racesList);
+    document.getElementById("raceFormSubSection").style.display = "none";
+
+    document.getElementById("candidatesList").value = null;
+    document.getElementById("pacsList").value = null;
+  }
   if (candidateButton.checked == true) {
     console.log("Candidate mode");
     candidateFormSection.style.display = "inline";
+    raceFormSection.style.display = "none";
     pacFormSection.style.display = "none";
-    // Clear existing selection of PACs.
+
+    document.getElementById("statesList").value = null;
+    document.getElementById("racesList").value = null;
     document.getElementById("pacsList").value = null;
   }
   if (pacButton.checked == true) {
     console.log("PAC mode");
     candidateFormSection.style.display = "none";
+    raceFormSection.style.display = "none";
     pacFormSection.style.display = "inline";
-    // Clear existing selection of Candidates.
+
+    document.getElementById("statesList").value = null;
+    document.getElementById("racesList").value = null;
     document.getElementById("candidatesList").value = null;
   }
+}
+
+function showStates(err, states) {
+  if (err != null) {
+    console.log("Error fetching states list from HTML page: " + JSON.stringify(err));
+    // TODO: What should we do here?
+  } else {
+    console.log("Got a list of " + states.length + " states on HTML page");
+  }
+
+  var selectBox = document.getElementById("statesList");
+  states.forEach(
+      function(row) {
+        addOptionToSelectBox(selectBox, row.statename, "'" + row.stateid + "'");
+      });
+
+  selectBox.setAttribute("size", 10);
+}
+
+function showRaces(err, races) {
+  if (err != null) {
+    console.log("Error fetching races list from HTML page: " + JSON.stringify(err));
+    // TODO: What should we do here?
+  } else {
+    console.log("Got a list of " + races.length + " races on HTML page");
+  }
+
+  var selectBox = document.getElementById("racesList");
+  removeOptionsFromSelectBox(selectBox);
+
+  races.forEach(
+      function(row) {
+        addOptionToSelectBox(selectBox, row.racename, "'" + row.raceid + "'");
+      });
+
+  selectBox.setAttribute("size", 10);
+  document.getElementById("raceFormSubSection").style.display = "block";
 }
 
 function showCandidates(err, candidates) {
@@ -175,6 +269,7 @@ function showCandidates(err, candidates) {
       function(row) {
         addOptionToSelectBox(selectBox, row.firstlastp, "'" + row.cid + "'");
       });
+
   selectBox.setAttribute("size", 20);
 }
 
@@ -191,6 +286,7 @@ function showPacs(err, pacs) {
       function(row) {
         addOptionToSelectBox(selectBox, row.pacshort, "'" + row.cmteid + "'");
       });
+
   selectBox.setAttribute("size", 20);
 }
 

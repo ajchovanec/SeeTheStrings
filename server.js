@@ -66,6 +66,7 @@ function queryContributions(req, res) {
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
   var seedType = queryParams["seedType"];
+  var seedRace = queryParams["race"];
   var seedCandidates = queryParams["candidates"];
   var seedPacs = queryParams["pacs"];
   var groupCandidatesBy = queryParams["groupCandidatesBy"];
@@ -81,7 +82,10 @@ function queryContributions(req, res) {
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
   var seedMatchingCriteria;
-  if (seedType == "Candidate") {
+  if (seedType == "Race") {
+    seedMatchingCriteria = "Candidates.distidrunfor == " + seedRace
+        + " and Candidates.currCand = 'Y'";
+  } else if (seedType == "Candidate") {
     seedMatchingCriteria = "Candidates.cid in (" + seedCandidates + ") ";
   } else if (seedType == "PAC") {
     seedMatchingCriteria = "Committees.cmteid in (" + seedPacs + ") ";
@@ -152,7 +156,53 @@ function queryContributions(req, res) {
         res.end();
       });
 }
-      
+
+function queryRaces(req, res) {
+  var url = req.url;
+  var queryParams = Url.parse(url, true).query;
+  var state = queryParams["state"];
+
+  var sqlQuery = "select distinct distidrunfor as raceid from Candidates "
+    + "where currcand = 'Y' and substr(distidrunfor, 1, 2) = " + state + " order by raceid asc ";
+  console.log("SQL query for list of races: " + sqlQuery);
+  res.writeHead(200, {"Content-Type": "application/json"});
+  var races = [];
+  var dbWrapper = getDbWrapper();
+  dbWrapper.connect();
+  dbWrapper.fetchAll(sqlQuery,
+      function(err, result) {
+        if (err != null) {
+          console.log("queryRaces error: " + JSON.stringify(err));
+          // TODO: Should we exit here?
+        }
+        console.log("Got a list of " + result.length + " states");
+        result.forEach(function(row) {
+          if (row.raceid.length != 4) {
+            console.log("raceid has incorrect length " + row.raceid.length
+                + " and is being ignored. Should be 4.");
+            return;
+          }
+          var suffix = row.raceid.substr(2, 2);
+          if (suffix == "S1" || suffix == "S2") {
+            row.racename = "Senate";
+            // List the senate race first if there is one.
+            races.splice(0, 0, row);
+          } else {
+            var houseDistNumber = parseInt(suffix);
+            if (isNaN(houseDistNumber)) {
+              console.log("raceid " + row.distid + " could be parsed and is being ignored.");
+              return;
+            }
+            row.racename = "District " + houseDistNumber;
+            races.push(row);
+          }
+        });
+        //dbWrapper.close(function(err) { console.log('Connection closed!'); });
+        res.write(JSON.stringify(races));
+        res.end();
+      });
+}
+
 function queryCandidates(req, res) {
   var sqlQuery = "select distinct cid, firstlastp, lower(firstlastp) as sortkey "
       + "from Candidates where cycle = '2014' and cyclecand = 'Y' order by sortkey asc ";
@@ -179,7 +229,7 @@ function queryCandidates(req, res) {
 
 function queryPacs(req, res) {
   var sqlQuery = "select distinct cmteid, pacshort, lower(pacshort) as sortkey "
-      + "from Committees where cycle = '2014' and pacshort != '' order by sortkey asc";
+      + "from Committees where cycle = '2014' and pacshort != '' order by sortkey asc ";
   console.log("SQL query for list of PACs: " + sqlQuery);
   res.writeHead(200, {"Content-Type": "application/json"});
   var pacs = [];
@@ -203,8 +253,11 @@ function queryPacs(req, res) {
 
 var router = Router()
 router.get('/data', queryContributions);
+router.get('/races', queryRaces);
 router.get('/candidates', queryCandidates);
 router.get('/pacs', queryPacs);
+// TODO: Remove files from web-content that we don't need to serve directly to users.
+// Also, Make sure we return the right Content-Type for each file.
 router.use('/', ServeStatic('web-content', {'index': ['form.html']}));
 
 var server = Http.createServer(function(req, res) {
