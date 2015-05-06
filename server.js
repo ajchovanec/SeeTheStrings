@@ -196,9 +196,11 @@ function queryRaces(req, res) {
             return;
           }
           var suffix = row.raceid.substr(2, 2);
-          if (suffix == "S1" || suffix == "S2") {
-            row.racename = "Senate";
-            // List the senate race first if there is one.
+          if (suffix[0] == "S") {
+            row.racename = "Senate " + suffix[1];
+            // We want to list all Senate races before any of the House races.
+            //
+            // TODO: Arguably this should be done on the client side since it's presentation logic.
             races.splice(0, 0, row);
           } else {
             var houseDistNumber = parseInt(suffix);
