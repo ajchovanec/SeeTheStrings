@@ -223,7 +223,6 @@ function queryCandidates(req, res) {
   var sqlQuery = "select distinct cid, firstlastp, lower(firstlastp) as sortkey "
       + "from Candidates where cycle = '2014' and cyclecand = 'Y' order by sortkey asc ";
   console.log("SQL query for list of candidates: " + sqlQuery);
-  var candidates = [];
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
   dbWrapper.fetchAll(sqlQuery,
@@ -244,7 +243,6 @@ function queryPacs(req, res) {
   var sqlQuery = "select distinct cmteid, pacshort, lower(pacshort) as sortkey "
       + "from Committees where cycle = '2014' and pacshort != '' order by sortkey asc ";
   console.log("SQL query for list of PACs: " + sqlQuery);
-  var pacs = [];
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
   dbWrapper.fetchAll(sqlQuery,
