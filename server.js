@@ -98,7 +98,7 @@ function queryContributions(req, res) {
   var seedMatchingCriteria;
   if (seedType == "Race") {
     seedMatchingCriteria = "Candidates.distidrunfor = " + seedRace
-        + " and Candidates.currCand = 'Y'";
+        + " and Candidates.currCand = 'Y' ";
   } else if (seedType == "Candidate") {
     seedMatchingCriteria = "Candidates.cid in (" + seedCandidates + ") ";
   } else if (seedType == "PAC") {
