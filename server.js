@@ -43,17 +43,19 @@ function getDbWrapper() {
     dbWrapper: new DBWrapper(dbType, dbConnectionConfig),
     connect:
         function() {
-          // TODO: Consider connecting on demand, only after a cache miss.
-          this.dbWrapper.connect();
+          // This is actually a no-op. The real call to the underlying DBWrapper.connect() is done
+          // on demand -- i.e., only if there is a cache miss.
         },
     close:
         function(errCallback) {
-          this.dbWrapper.close(
-              function(err) {
-                console.log(err ?
-                    'Error closing connection: ' + err
-                  : 'Connection closed!');
-                });
+          if (this.dbWrapper.isConnected()) {
+            this.dbWrapper.close(
+                function(err) {
+                  console.log(err ?
+                      "Error closing connection: " + err
+                    : "Connection closed!");
+                  });
+          }
         },
     fetchAll:
         function(sqlQuery, callback) {
@@ -62,6 +64,9 @@ function getDbWrapper() {
               sqlQuery,
               function (cacheCallback) {
                 console.log("Cache miss, querying the SQL database")
+                if (!self.dbWrapper.isConnected()) {
+                  self.dbWrapper.connect();
+                }
                 self.dbWrapper.fetchAll(sqlQuery, null, cacheCallback);
               },
               604800 /* 1 week */,
@@ -163,8 +168,8 @@ function queryContributions(req, res) {
         res.writeHead(200, {"Content-Type": "application/json"});
         res.write(JSON.stringify(result));
         res.end();
+        dbWrapper.close();
       });
-  dbWrapper.close();
 }
 
 function queryRaces(req, res) {
@@ -208,8 +213,8 @@ function queryRaces(req, res) {
         res.writeHead(200, {"Content-Type": "application/json"});
         res.write(JSON.stringify(races));
         res.end();
+        dbWrapper.close();
       });
-  dbWrapper.close();
 }
 
 function queryCandidates(req, res) {
@@ -232,8 +237,8 @@ function queryCandidates(req, res) {
         res.writeHead(200, {"Content-Type": "application/json"});
         res.write(JSON.stringify(candidates));
         res.end();
+        dbWrapper.close();
       });
-  dbWrapper.close();
 }
 
 function queryPacs(req, res) {
@@ -256,8 +261,8 @@ function queryPacs(req, res) {
         res.writeHead(200, {"Content-Type": "application/json"});
         res.write(JSON.stringify(pacs));
         res.end();
+        dbWrapper.close();
       });
-  dbWrapper.close();
 }
 
 var router = Router()
