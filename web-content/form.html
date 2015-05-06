@@ -16,13 +16,14 @@
 </style>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="shortcut icon" type="image/jpg" href="marionette.jpg" />
-  <title>"See the Strings"</title>
+  <title>See the Strings</title>
 </head>
 <body background="">
   <div class="header">
     <img src="marionette.jpg" alt="logo" />
-    <h1>"See the Strings"</h1>
+    <h1>See the Strings</h1>
   </div>
   <br>
   <p>
@@ -69,9 +70,11 @@
     <input type="radio" name="seedType" id="raceButton" value="Race"
         onclick="updateSeedType()" checked="true">
       Choose a race
+    <br>
     <input type="radio" name="seedType" id="candidateButton" value="Candidate"
         onclick="updateSeedType()">
       Choose candidates
+    <br>
     <input type="radio" name="seedType" id="pacButton" value="PAC"
         onclick="updateSeedType()">
       Choose PACs
@@ -132,7 +135,7 @@
       <input type="checkbox" name="contributionTypes" value="'I'" checked="true">
         Indirect expenditures to influence candidates' election prospects
       <br><br><br><br>
-      <input type="button" style="width:400px;font-size:16pt"
+      <input type="button" style="width:300px;font-size:16pt"
           onclick="document.getElementById('graphForm').submit()" value="See the contributions!">
       <br><br><br><br>
     </div>
@@ -194,6 +197,7 @@ function updateSeedType() {
     candidateFormSection.style.display = "none";
     pacFormSection.style.display = "none";
 
+    // TODO: racesList is an undeclared variable. How does this work?
     removeOptionsFromSelectBox(racesList);
     document.getElementById("raceFormSubSection").style.display = "none";
 
