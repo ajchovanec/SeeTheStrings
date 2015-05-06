@@ -43,16 +43,26 @@ function getDbWrapper() {
     dbWrapper: new DBWrapper(dbType, dbConnectionConfig),
     connect:
         function() {
+          // TODO: Consider connecting on demand, only after a cache miss.
           this.dbWrapper.connect();
+        },
+    close:
+        function(errCallback) {
+          this.dbWrapper.close(
+              function(err) {
+                console.log(err ?
+                    'Error closing connection: ' + err
+                  : 'Connection closed!');
+                });
         },
     fetchAll:
         function(sqlQuery, callback) {
-          var parentDbWrapper = this.dbWrapper;
+          var self = this;
           memoryCache.wrap(
               sqlQuery,
               function (cacheCallback) {
                 console.log("Cache miss, querying the SQL database")
-                parentDbWrapper.fetchAll(sqlQuery, null, cacheCallback);
+                self.dbWrapper.fetchAll(sqlQuery, null, cacheCallback);
               },
               604800 /* 1 week */,
               callback);
@@ -72,7 +82,6 @@ function queryContributions(req, res) {
   var groupCandidatesBy = queryParams["groupCandidatesBy"];
   var groupContributionsBy = queryParams["groupContributionsBy"];
   var contributionTypes = queryParams["contributionTypes"];
-  res.writeHead(200, {"Content-Type": "application/json"});
   var sqlQuery;
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "'Misc candidates' as targetname, -1 as targetid, "
@@ -151,10 +160,11 @@ function queryContributions(req, res) {
           console.log("query error: " + JSON.stringify(err));
           // TODO: Should we exit here?
         }
-        //dbWrapper.close(function(err) { console.log('Connection closed!'); });
+        res.writeHead(200, {"Content-Type": "application/json"});
         res.write(JSON.stringify(result));
         res.end();
       });
+  dbWrapper.close();
 }
 
 function queryRaces(req, res) {
@@ -164,7 +174,6 @@ function queryRaces(req, res) {
   var sqlQuery = "select distinct substr(distidrunfor, 1, 2) as stateid, distidrunfor as raceid "
     + "from Candidates where currcand = 'Y' order by stateid asc, raceid asc ";
   console.log("SQL query for list of races: " + sqlQuery);
-  res.writeHead(200, {"Content-Type": "application/json"});
   var races = [];
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
@@ -196,17 +205,17 @@ function queryRaces(req, res) {
             races.push(row);
           }
         });
-        //dbWrapper.close(function(err) { console.log('Connection closed!'); });
+        res.writeHead(200, {"Content-Type": "application/json"});
         res.write(JSON.stringify(races));
         res.end();
       });
+  dbWrapper.close();
 }
 
 function queryCandidates(req, res) {
   var sqlQuery = "select distinct cid, firstlastp, lower(firstlastp) as sortkey "
       + "from Candidates where cycle = '2014' and cyclecand = 'Y' order by sortkey asc ";
   console.log("SQL query for list of candidates: " + sqlQuery);
-  res.writeHead(200, {"Content-Type": "application/json"});
   var candidates = [];
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
@@ -220,17 +229,17 @@ function queryCandidates(req, res) {
         result.forEach(function(row) {
           candidates.push(row);
         });
-        //dbWrapper.close(function(err) { console.log('Connection closed!'); });
+        res.writeHead(200, {"Content-Type": "application/json"});
         res.write(JSON.stringify(candidates));
         res.end();
       });
+  dbWrapper.close();
 }
 
 function queryPacs(req, res) {
   var sqlQuery = "select distinct cmteid, pacshort, lower(pacshort) as sortkey "
       + "from Committees where cycle = '2014' and pacshort != '' order by sortkey asc ";
   console.log("SQL query for list of PACs: " + sqlQuery);
-  res.writeHead(200, {"Content-Type": "application/json"});
   var pacs = [];
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
@@ -244,10 +253,11 @@ function queryPacs(req, res) {
         result.forEach(function(row) {
           pacs.push(row);
         });
-        //dbWrapper.close(function(err) { console.log('Connection closed!'); });
+        res.writeHead(200, {"Content-Type": "application/json"});
         res.write(JSON.stringify(pacs));
         res.end();
       });
+  dbWrapper.close();
 }
 
 var router = Router()
