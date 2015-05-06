@@ -160,13 +160,13 @@ function queryContributions(req, res) {
   dbWrapper.connect();
   console.log("SQL query: " + sqlQuery);
   dbWrapper.fetchAll(sqlQuery,
-      function(err, result) {
+      function(err, contributions) {
         if (err != null) {
           console.log("query error: " + JSON.stringify(err));
           // TODO: Should we exit here?
         }
         res.writeHead(200, {"Content-Type": "application/json"});
-        res.write(JSON.stringify(result));
+        res.write(JSON.stringify(contributions));
         res.end();
         dbWrapper.close();
       });
@@ -227,15 +227,12 @@ function queryCandidates(req, res) {
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
   dbWrapper.fetchAll(sqlQuery,
-      function(err, result) {
+      function(err, candidates) {
         if (err != null) {
           console.log("queryCandidates error: " + JSON.stringify(err));
           // TODO: Should we exit here?
         }
-        console.log("Got a list of " + result.length + " candidates");
-        result.forEach(function(row) {
-          candidates.push(row);
-        });
+        console.log("Got a list of " + candidates.length + " candidates");
         res.writeHead(200, {"Content-Type": "application/json"});
         res.write(JSON.stringify(candidates));
         res.end();
@@ -251,15 +248,12 @@ function queryPacs(req, res) {
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
   dbWrapper.fetchAll(sqlQuery,
-      function(err, result) {
+      function(err, pacs) {
         if (err != null) {
           console.log("queryPacs error: " + JSON.stringify(err));
           // TODO: Should we exit here?
         }
-        console.log("Got a list of " + result.length + " PACs");
-        result.forEach(function(row) {
-          pacs.push(row);
-        });
+        console.log("Got a list of " + pacs.length + " PACs");
         res.writeHead(200, {"Content-Type": "application/json"});
         res.write(JSON.stringify(pacs));
         res.end();
