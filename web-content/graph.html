@@ -53,7 +53,7 @@ text {
 </style>
 <head>
   <!-- TODO: What Content-Type should we set here? -->
-  <link rel="shortcut icon" type="image/jpg" href="marionette.jpg" />
+  <link rel="shortcut icon" type="image/jpg" href="images/marionette.jpg" />
   <title>See the Strings</title>
 </head>
 
@@ -198,7 +198,7 @@ function buildGraph(links) {
       .attr("y", 0)
       .attr("width", 450)
       .attr("height", 300)
-      .attr("xlink:href","legend.svg")
+      .attr("xlink:href","images/legend.svg")
 
   var force = d3.layout.force()
       .nodes(d3.values(nodes))
@@ -409,7 +409,7 @@ function buildGraph(links) {
         .attr("xlink:href",
             function(d) {
               // TODO: Try to find a way to avoid having one .svg file per party.
-              return "person-" + d.party + ".svg";
+              return "images/person-" + d.party + ".svg";
             })
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
