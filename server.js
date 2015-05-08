@@ -104,7 +104,12 @@ function queryContributions(req, res) {
   } else if (seedType == "PAC") {
     seedMatchingCriteria = "Committees.cmteid in (" + seedPacs + ") ";
   } else {
-    // TODO
+    // TODO: Is this the right way to fast fail the request?
+    console.log("Error: Invalid seedType parameter '" + seedType
+        + "'. Returning no contributions.");
+    res.writeHead(400);
+    res.end();
+    return;
   }
   console.log("groupCandidatesBy: " + groupCandidatesBy);
   console.log("outerSelectTargets: " + outerSelectTargets);
