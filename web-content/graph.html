@@ -35,27 +35,13 @@
   stroke-width: 4px;
   fill: none
 }
+
 .circle {
   stroke: #333;
   stroke-width: 1.5px;
 }
 .circle.gray {
   fill: #bbb;
-}
-.circle.white {
-  fill: white;
-}
-.circle.red {
-  fill: red;
-}
-.circle.blue {
-  fill: blue;
-}
-.circle.gold {
-  fill: yellow;  /* TODO: gold */
-}
-.circle.purple {
-  fill: purple;
 }
 
 text {
@@ -95,16 +81,6 @@ var isagainstToMarkerColor = {
   "true": "red",
   "false": "black"
 };
-
-function getStyleForParty(party) {
-  switch (party) {
-  case "R": return "red";
-  case "D": return "blue";
-  case "L": return "gold";
-  case "3": return "purple";
-  default: return "white" 
-  }
-}
 
 function getLabelForLink(link) {
   // TODO: Consider displaying a refund by reversing the direction of the arrow, rather than by
@@ -239,10 +215,10 @@ function buildGraph(links) {
     .enter().append("marker")
       .attr("id", function(d) { return d; })
       .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 15)
-      .attr("refY", -1.5)
-      .attr("markerWidth", 6)
-      .attr("markerHeight", 6)
+      .attr("refX", 10)
+      .attr("refY", 0)
+      .attr("markerWidth", 5)
+      .attr("markerHeight", 5)
       .attr("orient", "auto")
     .append("path")
       .attr("d", "M0,-5L10,0L0,5");
@@ -252,16 +228,23 @@ function buildGraph(links) {
   // TODO: Consider going back to elliptical arc path segments to doubly-encode directionality.
   function tick() {
     path.attr("d", linkLine);
-    circle.attr("transform", transformNodes);
     halo.attr("transform", transformNodes);
+    circle.attr("transform", transformNodes);
+    person.attr("transform", transformNodes);
     nodeText.attr("transform", transformNodes);
     linkText.attr("transform", transformLinkText);
   }
 
   function linkLine(d) {
-    var dx = d.target.x - d.source.x,
-        dy = d.target.y - d.source.y;
-    return "M" + d.source.x + "," + d.source.y + "L" + d.target.x + "," + d.target.y;
+    var adjLength = 6;  // radius of circle nodes
+    var deltaX = d.target.x - d.source.x,
+        deltaY = d.target.y - d.source.y;
+    var slope = deltaY / deltaX;
+    var adjX = isNaN(slope) ? 0 : Math.sqrt(Math.pow(adjLength, 2) / (Math.pow(slope, 2) + 1));
+    var adjY = isNaN(slope) ? adjLength : Math.abs(slope * adjX);
+    var endX = d.target.x - Math.sign(deltaX) * adjX;
+    var endY = d.target.y - Math.sign(deltaY) * adjY;
+    return "M" + d.source.x + "," + d.source.y + "L" + endX + "," + endY;
   }
 
   function transformNodes(d) {
@@ -344,8 +327,9 @@ function buildGraph(links) {
     if (init) {
       svg.append("g").attr("class", "gPaths");
       svg.append("g").attr("class", "gTextLink");
-      svg.append("g").attr("class", "gCircles");
       svg.append("g").attr("class", "gHalos");
+      svg.append("g").attr("class", "gCircles");
+      svg.append("g").attr("class", "gPersons");
       svg.append("g").attr("class", "gTextNode");
     }
 
@@ -386,26 +370,48 @@ function buildGraph(links) {
         .attr("y", ".31em")
         .text(function(d) { return getLabelForLink(d); });
 
-    circle = svg.select(".gCircles").selectAll("circle")
-        .data(force.nodes(), getJoinFunc(nodeKeyFunc));
-    circle.exit().remove();
-    circle.enter().append("circle")
-        .attr("r", 6)
-        .attr("nodeId", function (d) { return d.id; })
-        .attr("class",
-            function (d) {
-              return "circle " + (d.party != null ? getStyleForParty(d.party) : "gray");
-            })
-        .on("dblclick", dblclick)
-        .call(force.drag);
-
     halo = svg.select(".gHalos").selectAll(".halo")
         .data(force.nodes().filter(isAggregateNode), getJoinFunc(nodeKeyFunc));
     halo.exit().remove();
     halo.enter().append("circle")
         .attr("r", 11)
-        .attr("nodeId", function (d) { return d.id; })
         .attr("class", "halo")
+        .attr("nodeId", function (d) { return d.id; })
+        .on("dblclick", dblclick)
+        .call(force.drag);
+
+    circle = svg.select(".gCircles").selectAll("circle")
+        .data(force.nodes().filter(
+            function(d) {
+              return d.party == null;
+            }),
+            getJoinFunc(nodeKeyFunc));
+    circle.exit().remove();
+    circle.enter().append("circle")
+        .attr("r", 6)
+        .attr("class", "circle gray")
+        .attr("nodeId", function (d) { return d.id; })
+        .on("dblclick", dblclick)
+        .call(force.drag);
+
+    person = svg.select(".gPersons").selectAll("image")
+        .data(force.nodes().filter(
+            function(d) {
+              return d.party != null;
+            }),
+            getJoinFunc(nodeKeyFunc));
+    person.exit().remove();
+    person.enter().append("image")
+        .attr("x", "-4")
+        .attr("y", "-10")
+        .attr("width", 8)
+        .attr("height", 20)
+        .attr("xlink:href",
+            function(d) {
+              // TODO: Try to find a way to avoid having one .svg file per party.
+              return "person-" + d.party + ".svg";
+            })
+        .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
 
