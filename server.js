@@ -260,7 +260,7 @@ function queryPacs(req, res) {
 }
 
 var router = Router()
-router.get('/data', queryContributions);
+router.get('/contributions', queryContributions);
 router.get('/races', queryRaces);
 router.get('/candidates', queryCandidates);
 router.get('/pacs', queryPacs);
