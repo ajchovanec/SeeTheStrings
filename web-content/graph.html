@@ -36,11 +36,11 @@
   fill: none
 }
 
-.circle {
+.contributor {
   stroke: #333;
   stroke-width: 1.5px;
 }
-.circle.gray {
+.contributor.gray {
   fill: #bbb;
 }
 
@@ -229,7 +229,7 @@ function buildGraph(links) {
   function tick() {
     path.attr("d", linkLine);
     halo.attr("transform", transformNodes);
-    circle.attr("transform", transformNodes);
+    contributor.attr("transform", transformNodes);
     person.attr("transform", transformNodes);
     nodeText.attr("transform", transformNodes);
     linkText.attr("transform", transformLinkText);
@@ -340,7 +340,7 @@ function buildGraph(links) {
       svg.append("g").attr("class", "gPaths");
       svg.append("g").attr("class", "gTextLink");
       svg.append("g").attr("class", "gHalos");
-      svg.append("g").attr("class", "gCircles");
+      svg.append("g").attr("class", "gContributors");
       svg.append("g").attr("class", "gPersons");
       svg.append("g").attr("class", "gTextNode");
     }
@@ -392,16 +392,16 @@ function buildGraph(links) {
         .on("dblclick", dblclick)
         .call(force.drag);
 
-    circle = svg.select(".gCircles").selectAll("circle")
+    contributor = svg.select(".gContributors").selectAll("circle")
         .data(force.nodes().filter(
             function(d) {
               return d.party == null;
             }),
             getJoinFunc(nodeKeyFunc));
-    circle.exit().remove();
-    circle.enter().append("circle")
+    contributor.exit().remove();
+    contributor.enter().append("circle")
         .attr("r", 6)
-        .attr("class", "circle gray")
+        .attr("class", "contributor gray")
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
