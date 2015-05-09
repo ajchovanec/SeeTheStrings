@@ -230,7 +230,7 @@ function buildGraph(links) {
     path.attr("d", linkLine);
     halo.attr("transform", transformNodes);
     contributor.attr("transform", transformNodes);
-    person.attr("transform", transformNodes);
+    candidate.attr("transform", transformNodes);
     nodeText.attr("transform", transformNodes);
     linkText.attr("transform", transformLinkText);
   }
@@ -341,7 +341,7 @@ function buildGraph(links) {
       svg.append("g").attr("class", "gTextLink");
       svg.append("g").attr("class", "gHalos");
       svg.append("g").attr("class", "gContributors");
-      svg.append("g").attr("class", "gPersons");
+      svg.append("g").attr("class", "gCandidates");
       svg.append("g").attr("class", "gTextNode");
     }
 
@@ -406,14 +406,14 @@ function buildGraph(links) {
         .on("dblclick", dblclick)
         .call(force.drag);
 
-    person = svg.select(".gPersons").selectAll("image")
+    candidate = svg.select(".gCandidates").selectAll("image")
         .data(force.nodes().filter(
             function(d) {
               return d.party != null;
             }),
             getJoinFunc(nodeKeyFunc));
-    person.exit().remove();
-    person.enter().append("image")
+    candidate.exit().remove();
+    candidate.enter().append("image")
         .attr("x", "-4")
         .attr("y", "-10")
         .attr("width", 8)
