@@ -230,7 +230,7 @@ function buildGraph(links) {
     path.attr("d", linkLine);
     halo.attr("transform", transformNodes);
     contributor.attr("transform", transformNodes);
-    candidate.attr("transform", transformNodes);
+    singleCandidate.attr("transform", transformNodes);
     nodeText.attr("transform", transformNodes);
     linkText.attr("transform", transformLinkText);
   }
@@ -341,7 +341,8 @@ function buildGraph(links) {
       svg.append("g").attr("class", "gTextLink");
       svg.append("g").attr("class", "gHalos");
       svg.append("g").attr("class", "gContributors");
-      svg.append("g").attr("class", "gCandidates");
+      svg.append("g").attr("class", "gSingleCandidates");
+      svg.append("g").attr("class", "gAggregateCandidates");
       svg.append("g").attr("class", "gTextNode");
     }
 
@@ -406,14 +407,14 @@ function buildGraph(links) {
         .on("dblclick", dblclick)
         .call(force.drag);
 
-    candidate = svg.select(".gCandidates").selectAll("image")
+    singleCandidate = svg.select(".gSingleCandidates").selectAll("image")
         .data(force.nodes().filter(
             function(d) {
-              return d.party != null;
+              return d.party != null && d.subLinks == null;
             }),
             getJoinFunc(nodeKeyFunc));
-    candidate.exit().remove();
-    candidate.enter().append("image")
+    singleCandidate.exit().remove();
+    singleCandidate.enter().append("image")
         .attr("x", "-4")
         .attr("y", "-10")
         .attr("width", 8)
@@ -426,6 +427,27 @@ function buildGraph(links) {
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
+
+    aggregateCandidate = svg.select(".gAggregateCandidates").selectAll("image")
+        .data(force.nodes().filter(
+            function(d) {
+              return d.party != null && d.subLinks != null;
+            }),
+            getJoinFunc(nodeKeyFunc));
+        aggregateCandidate.exit().remove();
+        aggregateCandidate.enter().append("image")
+            .attr("x", "-4")
+            .attr("y", "-10")
+            .attr("width", 8)
+            .attr("height", 20)
+            .attr("xlink:href",
+                function(d) {
+                  // TODO: Try to find a way to avoid having one .svg file per party.
+                  return "images/person-" + d.party + ".svg";
+                })
+            .attr("nodeId", function (d) { return d.id; })
+            .on("dblclick", dblclick)
+            .call(force.drag);
 
     nodeText = svg.select(".gTextNode").selectAll(".textNode")
         .data(force.nodes(), getJoinFunc(nodeKeyFunc));
