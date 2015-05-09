@@ -231,12 +231,13 @@ function buildGraph(links) {
     halo.attr("transform", transformNodes);
     contributor.attr("transform", transformNodes);
     singleCandidate.attr("transform", transformNodes);
+    aggregateCandidate.attr("transform", transformNodes);
     nodeText.attr("transform", transformNodes);
     linkText.attr("transform", transformLinkText);
   }
 
   function linkLine(d) {
-    var adjLength = 6;
+    var adjLength = 8;
 
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
@@ -337,9 +338,9 @@ function buildGraph(links) {
 
   function restart(init) {
     if (init) {
+      svg.append("g").attr("class", "gHalos");
       svg.append("g").attr("class", "gPaths");
       svg.append("g").attr("class", "gTextLink");
-      svg.append("g").attr("class", "gHalos");
       svg.append("g").attr("class", "gContributors");
       svg.append("g").attr("class", "gSingleCandidates");
       svg.append("g").attr("class", "gAggregateCandidates");
@@ -359,7 +360,22 @@ function buildGraph(links) {
 
     function isAggregateNode(d) { return d.aggregateLink != null; }
 
+    function getImageForNodeWithParty(d) {
+      // TODO: Try to find a way to avoid having one .svg file per party.
+      return "images/person-" + d.party + ".svg";
+    }
+
     // Global variables representing UI element selections are defined below.
+
+    halo = svg.select(".gHalos").selectAll(".halo")
+        .data(force.nodes().filter(isAggregateNode), getJoinFunc(nodeKeyFunc));
+    halo.exit().remove();
+    halo.enter().append("circle")
+        .attr("r", 12)
+        .attr("class", "halo")
+        .attr("nodeId", function (d) { return d.id; })
+        .on("dblclick", dblclick)
+        .call(force.drag);
 
     path = svg.select(".gPaths").selectAll("path")
         .data(force.links(), getJoinFunc(linkKeyFunc));
@@ -383,16 +399,6 @@ function buildGraph(links) {
         .attr("y", ".31em")
         .text(function(d) { return getLabelForLink(d); });
 
-    halo = svg.select(".gHalos").selectAll(".halo")
-        .data(force.nodes().filter(isAggregateNode), getJoinFunc(nodeKeyFunc));
-    halo.exit().remove();
-    halo.enter().append("circle")
-        .attr("r", 11)
-        .attr("class", "halo")
-        .attr("nodeId", function (d) { return d.id; })
-        .on("dblclick", dblclick)
-        .call(force.drag);
-
     contributor = svg.select(".gContributors").selectAll("circle")
         .data(force.nodes().filter(
             function(d) {
@@ -410,7 +416,7 @@ function buildGraph(links) {
     singleCandidate = svg.select(".gSingleCandidates").selectAll("image")
         .data(force.nodes().filter(
             function(d) {
-              return d.party != null && d.subLinks == null;
+              return d.party != null && d.aggregateLink == null;
             }),
             getJoinFunc(nodeKeyFunc));
     singleCandidate.exit().remove();
@@ -419,35 +425,46 @@ function buildGraph(links) {
         .attr("y", "-10")
         .attr("width", 8)
         .attr("height", 20)
-        .attr("xlink:href",
-            function(d) {
-              // TODO: Try to find a way to avoid having one .svg file per party.
-              return "images/person-" + d.party + ".svg";
-            })
+        .attr("xlink:href", getImageForNodeWithParty)
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
 
-    aggregateCandidate = svg.select(".gAggregateCandidates").selectAll("image")
+    // TODO: Figure out to add a light drop shadow around each person so that they can overlap
+    // and create a better sense of perspective.
+    var centerPersonWidth = 6;
+    var centerPersonHeight = 16;
+    var personOffset = 8;
+    var personScalingFactor = 0.8;
+    aggregateCandidate = svg.select(".gAggregateCandidates").selectAll("g")
         .data(force.nodes().filter(
             function(d) {
-              return d.party != null && d.subLinks != null;
+              return d.party != null && d.aggregateLink != null;
             }),
             getJoinFunc(nodeKeyFunc));
-        aggregateCandidate.exit().remove();
-        aggregateCandidate.enter().append("image")
-            .attr("x", "-4")
-            .attr("y", "-10")
-            .attr("width", 8)
-            .attr("height", 20)
-            .attr("xlink:href",
-                function(d) {
-                  // TODO: Try to find a way to avoid having one .svg file per party.
-                  return "images/person-" + d.party + ".svg";
-                })
-            .attr("nodeId", function (d) { return d.id; })
-            .on("dblclick", dblclick)
-            .call(force.drag);
+    aggregateCandidate.exit().remove();
+    var g = aggregateCandidate.enter().append("g")
+        .attr("nodeId", function (d) { return d.id; })
+        .on("dblclick", dblclick)
+        .call(force.drag);
+    g.append("image")
+        .attr("x", centerPersonWidth / -2)
+        .attr("y", centerPersonHeight / -2)
+        .attr("width", centerPersonWidth)
+        .attr("height", centerPersonHeight)
+        .attr("xlink:href", getImageForNodeWithParty);
+    g.append("image")
+        .attr("x", personScalingFactor * (centerPersonWidth / -2 + personOffset))
+        .attr("y",  personScalingFactor * centerPersonHeight / -2)
+        .attr("width", centerPersonWidth * personScalingFactor)
+        .attr("height", centerPersonHeight * personScalingFactor)
+        .attr("xlink:href", getImageForNodeWithParty);
+    g.append("image")
+        .attr("x", personScalingFactor * (centerPersonWidth / -2 - personOffset))
+        .attr("y", personScalingFactor * centerPersonHeight / -2)
+        .attr("width", centerPersonWidth * personScalingFactor)
+        .attr("height", centerPersonHeight * personScalingFactor)
+        .attr("xlink:href", getImageForNodeWithParty);
 
     nodeText = svg.select(".gTextNode").selectAll(".textNode")
         .data(force.nodes(), getJoinFunc(nodeKeyFunc));
