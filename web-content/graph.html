@@ -229,7 +229,8 @@ function buildGraph(links) {
   function tick() {
     path.attr("d", linkLine);
     halo.attr("transform", transformNodes);
-    contributor.attr("transform", transformNodes);
+    singleContributor.attr("transform", transformNodes);
+    aggregateContributor.attr("transform", transformNodes);
     singleCandidate.attr("transform", transformNodes);
     aggregateCandidate.attr("transform", transformNodes);
     nodeText.attr("transform", transformNodes);
@@ -341,7 +342,8 @@ function buildGraph(links) {
       svg.append("g").attr("class", "gHalos");
       svg.append("g").attr("class", "gPaths");
       svg.append("g").attr("class", "gTextLink");
-      svg.append("g").attr("class", "gContributors");
+      svg.append("g").attr("class", "gSingleContributors");
+      svg.append("g").attr("class", "gAggregateContributors");
       svg.append("g").attr("class", "gSingleCandidates");
       svg.append("g").attr("class", "gAggregateCandidates");
       svg.append("g").attr("class", "gTextNode");
@@ -399,14 +401,28 @@ function buildGraph(links) {
         .attr("y", ".31em")
         .text(function(d) { return getLabelForLink(d); });
 
-    contributor = svg.select(".gContributors").selectAll("circle")
+    singleContributor = svg.select(".gSingleContributors").selectAll("circle")
         .data(force.nodes().filter(
             function(d) {
-              return d.party == null;
+              return d.party == null && d.aggregateLink == null;
             }),
             getJoinFunc(nodeKeyFunc));
-    contributor.exit().remove();
-    contributor.enter().append("circle")
+    singleContributor.exit().remove();
+    singleContributor.enter().append("circle")
+        .attr("r", 6)
+        .attr("class", "contributor gray")
+        .attr("nodeId", function (d) { return d.id; })
+        .on("dblclick", dblclick)
+        .call(force.drag);
+
+    aggregateContributor = svg.select(".gAggregateContributors").selectAll("circle")
+        .data(force.nodes().filter(
+            function(d) {
+              return d.party == null && d.aggregateLink != null;
+            }),
+            getJoinFunc(nodeKeyFunc));
+    aggregateContributor.exit().remove();
+    aggregateContributor.enter().append("circle")
         .attr("r", 6)
         .attr("class", "contributor gray")
         .attr("nodeId", function (d) { return d.id; })
