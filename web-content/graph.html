@@ -415,19 +415,31 @@ function buildGraph(links) {
         .on("dblclick", dblclick)
         .call(force.drag);
 
-    aggregateContributor = svg.select(".gAggregateContributors").selectAll("circle")
+    var centerCircleRadius = 4.5;
+    var circleOffset = 10;
+    var circleScalingFactor = 0.75;
+    aggregateContributor = svg.select(".gAggregateContributors").selectAll("g")
         .data(force.nodes().filter(
             function(d) {
               return d.party == null && d.aggregateLink != null;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregateContributor.exit().remove();
-    aggregateContributor.enter().append("circle")
-        .attr("r", 6)
-        .attr("class", "contributor gray")
+    var gAggregateContributors = aggregateContributor.enter().append("g")
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
+    gAggregateContributors.append("circle")
+        .attr("cx", circleOffset)
+        .attr("r", circleScalingFactor * centerCircleRadius)
+        .attr("class", "contributor gray");
+    gAggregateContributors.append("circle")
+        .attr("cx", -1 * circleOffset)
+        .attr("r", circleScalingFactor * centerCircleRadius)
+        .attr("class", "contributor gray");
+    gAggregateContributors.append("circle")
+        .attr("r", centerCircleRadius)
+        .attr("class", "contributor gray");
 
     singleCandidate = svg.select(".gSingleCandidates").selectAll("image")
         .data(force.nodes().filter(
@@ -459,27 +471,27 @@ function buildGraph(links) {
             }),
             getJoinFunc(nodeKeyFunc));
     aggregateCandidate.exit().remove();
-    var g = aggregateCandidate.enter().append("g")
+    var gAggregateCandidates = aggregateCandidate.enter().append("g")
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
-    g.append("image")
-        .attr("x", centerPersonWidth / -2)
-        .attr("y", centerPersonHeight / -2)
-        .attr("width", centerPersonWidth)
-        .attr("height", centerPersonHeight)
-        .attr("xlink:href", getImageForNodeWithParty);
-    g.append("image")
+    gAggregateCandidates.append("image")
         .attr("x", personScalingFactor * (centerPersonWidth / -2 + personOffset))
         .attr("y",  personScalingFactor * centerPersonHeight / -2)
         .attr("width", centerPersonWidth * personScalingFactor)
         .attr("height", centerPersonHeight * personScalingFactor)
         .attr("xlink:href", getImageForNodeWithParty);
-    g.append("image")
+    gAggregateCandidates.append("image")
         .attr("x", personScalingFactor * (centerPersonWidth / -2 - personOffset))
         .attr("y", personScalingFactor * centerPersonHeight / -2)
         .attr("width", centerPersonWidth * personScalingFactor)
         .attr("height", centerPersonHeight * personScalingFactor)
+        .attr("xlink:href", getImageForNodeWithParty);
+    gAggregateCandidates.append("image")
+        .attr("x", centerPersonWidth / -2)
+        .attr("y", centerPersonHeight / -2)
+        .attr("width", centerPersonWidth)
+        .attr("height", centerPersonHeight)
         .attr("xlink:href", getImageForNodeWithParty);
 
     nodeText = svg.select(".gTextNode").selectAll(".textNode")
