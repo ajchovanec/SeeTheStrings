@@ -61,14 +61,14 @@ function processRows(rows, aggregateType) {
 
   function handleOneRow(row) {
     // This is necessary to normalize behavior between SQLite and PostgreSQL, since the former
-    // resolved boolean expressions to 1 or 0, whereas the latter resolves them to true or false.
+    // resolves boolean expressions to 1 or 0, whereas the latter resolves them to true or false.
     row.isagainst = row.isagainst ? true : false;
 
     var aggregateNodeId = getAggregateNodeId(row);
     var numLinks = linkCounts[aggregateNodeId] || (linkCounts[aggregateNodeId] = 0);
   
     row.id = row[childIdType] + "; " + aggregateNodeId;
-    row.isRefund = row.amount < 0 ? true : false;
+    row.isRefund = row.amount < 0;
   
     if (numLinks < initLinksPerRelative
         || linkExistenceMap[row[childIdType] + ", " + row[relativeIdType]]) {
