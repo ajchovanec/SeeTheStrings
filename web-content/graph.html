@@ -110,12 +110,31 @@ function getAggregateTypeForSeedType(seedType) {
     return null;
   }
 }
+function getAdjectiveForParty(party) {
+  switch (party) {
+  case "R": return "Republican";
+  case "D": return "Democratic";
+  case "L": return "Libertarian";
+  case "3": return "Independent";
+  case "U":
+    // Don't return "Unknown" for unknown candidates since it isn't informative.
+  default:
+    return null;
+  }
+}
 function setDisplayPropertiesForCandidateNode(node, link) {
   if (node.name == null) {
     if (link.targetname != null) {
       node.name = link.targetname;
     } else if (link.subLinks != null) {
-      node.name = link.count + " candidates. Double click...";
+      node.name = link.count + " ";
+      if (link.party != null) {
+        var adjective = getAdjectiveForParty(link.party);
+        if (adjective != null) {
+          node.name += adjective + " ";
+        }
+      }
+      node.name += "candidates. Double click...";
     }
   }
   if (node.party == null || node.party == "U") {

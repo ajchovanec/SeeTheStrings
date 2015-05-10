@@ -52,6 +52,9 @@ function processRows(rows, aggregateType) {
     newLink[childIdType] = aggregateId;
     newLink[relativeIdType] = firstLink[relativeIdType];
     newLink[relativeNameType] = firstLink[relativeNameType];
+    // TODO: In the future some links may not have a party field. Consider finding a way to
+    // generalize this.
+    newLink.party = firstLink.party;
     return newLink;
   }
 
@@ -101,6 +104,11 @@ function processRows(rows, aggregateType) {
       aggregateLink.count = newCount;
       aggregateLink.amount = newAmount;
       aggregateLink.isRefund = (newAmount < 0);
+      // TODO: In the future some links may not have a party field. Consider finding a way to
+      // generalize this.
+      if (row.party != aggregateLink.party) {
+        aggregateLink.party = null;
+      }
     } else {
       aggregateLinks[aggreagateNodeId] = newAggregateLink(aggreagateNodeId, row, row.isagainst);
     }
