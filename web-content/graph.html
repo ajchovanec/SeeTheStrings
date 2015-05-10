@@ -160,11 +160,40 @@ function handleResponse(err, rows) {
   buildGraph(links);
 }
 
+var linkExistenceMap = {};
+function getLinkNodesKey(link) {
+  return link.sourceid + ", " + link.targetid;
+}
+function getLinkTypeKey(link) {
+  return link.directorindirect + ", " + link.isagainst;
+}
+function addLinkToExistenceMap(link) {
+  var nodesKey = getLinkNodesKey(link);
+  var linkTypeMap = linkExistenceMap[nodesKey];
+  if (linkTypeMap == null) {
+    linkTypeMap = linkExistenceMap[nodesKey] = {};
+  }
+  var typeKey = getLinkTypeKey(link);
+  linkTypeMap[typeKey] = link;
+}
+function removeLinkFromExistenceMap(link) {
+  var nodesKey = getLinkNodesKey(link);
+  var linkTypeMap = linkExistenceMap[nodesKey];
+  if (linkTypeMap == null) {
+    return;
+  }
+  var typeKey = getLinkTypeKey(link);
+  linkTypeMap[typeKey] = null;
+}
+
+// TODO: Define dedicated methods to manage node and link addition and removal, to ensure that all
+// relevant array and map data structures are kept in sync with one another.
 function buildGraph(links) {
   var nodes = {};
   // Compute the distinct nodes from the links.
   links.forEach(
       function(link) {
+        addLinkToExistenceMap(link);
         link.source = nodes[link.sourceid] ||
             (nodes[link.sourceid] = {
               name: link.sourcename,
@@ -236,9 +265,41 @@ function buildGraph(links) {
     linkText.attr("transform", transformLinkText);
   }
 
+  function getLinkArcRadiusMultiplier(link) {
+    // TODO: Figure out what mathematical relationship between consecutive multipliers yields
+    // equidistant arcs.
+    var multipliers = [ 1.0, 0.6, 0.51 ];
+    var directInFavorTypeKey = "D, false";
+    var indirectInFavorTypeKey = "I, false";
+    var indirectAgainstTypeKey = "I, true";
+
+    var nodesKey = getLinkNodesKey(link);
+    var linkTypeMap = linkExistenceMap[nodesKey];
+    if (linkTypeMap == null) {
+      console.log("Warning: link missing from link existence map.")
+      return multipliers[0];
+    }
+    var typeKey = getLinkTypeKey(link);
+    switch (typeKey) {
+    case directInFavorTypeKey:
+      return multipliers[0];
+    case indirectInFavorTypeKey:
+      return linkTypeMap[directInFavorTypeKey] == null ?
+          multipliers[0]
+        : multipliers[1];
+    case indirectAgainstTypeKey:
+      var index = 0;
+      index += (linkTypeMap[directInFavorTypeKey] != null);
+      index += (linkTypeMap[indirectInFavorTypeKey] != null);
+      return multipliers[index];
+    }
+  }
+
   function linkLine(d) {
     var adjLength = 8;
     var isClockwise = 1;
+
+    var multiplier = getLinkArcRadiusMultiplier(d);
 
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
@@ -250,7 +311,8 @@ function buildGraph(links) {
     var radius = Math.sqrt(Math.pow(endX - d.source.x, 2) + Math.pow(endY - d.source.y, 2));
 
     return "M" + d.source.x + "," + d.source.y
-        + "A" + radius + "," + radius + " 0 0," + isClockwise + " " + endX + "," + endY;
+        + "A" + radius * multiplier + "," + radius * multiplier
+        + " 0 0," + isClockwise + " " + endX + "," + endY;
   }
 
   function transformNodes(d) {
@@ -260,12 +322,16 @@ function buildGraph(links) {
   function transformLinkText(d) {
     var isClockwise = true;
 
+    var multiplier = getLinkArcRadiusMultiplier(d);
+
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
     var length = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
-    var skewLength = length - length * Math.sqrt(3) / 2;
+    var skewLength = multiplier * length
+        - length * Math.sqrt(4 * Math.pow(multiplier, 2) - 1) / 2;
     var textDist = Math.sqrt(Math.pow(skewLength, 2) + Math.pow(length / 2, 2));
-    var textAngle = Math.atan2(deltaY, deltaX) + (isClockwise ? -1 : 1) * Math.PI / 12;
+    var adjAngle = Math.atan(2 * skewLength / length);
+    var textAngle = Math.atan2(deltaY, deltaX) + (isClockwise ? -1 : 1) * adjAngle;
     var textX = d.source.x + Math.cos(textAngle) * textDist;
     var textY = d.source.y + Math.sin(textAngle) * textDist;
     return "translate(" + textX + "," + textY + ")";
@@ -286,7 +352,9 @@ function buildGraph(links) {
     }
     var aggregateLink = clickedNode.aggregateLink;
     console.log("Removing existing link");
+    removeLinkFromExistenceMap(aggregateLink);
     force.links().splice(force.links().indexOf(clickedNode.aggregateLink), 1);
+
     console.log("Removing existing " + childNameType + " node");
     force.nodes().splice(n, 1);
 
@@ -329,6 +397,7 @@ function buildGraph(links) {
       // changes might not take effect.
       console.log("Appending a new link");
       force.links().push(link);
+      addLinkToExistenceMap(link);
     }
 
     restart();
