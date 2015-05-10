@@ -82,6 +82,8 @@ var isagainstToMarkerColor = {
   "false": "black"
 };
 
+var queryParams = Url.parse(window.location.search, true).query;
+
 function getLabelForLink(link) {
   // TODO: Consider displaying a refund by reversing the direction of the arrow, rather than by
   // showing a negative amount.
@@ -126,18 +128,29 @@ function setDisplayPropertiesForCandidateNode(node, link) {
     }
   }
 }
-function setDisplayPropertiesForPacNode(node, link) {
+function setDisplayPropertiesForContributorNode(node, link) {
   if (node.name == null) {
     if (link.sourcename != null) {
       node.name = link.sourcename;
     } else if (link.subLinks != null) {
-      node.name = link.count + " contributors. Double click...";
+      // TODO: Should we only be accessing queryParams from high level methods like handleResponse
+      // and buildGraph?
+      var groupContributionsBy = queryParams["groupContributionsBy"];
+      node.name = link.count + " ";
+      if (groupContributionsBy == "Sector") {
+        node.name += "sectors";
+      } else if (groupContributionsBy == "Industry") {
+        node.name += "industries";
+      } else {
+        node.name += "contributors"
+      }
+      node.name += ". Double click...";
     }
   }
 }
 function setDisplayPropertiesForNode(node, link) {
   if (node.id == link.sourceid) {
-    setDisplayPropertiesForPacNode(node, link);
+    setDisplayPropertiesForContributorNode(node, link);
   } else if (node.id == link.targetid) {
     setDisplayPropertiesForCandidateNode(node, link);
   } else {
@@ -150,7 +163,6 @@ d3.json("/contributions" + window.location.search, handleResponse);
 function handleResponse(err, rows) {
   // TODO: Check for errors.
 
-  var queryParams = Url.parse(window.location.search, true).query;
   var seedType = queryParams["seedType"];
   console.log("Got seedType: " + seedType);
 
