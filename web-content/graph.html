@@ -239,6 +239,7 @@ function buildGraph(links) {
 
   function linkLine(d) {
     var adjLength = 8;
+    var isClockwise = 1;
 
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
@@ -250,7 +251,7 @@ function buildGraph(links) {
     var radius = Math.sqrt(Math.pow(endX - d.source.x, 2) + Math.pow(endY - d.source.y, 2));
 
     return "M" + d.source.x + "," + d.source.y
-        + "A" + radius + "," + radius + " 0 0,1 " + endX + "," + endY;
+        + "A" + radius + "," + radius + " 0 0," + isClockwise + " " + endX + "," + endY;
   }
 
   function transformNodes(d) {
@@ -258,12 +259,14 @@ function buildGraph(links) {
   }
 
   function transformLinkText(d) {
+    var isClockwise = true;
+
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
     var length = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
     var skewLength = length - length * Math.sqrt(3) / 2;
     var textDist = Math.sqrt(Math.pow(skewLength, 2) + Math.pow(length / 2, 2));
-    var textAngle = Math.atan2(deltaY, deltaX) - Math.PI / 12;
+    var textAngle = Math.atan2(deltaY, deltaX) + (isClockwise ? -1 : 1) * Math.PI / 12;
     var textX = d.source.x + Math.cos(textAngle) * textDist;
     var textY = d.source.y + Math.sin(textAngle) * textDist;
     return "translate(" + textX + "," + textY + ")";
