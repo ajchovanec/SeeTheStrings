@@ -225,7 +225,6 @@ function buildGraph(links) {
 
   start();
 
-  // TODO: Consider going back to elliptical arc path segments to doubly-encode directionality.
   function tick() {
     path.attr("d", linkLine);
     halo.attr("transform", transformNodes);
