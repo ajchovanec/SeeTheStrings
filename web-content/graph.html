@@ -304,7 +304,6 @@ function buildGraph(links) {
       var link = subLinks[i];
       console.log("Sub link " + i + " has name " + link[childNameType] + " and amount "
           + link.amount);
-      // TODO: Should we get fully populated value from force.nodes()?
       var nodeChild = nodes[link[childIdType]];
       if (nodeChild == null || nodeChild.name != link[childNameType]) {
         nodeChild = nodes[link[childIdType]] = {
