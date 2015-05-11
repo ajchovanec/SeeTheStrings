@@ -253,7 +253,7 @@ function buildGraph(inputLinks) {
           link[link.childType].aggregateLink = link;
         }
       });
-  graph.nodes = d3.values(graph.nodesMap);
+  graph.nodes = _.values(graph.nodesMap);
 
   var width = 1600,
       height = 1000;
