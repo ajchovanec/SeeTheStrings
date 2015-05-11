@@ -1,5 +1,5 @@
 
-var initLinksPerRelative= 5;
+var initLinksPerRelative = 5;
 var newLinksPerExpansion = 5;
 
 function processRows(rows, aggregateType) {
@@ -69,10 +69,10 @@ function processRows(rows, aggregateType) {
 
     var aggregateNodeId = getAggregateNodeId(row);
     var numLinks = linkCounts[aggregateNodeId] || (linkCounts[aggregateNodeId] = 0);
-  
+
     row.id = row[childIdType] + "; " + aggregateNodeId;
     row.isRefund = row.amount < 0;
-  
+
     if (numLinks < initLinksPerRelative
         || linkExistenceMap[row[childIdType] + ", " + row[relativeIdType]]) {
       links.push(row);
