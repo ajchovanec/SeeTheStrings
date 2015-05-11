@@ -191,47 +191,54 @@ function handleResponse(err, rows) {
   buildGraph(links);
 }
 
-var linkExistenceMap = {};
-function getLinkNodesKey(link) {
-  return link.sourceid + ", " + link.targetid;
-}
-function getLinkTypeKey(link) {
-  return link.directorindirect + ", " + link.isagainst;
-}
-function addLinkToExistenceMap(link) {
-  var nodesKey = getLinkNodesKey(link);
-  var linkTypeMap = linkExistenceMap[nodesKey];
-  if (linkTypeMap == null) {
-    linkTypeMap = linkExistenceMap[nodesKey] = {};
-  }
-  var typeKey = getLinkTypeKey(link);
-  linkTypeMap[typeKey] = link;
-}
-function removeLinkFromExistenceMap(link) {
-  var nodesKey = getLinkNodesKey(link);
-  var linkTypeMap = linkExistenceMap[nodesKey];
-  if (linkTypeMap == null) {
-    return;
-  }
-  var typeKey = getLinkTypeKey(link);
-  linkTypeMap[typeKey] = null;
-}
-
 // TODO: Define dedicated methods to manage node and link addition and removal, to ensure that all
 // relevant array and map data structures are kept in sync with one another.
-function buildGraph(links) {
-  var nodes = {};
+function buildGraph(inputLinks) {
+  var graph = {
+    nodes: {},
+    links: inputLinks,
+    linkExistenceMap: {},
+    getLinkNodesKey:
+        function(link) {
+          return link.sourceid + ", " + link.targetid;
+        },
+    getLinkTypeKey:
+        function(link) {
+          return link.directorindirect + ", " + link.isagainst;
+        },
+    addLinkToExistenceMap:
+        function(link) {
+          var nodesKey = this.getLinkNodesKey(link);
+          var linkTypeMap = this.linkExistenceMap[nodesKey];
+          if (linkTypeMap == null) {
+            linkTypeMap = this.linkExistenceMap[nodesKey] = {};
+          }
+          var typeKey = this.getLinkTypeKey(link);
+          linkTypeMap[typeKey] = link;
+        },
+    removeLinkFromExistenceMap:
+        function(link) {
+          var nodesKey = this.getLinkNodesKey(link);
+          var linkTypeMap = this.linkExistenceMap[nodesKey];
+          if (linkTypeMap == null) {
+            return;
+          }
+          var typeKey = this.getLinkTypeKey(link);
+          linkTypeMap[typeKey] = null;
+        }
+  }
+
   // Compute the distinct nodes from the links.
-  links.forEach(
+  graph.links.forEach(
       function(link) {
-        addLinkToExistenceMap(link);
-        link.source = nodes[link.sourceid] ||
-            (nodes[link.sourceid] = {
+        graph.addLinkToExistenceMap(link);
+        link.source = graph.nodes[link.sourceid] ||
+            (graph.nodes[link.sourceid] = {
               name: link.sourcename,
               id: link.sourceid,
             });
-        link.target = nodes[link.targetid] ||
-            (nodes[link.targetid] = {
+        link.target = graph.nodes[link.targetid] ||
+            (graph.nodes[link.targetid] = {
               name: link.targetname,
               id: link.targetid,
             });
@@ -244,6 +251,7 @@ function buildGraph(links) {
           link[link.childType].aggregateLink = link;
         }
       });
+
   var width = 1600,
       height = 1000;
 
@@ -261,8 +269,8 @@ function buildGraph(links) {
       .attr("xlink:href","images/legend.svg")
 
   var force = d3.layout.force()
-      .nodes(d3.values(nodes))
-      .links(links)
+      .nodes(d3.values(graph.nodes))
+      .links(graph.links)
       .size([width, height])
       .linkDistance(200)
       .charge(-300)
@@ -304,13 +312,13 @@ function buildGraph(links) {
     var indirectInFavorTypeKey = "I, false";
     var indirectAgainstTypeKey = "I, true";
 
-    var nodesKey = getLinkNodesKey(link);
-    var linkTypeMap = linkExistenceMap[nodesKey];
+    var nodesKey = graph.getLinkNodesKey(link);
+    var linkTypeMap = graph.linkExistenceMap[nodesKey];
     if (linkTypeMap == null) {
       console.log("Warning: link missing from link existence map.")
       return multipliers[0];
     }
-    var typeKey = getLinkTypeKey(link);
+    var typeKey = graph.getLinkTypeKey(link);
     switch (typeKey) {
     case directInFavorTypeKey:
       return multipliers[0];
@@ -371,7 +379,7 @@ function buildGraph(links) {
   // action to take on mouse double click
   function dblclick() {
     var nodeId = d3.select(this).attr("nodeId");
-    var clickedNode = nodes[nodeId];
+    var clickedNode = graph.nodes[nodeId];
     var n = force.nodes().indexOf(clickedNode);
     if (clickedNode == null || n == -1) {
       console.log("Clicked node can't be found!");
@@ -383,7 +391,7 @@ function buildGraph(links) {
     }
     var aggregateLink = clickedNode.aggregateLink;
     console.log("Removing existing link");
-    removeLinkFromExistenceMap(aggregateLink);
+    graph.removeLinkFromExistenceMap(aggregateLink);
     force.links().splice(force.links().indexOf(clickedNode.aggregateLink), 1);
 
     console.log("Removing existing " + childNameType + " node");
@@ -403,9 +411,9 @@ function buildGraph(links) {
       var link = subLinks[i];
       console.log("Sub link " + i + " has name " + link[childNameType] + " and amount "
           + link.amount);
-      var nodeChild = nodes[link[childIdType]];
+      var nodeChild = graph.nodes[link[childIdType]];
       if (nodeChild == null || nodeChild.name != link[childNameType]) {
-        nodeChild = nodes[link[childIdType]] = {
+        nodeChild = graph.nodes[link[childIdType]] = {
           name: link[childNameType],  // This will be null if the child is another aggregate.
           id: link[childIdType]
         };
@@ -420,7 +428,7 @@ function buildGraph(links) {
       }
       // The relative of the clicked node should already exist in the graph, because the aggregate
       // was already linking to it.
-      var nodeRelative = nodes[link[relativeIdType]];
+      var nodeRelative = graph.nodes[link[relativeIdType]];
       link[childType] = nodeChild;
       link[relativeType] = nodeRelative;
       // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
@@ -428,7 +436,7 @@ function buildGraph(links) {
       // changes might not take effect.
       console.log("Appending a new link");
       force.links().push(link);
-      addLinkToExistenceMap(link);
+      graph.addLinkToExistenceMap(link);
     }
 
     restart();
