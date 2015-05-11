@@ -196,7 +196,8 @@ function handleResponse(err, rows) {
 // relevant array and map data structures are kept in sync with one another.
 function buildGraph(inputLinks) {
   var graph = {
-    nodes: {},
+    nodesMap: {},
+    nodes: [],
     links: inputLinks,
     linkExistenceMap: {},
     getLinkNodesKey:
@@ -233,13 +234,13 @@ function buildGraph(inputLinks) {
   graph.links.forEach(
       function(link) {
         graph.addLinkToExistenceMap(link);
-        link.source = graph.nodes[link.sourceid] ||
-            (graph.nodes[link.sourceid] = {
+        link.source = graph.nodesMap[link.sourceid] ||
+            (graph.nodesMap[link.sourceid] = {
               name: link.sourcename,
               id: link.sourceid,
             });
-        link.target = graph.nodes[link.targetid] ||
-            (graph.nodes[link.targetid] = {
+        link.target = graph.nodesMap[link.targetid] ||
+            (graph.nodesMap[link.targetid] = {
               name: link.targetname,
               id: link.targetid,
             });
@@ -252,6 +253,7 @@ function buildGraph(inputLinks) {
           link[link.childType].aggregateLink = link;
         }
       });
+  graph.nodes = d3.values(graph.nodesMap);
 
   var width = 1600,
       height = 1000;
@@ -270,7 +272,7 @@ function buildGraph(inputLinks) {
       .attr("xlink:href","images/legend.svg")
 
   var force = d3.layout.force()
-      .nodes(d3.values(graph.nodes))
+      .nodes(graph.nodes)
       .links(graph.links)
       .size([width, height])
       .linkDistance(200)
@@ -380,8 +382,8 @@ function buildGraph(inputLinks) {
   // action to take on mouse double click
   function dblclick() {
     var nodeId = d3.select(this).attr("nodeId");
-    var clickedNode = graph.nodes[nodeId];
-    var n = force.nodes().indexOf(clickedNode);
+    var clickedNode = graph.nodesMap[nodeId];
+    var n = graph.nodes.indexOf(clickedNode);
     if (clickedNode == null || n == -1) {
       console.log("Clicked node can't be found!");
       return;
@@ -393,10 +395,10 @@ function buildGraph(inputLinks) {
     var aggregateLink = clickedNode.aggregateLink;
     console.log("Removing existing link");
     graph.removeLinkFromExistenceMap(aggregateLink);
-    force.links().splice(force.links().indexOf(clickedNode.aggregateLink), 1);
+    graph.links.splice(graph.links.indexOf(clickedNode.aggregateLink), 1);
 
     console.log("Removing existing " + childNameType + " node");
-    force.nodes().splice(n, 1);
+    graph.nodes.splice(n, 1);
 
     var subLinks = aggregateLink.subLinks;
     var childType = aggregateLink.childType,
@@ -412,13 +414,13 @@ function buildGraph(inputLinks) {
       var link = subLinks[i];
       console.log("Sub link " + i + " has name " + link[childNameType] + " and amount "
           + link.amount);
-      var nodeChild = graph.nodes[link[childIdType]];
+      var nodeChild = graph.nodesMap[link[childIdType]];
       if (nodeChild == null || nodeChild.name != link[childNameType]) {
-        nodeChild = graph.nodes[link[childIdType]] = {
+        nodeChild = graph.nodesMap[link[childIdType]] = {
           name: link[childNameType],  // This will be null if the child is another aggregate.
           id: link[childIdType]
         };
-        force.nodes().push(nodeChild);
+        graph.nodes.push(nodeChild);
         // Set the display properties for the new node based on the properties of the link.
         setDisplayPropertiesForNode(nodeChild, link);
         if (link.subLinks != null) {
@@ -429,14 +431,14 @@ function buildGraph(inputLinks) {
       }
       // The relative of the clicked node should already exist in the graph, because the aggregate
       // was already linking to it.
-      var nodeRelative = graph.nodes[link[relativeIdType]];
+      var nodeRelative = graph.nodesMap[link[relativeIdType]];
       link[childType] = nodeChild;
       link[relativeType] = nodeRelative;
       // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
       // data().enter() may not return the new version of the link, in which case, style and color
       // changes might not take effect.
       console.log("Appending a new link");
-      force.links().push(link);
+      graph.links.push(link);
       graph.addLinkToExistenceMap(link);
     }
 
@@ -480,7 +482,7 @@ function buildGraph(inputLinks) {
     // Global variables representing UI element selections are defined below.
 
     halo = svg.select(".gHalos").selectAll(".halo")
-        .data(force.nodes().filter(isAggregateNode), getJoinFunc(nodeKeyFunc));
+        .data(graph.nodes.filter(isAggregateNode), getJoinFunc(nodeKeyFunc));
     halo.exit().remove();
     halo.enter().append("circle")
         .attr("r", 12)
@@ -490,7 +492,7 @@ function buildGraph(inputLinks) {
         .call(force.drag);
 
     path = svg.select(".gPaths").selectAll("path")
-        .data(force.links(), getJoinFunc(linkKeyFunc));
+        .data(graph.links, getJoinFunc(linkKeyFunc));
     path.exit().remove();
     path.enter().append("path")
         .attr("class",
@@ -503,7 +505,7 @@ function buildGraph(inputLinks) {
             });
 
     linkText = svg.select(".gTextLink").selectAll(".textLink")
-        .data(force.links(), getJoinFunc(linkKeyFunc));
+        .data(graph.links, getJoinFunc(linkKeyFunc));
     linkText.exit().remove();
     linkText.enter().append("text")
         .attr("class", "textLink")
@@ -512,7 +514,7 @@ function buildGraph(inputLinks) {
         .text(function(d) { return getLabelForLink(d); });
 
     singleContributor = svg.select(".gSingleContributors").selectAll("circle")
-        .data(force.nodes().filter(
+        .data(graph.nodes.filter(
             function(d) {
               return d.party == null && d.aggregateLink == null;
             }),
@@ -529,7 +531,7 @@ function buildGraph(inputLinks) {
     var circleOffset = 10;
     var circleScalingFactor = 0.75;
     aggregateContributor = svg.select(".gAggregateContributors").selectAll("g")
-        .data(force.nodes().filter(
+        .data(graph.nodes.filter(
             function(d) {
               return d.party == null && d.aggregateLink != null;
             }),
@@ -552,7 +554,7 @@ function buildGraph(inputLinks) {
         .attr("class", "contributor gray");
 
     singleCandidate = svg.select(".gSingleCandidates").selectAll("image")
-        .data(force.nodes().filter(
+        .data(graph.nodes.filter(
             function(d) {
               return d.party != null && d.aggregateLink == null;
             }),
@@ -575,7 +577,7 @@ function buildGraph(inputLinks) {
     var personOffset = 8;
     var personScalingFactor = 0.75;
     aggregateCandidate = svg.select(".gAggregateCandidates").selectAll("g")
-        .data(force.nodes().filter(
+        .data(graph.nodes.filter(
             function(d) {
               return d.party != null && d.aggregateLink != null;
             }),
@@ -605,7 +607,7 @@ function buildGraph(inputLinks) {
         .attr("xlink:href", getImageForNodeWithParty);
 
     nodeText = svg.select(".gTextNode").selectAll(".textNode")
-        .data(force.nodes(), getJoinFunc(nodeKeyFunc));
+        .data(graph.nodes, getJoinFunc(nodeKeyFunc));
     nodeText.exit().remove();
     nodeText.enter().append("text")
         .attr("class", "textNode")
