@@ -189,71 +189,80 @@ function handleResponse(err, rows) {
   var aggregateType = getAggregateTypeForSeedType(seedType);
   var links = processRows(rows, aggregateType);
 
-  buildGraph(links);
+  showGraph(links);
+}
+
+// TODO: Turn this into an object prototype or something.
+var graph = {
+  nodesMap: {},
+  nodes: [],
+  links: {},
+  linkExistenceMap: {},
+  init:
+      function(inputLinks) {
+        this.links = inputLinks;
+        // Compute the distinct nodes from the links.
+        var self = this;
+        this.links.forEach(
+            function(link) {
+              self.addLinkToExistenceMap(link);
+              link.source = self.nodesMap[link.sourceid] ||
+                  (self.nodesMap[link.sourceid] = {
+                    name: link.sourcename,
+                    id: link.sourceid,
+                  });
+              link.target = self.nodesMap[link.targetid] ||
+                  (self.nodesMap[link.targetid] = {
+                    name: link.targetname,
+                    id: link.targetid,
+                  });
+              // Set the display properties for both nodes based on the properties of the link.
+              //
+              // TODO: Move these display-related calls out of this method.
+              setDisplayPropertiesForNode(link.source, link);
+              setDisplayPropertiesForNode(link.target, link);
+              if (link.subLinks != null) {
+                // Add a reference to the aggregate link to the aggregate node so that we can find the
+                // sub links when the user wants to expand it.
+                link[link.childType].aggregateLink = link;
+              }
+            });
+        this.nodes = _.values(this.nodesMap);
+      },
+  addLinkToExistenceMap:
+      function(link) {
+        var nodesKey = this.getLinkNodesKey(link);
+        var linkTypeMap = this.linkExistenceMap[nodesKey];
+        if (linkTypeMap == null) {
+          linkTypeMap = this.linkExistenceMap[nodesKey] = {};
+        }
+        var typeKey = this.getLinkTypeKey(link);
+        linkTypeMap[typeKey] = link;
+      },
+  removeLinkFromExistenceMap:
+      function(link) {
+        var nodesKey = this.getLinkNodesKey(link);
+        var linkTypeMap = this.linkExistenceMap[nodesKey];
+        if (linkTypeMap == null) {
+          return;
+        }
+        var typeKey = this.getLinkTypeKey(link);
+        linkTypeMap[typeKey] = null;
+      },
+  getLinkNodesKey:
+      function(link) {
+        return link.sourceid + ", " + link.targetid;
+      },
+  getLinkTypeKey:
+      function(link) {
+        return link.directorindirect + ", " + link.isagainst;
+      },
 }
 
 // TODO: Define dedicated methods to manage node and link addition and removal, to ensure that all
 // relevant array and map data structures are kept in sync with one another.
-function buildGraph(inputLinks) {
-  var graph = {
-    nodesMap: {},
-    nodes: [],
-    links: inputLinks,
-    linkExistenceMap: {},
-    getLinkNodesKey:
-        function(link) {
-          return link.sourceid + ", " + link.targetid;
-        },
-    getLinkTypeKey:
-        function(link) {
-          return link.directorindirect + ", " + link.isagainst;
-        },
-    addLinkToExistenceMap:
-        function(link) {
-          var nodesKey = this.getLinkNodesKey(link);
-          var linkTypeMap = this.linkExistenceMap[nodesKey];
-          if (linkTypeMap == null) {
-            linkTypeMap = this.linkExistenceMap[nodesKey] = {};
-          }
-          var typeKey = this.getLinkTypeKey(link);
-          linkTypeMap[typeKey] = link;
-        },
-    removeLinkFromExistenceMap:
-        function(link) {
-          var nodesKey = this.getLinkNodesKey(link);
-          var linkTypeMap = this.linkExistenceMap[nodesKey];
-          if (linkTypeMap == null) {
-            return;
-          }
-          var typeKey = this.getLinkTypeKey(link);
-          linkTypeMap[typeKey] = null;
-        }
-  }
-
-  // Compute the distinct nodes from the links.
-  graph.links.forEach(
-      function(link) {
-        graph.addLinkToExistenceMap(link);
-        link.source = graph.nodesMap[link.sourceid] ||
-            (graph.nodesMap[link.sourceid] = {
-              name: link.sourcename,
-              id: link.sourceid,
-            });
-        link.target = graph.nodesMap[link.targetid] ||
-            (graph.nodesMap[link.targetid] = {
-              name: link.targetname,
-              id: link.targetid,
-            });
-        // Set the display properties for both nodes based on the properties of the link.
-        setDisplayPropertiesForNode(link.source, link);
-        setDisplayPropertiesForNode(link.target, link);
-        if (link.subLinks != null) {
-          // Add a reference to the aggregate link to the aggregate node so that we can find the
-          // sub links when the user wants to expand it.
-          link[link.childType].aggregateLink = link;
-        }
-      });
-  graph.nodes = _.values(graph.nodesMap);
+function showGraph(inputLinks) {
+  graph.init(inputLinks);
 
   var width = 1600,
       height = 1000;
