@@ -261,6 +261,7 @@ var graph = {
         this._impl.setNode(node.id, node);
       },
   removeNode:
+      // TODO: Modify this method to take in a node id instead of a node.
       function(node) {
         if (this._impl.nodeEdges(node.id).length > 0) {
           console.log("Error: attempting to delete node from graph before severing all its links");
@@ -279,6 +280,8 @@ var graph = {
         this._impl.setEdge(link.sourceid, link.targetid, link, this.getLinkTypeKey(link));
       },
   removeLink:
+      // TODO: Consider modifying this method to take in a source id, target id, and link type key
+      // instead of a link.
       function(link) {
         var i = graph.links().indexOf(link);
         if (i != -1) {
