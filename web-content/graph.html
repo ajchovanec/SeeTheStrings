@@ -62,6 +62,7 @@ text {
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="url-bundle.js"></script>
 <script src="underscore-bundle.js"></script>
+<script src="graphlib-bundle.js"></script>
 <script src="db-shim.js"></script>
 
 <script>
@@ -194,25 +195,24 @@ function handleResponse(err, rows) {
 
 // TODO: Turn this into an object prototype or something.
 var graph = {
-  _nodesMap: {},
+  _impl: new Graph.Graph({ directed: true, multigraph: true }),
   _nodes: [],
   _links: {},
-  linkExistenceMap: {},
   init:
       function(inputLinks) {
+        var self = this;
+        var nodesMap = [];
         this._links = inputLinks;
         // Compute the distinct nodes from the links.
-        var self = this;
         this._links.forEach(
             function(link) {
-              self._addLinkToExistenceMap(link);
-              link.source = self._nodesMap[link.sourceid] ||
-                  (self._nodesMap[link.sourceid] = {
+              link.source = nodesMap[link.sourceid] ||
+                  (nodesMap[link.sourceid] = {
                     name: link.sourcename,
                     id: link.sourceid,
                   });
-              link.target = self._nodesMap[link.targetid] ||
-                  (self._nodesMap[link.targetid] = {
+              link.target = nodesMap[link.targetid] ||
+                  (nodesMap[link.targetid] = {
                     name: link.targetname,
                     id: link.targetid,
                   });
@@ -227,7 +227,16 @@ var graph = {
                 link[link.childType].aggregateLink = link;
               }
             });
-        this._nodes = _.values(this._nodesMap);
+        this._nodes = _.values(nodesMap);
+
+        this._nodes.forEach(
+            function(node) {
+              self._impl.setNode(node.id, node);
+            });
+        this._links.forEach(
+            function(link) {
+              self._impl.setEdge(link.sourceid, link.targetid, link,  self.getLinkTypeKey(link));
+            });
       },
   nodes:
       function() {
@@ -237,53 +246,48 @@ var graph = {
       function() {
         return this._links;
       },
-  getNodeById:
+  getNode:
       function(nodeId) {
-        return this._nodesMap[nodeId];
+        return this._impl.node(nodeId);
+      },
+  getLink:
+      function(sourceId, targetId, typeKey) {
+        return this._impl.edge(sourceId, targetId, typeKey);
       },
   addNode:
       function(node) {
         // TODO: Do some kind of validation on the node passed in.
         this._nodes.push(node);
-        this._nodesMap[node.id] = node;
+        this._impl.setNode(node.id, node);
+      },
+  removeNode:
+      function(node) {
+        if (this._impl.nodeEdges(node.id).length > 0) {
+          console.log("Error: attempting to delete node from graph before severing all its links");
+          return;
+        }
+        var i = this.nodes().indexOf(node);
+        if (i != -1) {
+          this._impl.removeNode(node.id);
+          this.nodes().splice(i, 1);
+        }
       },
   addLink:
       function(link) {
         // TODO: Do some kind of validation on the node passed in.
-        this._addLinkToExistenceMap(link);
         this._links.push(link);
+        this._impl.setEdge(link.sourceid, link.targetid, link, this.getLinkTypeKey(link));
       },
   removeLink:
       function(link) {
-        this._removeLinkFromExistenceMap(link);
-        this._links.splice(graph.links().indexOf(link), 1);
-      },
-
-  _addLinkToExistenceMap:
-      function(link) {
-        var nodesKey = this._getLinkNodesKey(link);
-        var linkTypeMap = this.linkExistenceMap[nodesKey];
-        if (linkTypeMap == null) {
-          linkTypeMap = this.linkExistenceMap[nodesKey] = {};
+        var i = graph.links().indexOf(link);
+        if (i != -1) {
+          this._impl.removeEdge(link.sourceid, link.targetid, this.getLinkTypeKey(link));
+          this._links.splice(i, 1);
         }
-        var typeKey = this._getLinkTypeKey(link);
-        linkTypeMap[typeKey] = link;
       },
-  _removeLinkFromExistenceMap:
-      function(link) {
-        var nodesKey = this._getLinkNodesKey(link);
-        var linkTypeMap = this.linkExistenceMap[nodesKey];
-        if (linkTypeMap == null) {
-          return;
-        }
-        var typeKey = this._getLinkTypeKey(link);
-        linkTypeMap[typeKey] = null;
-      },
-  _getLinkNodesKey:
-      function(link) {
-        return link.sourceid + ", " + link.targetid;
-      },
-  _getLinkTypeKey:
+  // TODO: Try to find a way to get rid of this method.
+  getLinkTypeKey:
       function(link) {
         return link.directorindirect + ", " + link.isagainst;
       },
@@ -354,24 +358,23 @@ function showGraph(inputLinks) {
     var indirectInFavorTypeKey = "I, false";
     var indirectAgainstTypeKey = "I, true";
 
-    var nodesKey = graph._getLinkNodesKey(link);
-    var linkTypeMap = graph.linkExistenceMap[nodesKey];
-    if (linkTypeMap == null) {
-      console.log("Warning: link missing from link existence map.")
-      return multipliers[0];
-    }
-    var typeKey = graph._getLinkTypeKey(link);
+    var hasDirectInFavor =
+        graph.getLink(link.sourceid, link.targetid, directInFavorTypeKey) != null;
+    var hasIndirectInFavor =
+        graph.getLink(link.sourceid, link.targetid, indirectInFavorTypeKey) != null;
+
+    var typeKey = graph.getLinkTypeKey(link);
     switch (typeKey) {
     case directInFavorTypeKey:
       return multipliers[0];
     case indirectInFavorTypeKey:
-      return linkTypeMap[directInFavorTypeKey] == null ?
-          multipliers[0]
-        : multipliers[1];
+      return hasDirectInFavor ?
+          multipliers[1]
+        : multipliers[0];
     case indirectAgainstTypeKey:
       var index = 0;
-      index += (linkTypeMap[directInFavorTypeKey] != null);
-      index += (linkTypeMap[indirectInFavorTypeKey] != null);
+      index += hasDirectInFavor;
+      index += hasIndirectInFavor;
       return multipliers[index];
     }
   }
@@ -421,9 +424,8 @@ function showGraph(inputLinks) {
   // action to take on mouse double click
   function dblclick() {
     var nodeId = d3.select(this).attr("nodeId");
-    var clickedNode = graph.getNodeById(nodeId);
-    var n = graph.nodes().indexOf(clickedNode);
-    if (clickedNode == null || n == -1) {
+    var clickedNode = graph.getNode(nodeId);
+    if (clickedNode == null || graph.getNode(clickedNode.id) == null) {
       console.log("Clicked node can't be found!");
       return;
     }
@@ -436,7 +438,7 @@ function showGraph(inputLinks) {
     graph.removeLink(aggregateLink);
 
     console.log("Removing existing " + childNameType + " node");
-    graph.nodes().splice(n, 1);
+    graph.removeNode(clickedNode);
 
     var subLinks = aggregateLink.subLinks;
     var childType = aggregateLink.childType,
@@ -452,7 +454,7 @@ function showGraph(inputLinks) {
       var link = subLinks[i];
       console.log("Sub link " + i + " has name " + link[childNameType] + " and amount "
           + link.amount);
-      var nodeChild = graph.getNodeById(link[childIdType]);
+      var nodeChild = graph.getNode(link[childIdType]);
       if (nodeChild == null || nodeChild.name != link[childNameType]) {
         nodeChild = {
           name: link[childNameType],  // This will be null if the child is another aggregate.
@@ -469,7 +471,7 @@ function showGraph(inputLinks) {
       }
       // The relative of the clicked node should already exist in the graph, because the aggregate
       // was already linking to it.
-      var nodeRelative = graph.getNodeById(link[relativeIdType]);
+      var nodeRelative = graph.getNode(link[relativeIdType]);
       link[childType] = nodeChild;
       link[relativeType] = nodeRelative;
       // TODO: Replacing the old link and binding by index may not be safe. The subsequent call to
