@@ -210,11 +210,13 @@ var graph = {
                   (nodesMap[link.sourceid] = {
                     name: link.sourcename,
                     id: link.sourceid,
+                    aggregateLinks: []
                   });
               link.target = nodesMap[link.targetid] ||
                   (nodesMap[link.targetid] = {
                     name: link.targetname,
                     id: link.targetid,
+                    aggregateLinks: []
                   });
               // Set the display properties for both nodes based on the properties of the link.
               //
@@ -222,9 +224,13 @@ var graph = {
               setDisplayPropertiesForNode(link.source, link);
               setDisplayPropertiesForNode(link.target, link);
               if (link.subLinks != null) {
-                // Add a reference to the aggregate link to the aggregate node so that we can find the
-                // sub links when the user wants to expand it.
-                link[link.childType].aggregateLink = link;
+                // Add a reference to the aggregate link to the aggregate node so that we can find
+                // the sub links when the user wants to expand it.
+                link[link.childType].aggregateLinks.push(link);
+                if (link[link.childType].aggregateLinks.length > 1) {
+                  console.log("Error: node has more than 1 aggregate link! (Actual count is "
+                      + nodeChild.aggregateLinks.length + ")");
+                }
               }
             });
         this._nodes = _.values(nodesMap);
@@ -456,17 +462,32 @@ function showGraph(inputLinks) {
       console.log("Clicked node can't be found!");
       return;
     }
-    if (!clickedNode.aggregateLink) {
-      console.log("Clicked node is not an aggregate node")
+    if (clickedNode.aggregateLinks.length == 0) {
+      console.log("Clicked node with id " + nodeId + " is not an aggregate node");
       return;
     }
-    var aggregateLink = clickedNode.aggregateLink;
-    console.log("Removing existing link");
-    graph.removeLink(aggregateLink);
 
-    console.log("Removing existing " + childNameType + " node");
+    // We have to remove all the aggregate links from the graph before we can delete the aggregate
+    // node, but we also have to delete the aggregate node before we can expand the aggregate links
+    // (since there) may be a new child aggregate node with the same id as the old one.
+    //
+    // TODO: This is really awkward. Try to find a better way.
+
+    clickedNode.aggregateLinks.forEach(
+        function(aggregateLink) {
+          console.log("Removing existing aggregate link to clicked node with id " + nodeId);
+          graph.removeLink(aggregateLink);
+        });
+
+    console.log("Removing clicked node with id " + nodeId + " and name " + clickedNode.name);
     graph.removeNode(clickedNode);
 
+    clickedNode.aggregateLinks.forEach(expandAggregateLink);
+
+    restart();
+  }
+
+  function expandAggregateLink(aggregateLink) {
     var subLinks = aggregateLink.subLinks;
     var childType = aggregateLink.childType,
         childIdType = aggregateLink.childIdType,
@@ -475,8 +496,7 @@ function showGraph(inputLinks) {
         relativeIdType = aggregateLink.relativeIdType,
         relativeNameType = aggregateLink.relativeNameType;
 
-    console.log("Clicked node has id " + clickedNode.id + " and name " + clickedNode.name);
-    console.log("Link for clicked node has " + subLinks.length + " sub links");
+    console.log("Aggregate link for clicked node has " + subLinks.length + " sub links");
     for (i = 0; i < subLinks.length; ++i) {
       var link = subLinks[i];
       console.log("Sub link " + i + " has name " + link[childNameType] + " and amount "
@@ -485,7 +505,8 @@ function showGraph(inputLinks) {
       if (nodeChild == null || nodeChild.name != link[childNameType]) {
         nodeChild = {
           name: link[childNameType],  // This will be null if the child is another aggregate.
-          id: link[childIdType]
+          id: link[childIdType],
+          aggregateLinks: []
         };
         graph.addNode(nodeChild);
         // Set the display properties for the new node based on the properties of the link.
@@ -493,7 +514,11 @@ function showGraph(inputLinks) {
         if (link.subLinks != null) {
           // Add a reference to the aggregate link to the aggregate node so that we can find the
           // sub links when the user wants to expand it.
-          nodeChild.aggregateLink = link;
+          nodeChild.aggregateLinks.push(link);
+          if (nodeChild.aggregateLinks.length > 1) {
+            console.log("Error: former child node has more than 1 aggregate link! (Actual count is "
+                + nodeChild.aggregateLinks.length + ")");
+          }
         }
       }
       // The relative of the clicked node should already exist in the graph, because the aggregate
@@ -507,8 +532,6 @@ function showGraph(inputLinks) {
       console.log("Appending a new link");
       graph.addLink(link);
     }
-
-    restart();
   }
 
   function start() {
@@ -538,7 +561,7 @@ function showGraph(inputLinks) {
     function linkKeyFunc(d) { return d.id + "; " + d.amount; }
     function nodeKeyFunc(d) { return d.id + "; " + d.name; }
 
-    function isAggregateNode(d) { return d.aggregateLink != null; }
+    function isAggregateNode(d) { return d.aggregateLinks.length > 0; }
 
     function getImageForNodeWithParty(d) {
       // TODO: Try to find a way to avoid having one .svg file per party.
@@ -582,7 +605,7 @@ function showGraph(inputLinks) {
     singleContributor = svg.select(".gSingleContributors").selectAll("circle")
         .data(graph.nodes().filter(
             function(d) {
-              return d.party == null && d.aggregateLink == null;
+              return d.party == null && d.aggregateLinks.length == 0;
             }),
             getJoinFunc(nodeKeyFunc));
     singleContributor.exit().remove();
@@ -599,7 +622,7 @@ function showGraph(inputLinks) {
     aggregateContributor = svg.select(".gAggregateContributors").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.party == null && d.aggregateLink != null;
+              return d.party == null && d.aggregateLinks.length > 0;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregateContributor.exit().remove();
@@ -622,7 +645,7 @@ function showGraph(inputLinks) {
     singleCandidate = svg.select(".gSingleCandidates").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.party != null && d.aggregateLink == null;
+              return d.party != null && d.aggregateLinks.length == 0;
             }),
             getJoinFunc(nodeKeyFunc));
     singleCandidate.exit().remove();
@@ -645,7 +668,7 @@ function showGraph(inputLinks) {
     aggregateCandidate = svg.select(".gAggregateCandidates").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.party != null && d.aggregateLink != null;
+              return d.party != null && d.aggregateLinks.length > 0;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregateCandidate.exit().remove();
