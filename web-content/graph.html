@@ -354,9 +354,10 @@ function showGraph(inputLinks) {
   }
 
   function getLinkArcRadiusMultiplier(link) {
-    // TODO: Figure out what mathematical relationship between consecutive multipliers yields
-    // equidistant arcs.
-    var multipliers = [ 1.0, 0.6, 0.51 ];
+    // 1.00000 yields an arc with height 1 - sqrt(3) / 2.
+    // 0.60048 ~= 5 / 4 - 3 * sqrt(3) / 8 and yields an arc with height 2 * (1 - sqrt(3) / 2).
+    // 0.51197 ~= 5 / 3 - 2 * sqrt(3) / 3 and yields an arc with height 3 * (1 - sqrt(3) / 2).
+    var multipliers = [ 1, 0.60048, 0.51197 ];
     var directInFavorTypeKey = "D, false";
     var indirectInFavorTypeKey = "I, false";
     var indirectAgainstTypeKey = "I, true";
@@ -386,19 +387,39 @@ function showGraph(inputLinks) {
     var adjLength = 8;
     var isClockwise = 1;
 
-    var multiplier = getLinkArcRadiusMultiplier(d);
-
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
-    var slope = deltaY / deltaX;
-    var adjX = isNaN(slope) ? 0 : Math.sqrt(Math.pow(adjLength, 2) / (Math.pow(slope, 2) + 1));
-    var adjY = isNaN(slope) ? adjLength : Math.abs(slope * adjX);
-    var endX = d.target.x - Math.sign(deltaX) * adjX;
-    var endY = d.target.y - Math.sign(deltaY) * adjY;
-    var radius = Math.sqrt(Math.pow(endX - d.source.x, 2) + Math.pow(endY - d.source.y, 2));
+    var distance = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
+    if (distance == 0) {
+      return null;  // no path to draw
+    }
 
-    return "M" + d.source.x + "," + d.source.y
-        + "A" + radius * multiplier + "," + radius * multiplier
+    var midX = (d.source.x + d.target.x) / 2;
+    var midY = (d.source.y + d.target.y) / 2;
+
+    var multiplier = getLinkArcRadiusMultiplier(d);
+    var arcRadius = multiplier * distance;
+    var arcCenterX = midX
+        - Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(distance / 2, 2)) * deltaY / distance;
+    var arcCenterY = midY
+        + Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(distance / 2, 2)) * deltaX / distance;
+    var arcCenterTargetDeltaX = d.target.x - arcCenterX;
+    var arcCenterTargetDeltaY = d.target.y - arcCenterY;
+    var arcCenterTargetDistance =
+        Math.sqrt(Math.pow(arcCenterTargetDeltaX, 2) + Math.pow(arcCenterTargetDeltaY, 2));
+    var arcCenterTargetCos = arcCenterTargetDeltaX / arcCenterTargetDistance;
+    var arcCenterTargetSin = arcCenterTargetDeltaY / arcCenterTargetDistance;
+    var arcCenterLineDistance = (Math.pow(arcCenterTargetDistance, 2) + Math.pow(arcRadius, 2)
+        - Math.pow(adjLength, 2)) / (2 * arcCenterTargetDistance);
+
+    var endX = arcCenterX + arcCenterTargetCos * arcCenterLineDistance
+        + Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(arcCenterLineDistance, 2))
+            * arcCenterTargetSin;
+    var endY = arcCenterY + arcCenterTargetSin * arcCenterLineDistance
+        - Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(arcCenterLineDistance, 2))
+            * arcCenterTargetCos;
+
+    return "M" + d.source.x + "," + d.source.y + "A" + arcRadius + "," + arcRadius
         + " 0 0," + isClockwise + " " + endX + "," + endY;
   }
 
@@ -409,18 +430,21 @@ function showGraph(inputLinks) {
   function transformLinkText(d) {
     var isClockwise = true;
 
-    var multiplier = getLinkArcRadiusMultiplier(d);
-
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
-    var length = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
-    var skewLength = multiplier * length
-        - length * Math.sqrt(4 * Math.pow(multiplier, 2) - 1) / 2;
-    var textDist = Math.sqrt(Math.pow(skewLength, 2) + Math.pow(length / 2, 2));
-    var adjAngle = Math.atan(2 * skewLength / length);
+    var distance = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
+    if (distance == 0) {
+      return null;  // no path to draw
+    }
+
+    var multiplier = getLinkArcRadiusMultiplier(d);
+    var arcRadius = multiplier * distance;
+    var arcHeight = (multiplier - Math.sqrt(4 * Math.pow(multiplier, 2) - 1) / 2) * distance;
+    var textDistance = Math.sqrt(Math.pow(arcHeight, 2) + Math.pow(distance / 2, 2));
+    var adjAngle = Math.atan(2 * arcHeight / distance);
     var textAngle = Math.atan2(deltaY, deltaX) + (isClockwise ? -1 : 1) * adjAngle;
-    var textX = d.source.x + Math.cos(textAngle) * textDist;
-    var textY = d.source.y + Math.sin(textAngle) * textDist;
+    var textX = d.source.x + Math.cos(textAngle) * textDistance;
+    var textY = d.source.y + Math.sin(textAngle) * textDistance;
     return "translate(" + textX + "," + textY + ")";
   }
 
