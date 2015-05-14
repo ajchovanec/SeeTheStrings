@@ -2,8 +2,11 @@
 var initLinksPerRelative = 5;
 var newLinksPerExpansion = 5;
 
-function processRows(rows, aggregateType) {
+function processRows(rows, aggregateType, seedIds) {
   console.log("Got " + rows.length + " raw links ");
+
+  // TODO: Use seedIds to identify the appropriate aggregateType on a per row basis, and do away
+  // with the aggregateType argument above.
 
   var childType = aggregateType;
   var childIdType = childType + "id";

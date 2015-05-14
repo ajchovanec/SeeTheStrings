@@ -186,9 +186,16 @@ function handleResponse(err, rows) {
 
   var seedType = queryParams["seedType"];
   console.log("Got seedType: " + seedType);
-
   var aggregateType = getAggregateTypeForSeedType(seedType);
-  var links = processRows(rows, aggregateType);
+
+  var pacs = queryParams["pacs"];
+  var candidates = queryParams["candidates"];
+
+  var seedIds = [];
+  Array.prototype.push.apply(seedIds, pacs);
+  Array.prototype.push.apply(seedIds, candidates);
+
+  var links = processRows(rows, aggregateType, seedIds);
 
   showGraph(links);
 }
