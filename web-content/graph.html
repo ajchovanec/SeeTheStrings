@@ -197,7 +197,6 @@ function handleResponse(err, rows) {
   if (!(candidates instanceof Array)) {
     candidates = [ candidates ];
   }
-  console.log("Cand:" + candidates);
 
   var seedIds = [];
   Array.prototype.push.apply(seedIds, pacs);
