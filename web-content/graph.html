@@ -394,6 +394,7 @@ function showGraph(inputLinks) {
   // TODO: Find a better place to put these.
   var effectiveTargetRadius = 8;
   var linkOrientation = 1;  // 1 for clockwise, 0 for counter clockwise
+  var linkOrientationMultiplier = linkOrientation ? -1 : 1;
 
   function linkLine(d) {
     var deltaX = d.target.x - d.source.x,
@@ -409,9 +410,11 @@ function showGraph(inputLinks) {
     var multiplier = getLinkArcRadiusMultiplier(d);
     var arcRadius = multiplier * distance;
     var arcCenterX = midX
-        - Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(distance / 2, 2)) * deltaY / distance;
+        + Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(distance / 2, 2))
+            * linkOrientationMultiplier * deltaY / distance;
     var arcCenterY = midY
-        + Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(distance / 2, 2)) * deltaX / distance;
+        - Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(distance / 2, 2))
+            * linkOrientationMultiplier * deltaX / distance;
     var arcCenterTargetDeltaX = d.target.x - arcCenterX;
     var arcCenterTargetDeltaY = d.target.y - arcCenterY;
     var arcCenterTargetDistance =
@@ -422,11 +425,11 @@ function showGraph(inputLinks) {
         - Math.pow(effectiveTargetRadius, 2)) / (2 * arcCenterTargetDistance);
 
     var endX = arcCenterX + arcCenterTargetCos * arcCenterLineDistance
-        + Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(arcCenterLineDistance, 2))
-            * arcCenterTargetSin;
-    var endY = arcCenterY + arcCenterTargetSin * arcCenterLineDistance
         - Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(arcCenterLineDistance, 2))
-            * arcCenterTargetCos;
+            * linkOrientationMultiplier * arcCenterTargetSin;
+    var endY = arcCenterY + arcCenterTargetSin * arcCenterLineDistance
+        + Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(arcCenterLineDistance, 2))
+            * linkOrientationMultiplier * arcCenterTargetCos;
 
     return "M" + d.source.x + "," + d.source.y + "A" + arcRadius + "," + arcRadius
         + " 0 0," + linkOrientation + " " + endX + "," + endY;
@@ -445,7 +448,7 @@ function showGraph(inputLinks) {
     var arcHeight = (multiplier - Math.sqrt(4 * Math.pow(multiplier, 2) - 1) / 2) * distance;
     var textDistance = Math.sqrt(Math.pow(arcHeight, 2) + Math.pow(distance / 2, 2));
     var adjAngle = Math.atan(2 * arcHeight / distance);
-    var textAngle = Math.atan2(deltaY, deltaX) + (linkOrientation ? -1 : 1) * adjAngle;
+    var textAngle = Math.atan2(deltaY, deltaX) + linkOrientationMultiplier * adjAngle;
     var textX = d.source.x + Math.cos(textAngle) * textDistance;
     var textY = d.source.y + Math.sin(textAngle) * textDistance;
     return "translate(" + textX + "," + textY + ")";
