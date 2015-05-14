@@ -105,10 +105,9 @@ function queryContributions(req, res) {
   if (seedPacs != null) {
     seedMatchingCriteria += " or Committees.cmteid in (" + seedPacs + ") ";
   }
-  if (seedMatchingCriteria == "1") {
+  if (seedMatchingCriteria == "0") {
     // TODO: Is this the right way to fast fail the request?
-    console.log("Error: Invalid seedType parameter '" + seedType
-        + "'. Returning no contributions.");
+    console.log("Error: No seed IDs were specified.");
     res.writeHead(400);
     res.end();
     return;
