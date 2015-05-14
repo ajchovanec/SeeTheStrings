@@ -191,6 +191,14 @@ function handleResponse(err, rows) {
   var pacs = queryParams["pacs"];
   var candidates = queryParams["candidates"];
 
+  if (!(pacs instanceof Array)) {
+    pacs = [ pacs ];
+  }
+  if (!(candidates instanceof Array)) {
+    candidates = [ candidates ];
+  }
+  console.log("Cand:" + candidates);
+
   var seedIds = [];
   Array.prototype.push.apply(seedIds, pacs);
   Array.prototype.push.apply(seedIds, candidates);

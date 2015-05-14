@@ -94,15 +94,18 @@ function queryContributions(req, res) {
       : "targetname, targetid, party, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
-  var seedMatchingCriteria;
-  if (seedType == "Race") {
-    seedMatchingCriteria = "Candidates.distidrunfor = " + seedRace
+  var seedMatchingCriteria = "0";
+  if (seedRace != null) {
+    seedMatchingCriteria += " or Candidates.distidrunfor = " + seedRace
         + " and Candidates.currCand = 'Y' ";
-  } else if (seedType == "Candidate") {
-    seedMatchingCriteria = "Candidates.cid in (" + seedCandidates + ") ";
-  } else if (seedType == "PAC") {
-    seedMatchingCriteria = "Committees.cmteid in (" + seedPacs + ") ";
-  } else {
+  }
+  if (seedCandidates != null) {
+    seedMatchingCriteria += " or Candidates.cid in (" + seedCandidates + ") ";
+  }
+  if (seedPacs != null) {
+    seedMatchingCriteria += " or Committees.cmteid in (" + seedPacs + ") ";
+  }
+  if (seedMatchingCriteria == "1") {
     // TODO: Is this the right way to fast fail the request?
     console.log("Error: Invalid seedType parameter '" + seedType
         + "'. Returning no contributions.");
@@ -113,7 +116,6 @@ function queryContributions(req, res) {
   console.log("groupCandidatesBy: " + groupCandidatesBy);
   console.log("outerSelectTargets: " + outerSelectTargets);
 
-  console.log("Doing the fucking query");
   doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, seedMatchingCriteria,
       contributionTypes, outerGroupByTargets, groupContributionsBy);
 }
