@@ -33,34 +33,6 @@ function processRows(rows, aggregateType, seedIds) {
   }
   return links;
 
-  function newAggregateLink(aggregateId, firstLink, isagainst) {
-    var newCount = firstLink.count || 1;
-    var newLink = {
-      "id": aggregateId,
-      "amount": firstLink.amount,
-      "count": newCount,
-      "directorindirect": firstLink.directorindirect,
-      "isagainst": isagainst,
-      "isRefund": firstLink.amount < 0 ? true : false,
-      "subLinks": [ firstLink ],
-      "childType": childType,
-      "childIdType": childIdType,
-      "childNameType": childNameType,
-      "relativeType": relativeType,
-      "relativeIdType": relativeIdType,
-      "relativeNameType": relativeNameType
-    };
-    // It's up to the caller to set newLink[childNameType], since that's a pretty-printed string
-    // whose format depends on the application-specific rendering of aggregate nodes.
-    newLink[childIdType] = aggregateId;
-    newLink[relativeIdType] = firstLink[relativeIdType];
-    newLink[relativeNameType] = firstLink[relativeNameType];
-    // TODO: In the future some links may not have a party field. Consider finding a way to
-    // generalize this.
-    newLink.party = firstLink.party;
-    return newLink;
-  }
-
   function getAggregateNodeId(row) {
     return "key " + row[relativeIdType] + " " + row.directorindirect + " " + row.isagainst;
   }
@@ -114,6 +86,34 @@ function processRows(rows, aggregateType, seedIds) {
       }
     } else {
       aggregateLinks[aggreagateNodeId] = newAggregateLink(aggreagateNodeId, row, row.isagainst);
+    }
+
+    function newAggregateLink(aggregateId, firstLink, isagainst) {
+      var newCount = firstLink.count || 1;
+      var newLink = {
+        "id": aggregateId,
+        "amount": firstLink.amount,
+        "count": newCount,
+        "directorindirect": firstLink.directorindirect,
+        "isagainst": isagainst,
+        "isRefund": firstLink.amount < 0 ? true : false,
+        "subLinks": [ firstLink ],
+        "childType": childType,
+        "childIdType": childIdType,
+        "childNameType": childNameType,
+        "relativeType": relativeType,
+        "relativeIdType": relativeIdType,
+        "relativeNameType": relativeNameType
+      };
+      // It's up to the caller to set newLink[childNameType], since that's a pretty-printed string
+      // whose format depends on the application-specific rendering of aggregate nodes.
+      newLink[childIdType] = aggregateId;
+      newLink[relativeIdType] = firstLink[relativeIdType];
+      newLink[relativeNameType] = firstLink[relativeNameType];
+      // TODO: In the future some links may not have a party field. Consider finding a way to
+      // generalize this.
+      newLink.party = firstLink.party;
+      return newLink;
     }
   }
 }
