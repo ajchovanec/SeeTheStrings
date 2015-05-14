@@ -87,7 +87,6 @@ function queryContributions(req, res) {
   var groupCandidatesBy = queryParams["groupCandidatesBy"];
   var groupContributionsBy = queryParams["groupContributionsBy"];
   var contributionTypes = queryParams["contributionTypes"];
-  var sqlQuery;
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "'Misc candidates' as targetname, -1 as targetid, "
       : "firstlastp as targetname, cid as targetid, party, ";
@@ -113,7 +112,18 @@ function queryContributions(req, res) {
   }
   console.log("groupCandidatesBy: " + groupCandidatesBy);
   console.log("outerSelectTargets: " + outerSelectTargets);
+
+  console.log("Doing the fucking query");
+  doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, seedMatchingCriteria,
+      contributionTypes, outerGroupByTargets, groupContributionsBy);
+}
+
+function doQueryContributions(req, res, outerSelectTargets, innerSelectTargets,
+    seedMatchingCriteria, contributionTypes, outerGroupByTargets, groupContributionsBy) {
+  console.log("i'm here");
+  var sqlQuery;
   if (groupContributionsBy == "PAC") {
+    console.log("PAC");
     sqlQuery =
         "select pacshort as sourcename, cmteid as sourceid, " + outerSelectTargets
             + "directorindirect, isagainst, sum(amount) as amount from "
@@ -161,9 +171,9 @@ function queryContributions(req, res) {
     // TODO
   }
 
+  console.log("SQL query: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
-  console.log("SQL query: " + sqlQuery);
   dbWrapper.fetchAll(sqlQuery,
       function(err, contributions) {
         if (err != null) {
