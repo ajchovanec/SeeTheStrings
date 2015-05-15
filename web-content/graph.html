@@ -98,19 +98,6 @@ function getLabelForLink(link) {
   return formattedAmount + (link.isRefund ? " (refund)" : "");
 }
 
-// TODO: It seems like this file shouldn't need to know about candidates or PACs.
-//
-// Can we pull this logic up into the form?
-function getAggregateTypeForSeedType(seedType) {
-  if (seedType == "Candidate" || seedType == "Race") {
-    return "source";
-  } else if (seedType == "PAC") {
-    return "target";
-  } else {
-    console.log("Error: unknown seedType " + seedType);
-    return null;
-  }
-}
 function getAdjectiveForParty(party) {
   switch (party) {
   case "R": return "Republican";
@@ -184,10 +171,6 @@ d3.json("/contributions" + window.location.search, handleResponse);
 function handleResponse(err, rows) {
   // TODO: Check for errors.
 
-  var seedType = queryParams["seedType"];
-  console.log("Got seedType: " + seedType);
-  var aggregateType = getAggregateTypeForSeedType(seedType);
-
   var candidates = queryParams["candidates"];
   var pacs = queryParams["pacs"];
 
@@ -202,7 +185,7 @@ function handleResponse(err, rows) {
   Array.prototype.push.apply(seedIds, pacs);
   Array.prototype.push.apply(seedIds, candidates);
 
-  var links = processRows(rows, aggregateType, seedIds);
+  var links = processRows(rows, seedIds);
 
   showGraph(links);
 }

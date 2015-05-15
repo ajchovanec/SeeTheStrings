@@ -2,10 +2,13 @@
 var initLinksPerRelative = 5;
 var newLinksPerExpansion = 5;
 
-function getAggregateProperties(aggregateType) {
-  var childType = aggregateType;
-  var relativeType = (aggregateType == "source") ? "target" : "source";
+function getSelfProperties(selfType) {
+  var childType = selfType;
+  var relativeType = (selfType == "source") ? "target" : "source";
   return {
+    "selfType": selfType,
+    "selfIdType": selfType + "id",
+    "selfNameType": selfType + "name",
     "childType": childType,
     "childIdType": childType + "id",
     "childNameType": childType + "name",
@@ -15,12 +18,8 @@ function getAggregateProperties(aggregateType) {
   };
 }
 
-function processRows(rows, aggregateType, seedIds) {
+function processRows(rows, seedIds) {
   console.log("Got " + rows.length + " raw links ");
-
-  // TODO: Use seedIds to identify the appropriate aggregateType on a per row basis, and do away
-  // with the aggregateType argument above. Remember that they are all wrapped in single quotes, so
-  // string comparisons with raw node IDs will fail.
 
   var links = [];
   var linkExistenceMap = {};
@@ -36,13 +35,28 @@ function processRows(rows, aggregateType, seedIds) {
         // resolves boolean expressions to 1 or 0, but the latter resolves them to true or false.
         row.isagainst = row.isagainst ? true : false;
 
-        handleRowAggregateType(row, aggregateType);
+        row.id = row.sourceid + "; " + row.targetid + "; "
+            + row.directorindirect + "; " + row.isagainst;
+
+        // TODO: The use of both source and target aggregation in the same graph is problematic.
+        // Aggregate expansion becomes more complicated when expanding a source aggregate link could
+        // invalidate an existing target aggregate link's displayed amount and sub link count.
+        // I.e., if the expansion reveals a link between the two nodes that was there all along but
+        // that was hidden under both aggregate links, then both aggregate links will need to be
+        // updated (not just the one that the user chose to expand). We can skirt around this
+        // problem for now by enforcing that links between seed nodes can never be aggregated;
+        // however, this problem may rear its ugly head again as the graphs become more complex and
+        // dynamic over time.
+        if (row.seedtarget) {
+          handleRowSelfType(row, "source", !row.seedsource);
+        }
+        if (row.seedsource) {
+          handleRowSelfType(row, "target", !row.seedtarget);
+        }
       });
 
   // Aggregate the outstanding links in reverse order, to ensure that the ones with the highest
   // amounts will be displayed first if the user chooses to expand them.
-  //
-  // TODO: Use a forEach call on linksToAggregate instead of two for loops.
   for (var aggregateType in linksToAggregate) {
     for (var i = linksToAggregate[aggregateType].length - 1; i >= 0; --i) {
       aggregateRow(linksToAggregate[aggregateType][i], aggregateType);
@@ -54,37 +68,47 @@ function processRows(rows, aggregateType, seedIds) {
   }
   return links;
 
-  function getAggregateNodeId(row, relativeId) {
-    return "key " + relativeId + " " + row.directorindirect + " " + row.isagainst;
+  function getRelativeAndLinkTypeId(row, relativeId) {
+    return "key " + relativeId + "; " + row.directorindirect + "; " + row.isagainst;
   }
 
-  function handleRowAggregateType(row, aggregateType) {
-    var properties = getAggregateProperties(aggregateType);
+  // TODO: Consider merging the logic above that calls this method 0, 1, or 2 times into the method
+  // itself.
+  function handleRowSelfType(row, selfType, isAggregable) {
+    var properties = getSelfProperties(selfType);
 
-    row.id = row[properties.childIdType] + "; " + aggregateNodeId;
+    var relativeAndLinkTypeId = getRelativeAndLinkTypeId(row, row[properties.relativeIdType]);
+    var numLinks = linkCounts[relativeAndLinkTypeId] || (linkCounts[relativeAndLinkTypeId] = 0);
 
-    var aggregateNodeId = getAggregateNodeId(row, row[properties.relativeIdType]);
-    var numLinks = linkCounts[aggregateNodeId] || (linkCounts[aggregateNodeId] = 0);
-
-    if (numLinks < initLinksPerRelative
+    // TODO: Given the various conditions that can trigger a new non-aggregate link, it's likely
+    // that we'll often exceed initLinksPerRelative. Maybe we should do something about this. For
+    // example, maybe we could only add non aggregable links up to iniLinksPerRelative first, and
+    // then only consider aggregable ones if we haven't reached our limit.
+    if (!isAggregable
+        || numLinks < initLinksPerRelative
         || linkExistenceMap[row[properties.childIdType] + ", " + row[properties.relativeIdType]]) {
-      links.push(row);
-      linkCounts[aggregateNodeId] = numLinks + 1;
-      // TODO: Uncomment this once there's a better way to render multiple links between the same
-      // two nodes.
+      // TODO: Storing this extra state as a boolean field is kind of hacky. Find a better way.
+      if (!row.isAddedToLinks) {
+        links.push(row);
+        row.isAddedToLinks = true;
+      }
+      linkCounts[relativeAndLinkTypeId] = numLinks + 1;  // TODO: Use ++ operator?
+      // TODO: Uncomment this now that there's a better way to render multiple links between the
+      // same two nodes.
       //
-      //linkExistenceMap[row[childIdType] + ", " + row.[relativeIdType]] = true;
+      //linkExistenceMap[row[properties.childIdType] + ", " + row[properties.relativeIdType]] =
+      //    true;
     } else {
-      // We have enough links for to relative node to display already. We'll aggregate the remaining
-      // links later.
-      linksToAggregate[aggregateType].push(row);
+      // We have enough links for the relative node to display already. We'll aggregate the
+      // remaining links later.
+      linksToAggregate[selfType].push(row);
     }
   }
 
   function aggregateRow(row, aggregateType) {
     // TODO: Try to avoid calculating all properties here, since we only need relativeIdType.
-    var properties = getAggregateProperties(aggregateType);
-    var aggreagateNodeId = getAggregateNodeId(row, row[properties.relativeIdType]);
+    var properties = getSelfProperties(aggregateType);
+    var aggreagateNodeId = getRelativeAndLinkTypeId(row, row[properties.relativeIdType]);
 
     var existingAggregateLink = aggregateLinks[aggreagateNodeId];
     if (existingAggregateLink) {
@@ -109,11 +133,11 @@ function processRows(rows, aggregateType, seedIds) {
           newAggregateLink(aggreagateNodeId, aggregateType, row, row.isagainst);
     }
 
-    function newAggregateLink(aggregateId, aggregateType, firstLink, isagainst) {
+    function newAggregateLink(aggregateLinkId, aggregateType, firstLink, isagainst) {
       var newCount = firstLink.count || 1;
 
-      var newLink = getAggregateProperties(aggregateType);
-      newLink.id = aggregateId;
+      var newLink = getSelfProperties(aggregateType);
+      newLink.id = aggregateLinkId;
       newLink.amount = firstLink.amount;
       newLink.count = newCount;
       newLink.directorindirect = firstLink.directorindirect;
@@ -123,7 +147,7 @@ function processRows(rows, aggregateType, seedIds) {
 
       // It's up to the caller to set newLink[newLink.childNameType], since that's a pretty-printed
       // string whose format depends on the application-specific rendering of aggregate nodes.
-      newLink[newLink.childIdType] = aggregateId;
+      newLink[newLink.childIdType] = aggregateLinkId;
       newLink[newLink.relativeIdType] = firstLink[newLink.relativeIdType];
       newLink[newLink.relativeNameType] = firstLink[newLink.relativeNameType];
 
