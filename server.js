@@ -80,7 +80,6 @@ function queryContributions(req, res) {
   // TODO: Figure out how to display both positive and negative contributions from the same source.
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
-  var seedType = queryParams["seedType"];
   var seedRace = queryParams["race"];
   var seedCandidates = queryParams["candidates"];
   var seedPacs = queryParams["pacs"];
@@ -94,19 +93,26 @@ function queryContributions(req, res) {
       : "targetname, targetid, party, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
-  var seedMatchingCriteria = "(0";
+  var seedMatchingCriteria = "( ";
+  // TODO: The logic below will break if both seedRace and seedCandidates are set?
   if (seedRace != null) {
-    seedMatchingCriteria += " or Candidates.distidrunfor = " + seedRace
-        + " and Candidates.currCand = 'Y' ";
+    innerSelectTargets += "(Candidates.distidrunfor = " + seedRace
+        + " and Candidates.currCand = 'Y') as seedtarget, ";
+    outerSelectTargets += "seedtarget, ";
+    seedMatchingCriteria += "seedtarget or ";
   }
   if (seedCandidates != null) {
-    seedMatchingCriteria += " or Candidates.cid in (" + seedCandidates + ") ";
+    innerSelectTargets += "(Candidates.cid in (" + seedCandidates + ")) as seedtarget, ";
+    outerSelectTargets += "seedtarget, ";
+    seedMatchingCriteria += "seedtarget or ";
   }
   if (seedPacs != null) {
-    seedMatchingCriteria += " or Committees.cmteid in (" + seedPacs + ") ";
+    innerSelectTargets += "(Committees.cmteid in (" + seedPacs + ")) as seedsource, ";
+    outerSelectTargets += "seedsource, ";
+    seedMatchingCriteria += "seedsource or ";
   }
-  seedMatchingCriteria += ")";
-  if (seedMatchingCriteria == "(0)") {
+  seedMatchingCriteria += "0 )";
+  if (seedMatchingCriteria == "( 0 )") {
     // TODO: Is this the right way to fast fail the request?
     console.log("Error: No seed IDs were specified.");
     res.writeHead(400);
