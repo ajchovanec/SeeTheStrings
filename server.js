@@ -94,7 +94,7 @@ function queryContributions(req, res) {
       : "targetname, targetid, party, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
-  var seedMatchingCriteria = "0";
+  var seedMatchingCriteria = "(0";
   if (seedRace != null) {
     seedMatchingCriteria += " or Candidates.distidrunfor = " + seedRace
         + " and Candidates.currCand = 'Y' ";
@@ -105,7 +105,8 @@ function queryContributions(req, res) {
   if (seedPacs != null) {
     seedMatchingCriteria += " or Committees.cmteid in (" + seedPacs + ") ";
   }
-  if (seedMatchingCriteria == "0") {
+  seedMatchingCriteria += ")";
+  if (seedMatchingCriteria == "(0)") {
     // TODO: Is this the right way to fast fail the request?
     console.log("Error: No seed IDs were specified.");
     res.writeHead(400);
