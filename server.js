@@ -77,7 +77,6 @@ function getDbWrapper() {
 }
 
 function queryContributions(req, res) {
-  // TODO: Figure out how to display both positive and negative contributions from the same source.
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
   var seedRace = queryParams["race"];
@@ -94,7 +93,7 @@ function queryContributions(req, res) {
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
   var seedMatchingCriteria = "( ";
-  // TODO: The logic below will break if both seedRace and seedCandidates are set?
+  // TODO: The logic below will break if both seedRace and seedCandidates are set.
   if (seedRace != null) {
     innerSelectTargets += "(Candidates.distidrunfor = " + seedRace
         + " and Candidates.currCand = 'Y') as seedtarget, ";
