@@ -68,7 +68,7 @@ function processRows(rows, seedIds) {
   }
   return links;
 
-  function getRelativeAndLinkTypeId(row, relativeId) {
+  function getNodeAndLinkTypeId(row, relativeId) {
     return "key " + relativeId + "; " + row.directorindirect + "; " + row.isagainst;
   }
 
@@ -77,7 +77,7 @@ function processRows(rows, seedIds) {
   function handleRowSelfType(row, selfType, isAggregable) {
     var properties = getSelfProperties(selfType);
 
-    var relativeAndLinkTypeId = getRelativeAndLinkTypeId(row, row[properties.relativeIdType]);
+    var relativeAndLinkTypeId = getNodeAndLinkTypeId(row, row[properties.relativeIdType]);
     var numLinks = linkCounts[relativeAndLinkTypeId] || (linkCounts[relativeAndLinkTypeId] = 0);
 
     // TODO: Given the various conditions that can trigger a new non-aggregate link, it's likely
@@ -108,7 +108,7 @@ function processRows(rows, seedIds) {
   function aggregateRow(row, aggregateType) {
     // TODO: Try to avoid calculating all properties here, since we only need relativeIdType.
     var properties = getSelfProperties(aggregateType);
-    var aggreagateNodeId = getRelativeAndLinkTypeId(row, row[properties.relativeIdType]);
+    var aggreagateNodeId = getNodeAndLinkTypeId(row, row[properties.relativeIdType]);
 
     var existingAggregateLink = aggregateLinks[aggreagateNodeId];
     if (existingAggregateLink) {
