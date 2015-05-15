@@ -136,22 +136,22 @@ function queryContributions(req, res) {
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
   var seedMatchingCriteria = "( ";
-  // TODO: The logic below will break if both seedRace and seedCandidates are set.
+  var seedTargetComponents = "";
   if (seedRace != null) {
     innerSelectTargets += "(Candidates.distidrunfor = " + seedRace
-        + " and Candidates.currCand = 'Y') as seedtarget, ";
-    outerSelectTargets += "seedtarget, ";
-    seedMatchingCriteria += "seedtarget or ";
+        + " and Candidates.currCand = 'Y') as seedrace, ";
+    seedTargetComponents += "seedrace or ";
   }
   if (seedCandidates != null) {
-    innerSelectTargets += "(Candidates.cid in (" + seedCandidates + ")) as seedtarget, ";
-    outerSelectTargets += "seedtarget, ";
-    seedMatchingCriteria += "seedtarget or ";
+    innerSelectTargets += "(Candidates.cid in (" + seedCandidates + ")) as seedcandidate, ";
+    seedTargetComponents += "seedcandidate or ";
   }
+  seedMatchingCriteria += seedTargetComponents;
+  outerSelectTargets += "(" + seedTargetComponents + "0 ) as seedtarget, ";
   if (seedPacs != null) {
-    innerSelectTargets += "(Committees.cmteid in (" + seedPacs + ")) as seedsource, ";
-    outerSelectTargets += "seedsource, ";
-    seedMatchingCriteria += "seedsource or ";
+    innerSelectTargets += "(Committees.cmteid in (" + seedPacs + ")) as seedpac, ";
+    seedMatchingCriteria += "seedpac or ";
+    outerSelectTargets += "seedpac as seedsource, ";
   }
   seedMatchingCriteria += "0 )";
   if (seedMatchingCriteria == "( 0 )") {
