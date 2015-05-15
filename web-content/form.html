@@ -129,10 +129,10 @@
       <br><br>
       Which contribution types would you like to see?
       <br>
-      <input type="checkbox" name="contributionTypes" value="'D'" checked="true">
+      <input type="checkbox" name="contributionTypes" value="D" checked="true">
         Direct contributions to candidate committees
       <br>
-      <input type="checkbox" name="contributionTypes" value="'I'" checked="true">
+      <input type="checkbox" name="contributionTypes" value="I" checked="true">
         Indirect expenditures to influence candidates' election prospects
       <br><br><br><br>
       <input type="button" style="width:300px;font-size:16pt"
@@ -273,7 +273,7 @@ function showRaces() {
   var stateid = document.getElementById("statesList").value;
   cachedRaces[stateid].forEach(
       function(row) {
-        addOptionToSelectBox(selectBox, row.racename, "'" + row.raceid + "'");
+        addOptionToSelectBox(selectBox, row.racename, row.raceid);
       });
 
   selectBox.setAttribute("size", 10);
@@ -291,7 +291,7 @@ function showCandidates(err, candidates) {
   var selectBox = document.getElementById("candidatesList");
   candidates.forEach(
       function(row) {
-        addOptionToSelectBox(selectBox, row.firstlastp, "'" + row.cid + "'");
+        addOptionToSelectBox(selectBox, row.firstlastp, row.cid);
       });
 
   selectBox.setAttribute("size", 20);
@@ -308,7 +308,7 @@ function showPacs(err, pacs) {
   var selectBox = document.getElementById("pacsList");
   pacs.forEach(
       function(row) {
-        addOptionToSelectBox(selectBox, row.pacshort, "'" + row.cmteid + "'");
+        addOptionToSelectBox(selectBox, row.pacshort, row.cmteid);
       });
 
   selectBox.setAttribute("size", 20);
