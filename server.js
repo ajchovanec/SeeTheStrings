@@ -98,10 +98,14 @@ function queryContributions(req, res) {
   var rawSeedRace = queryParams["race"];
   var rawSeedCandidates = queryParams["candidates"];
   var rawSeedPacs = queryParams["pacs"];
+  var rawContributionTypes = queryParams["contributionTypes"];
+  var groupCandidatesBy = queryParams["groupCandidatesBy"];
+  var groupContributionsBy = queryParams["groupContributionsBy"];
 
   var seedRace = null;
   var seedCandidates = [];
   var seedPacs = [];
+  var contributionTypes = [];
   if (rawSeedRace) {
     seedRace = ensureQuoted(rawSeedRace);
   }
@@ -117,10 +121,12 @@ function queryContributions(req, res) {
     }
     seedPacs = _.map(rawSeedPacs, ensureQuoted);
   }
-
-  var groupCandidatesBy = queryParams["groupCandidatesBy"];
-  var groupContributionsBy = queryParams["groupContributionsBy"];
-  var contributionTypes = queryParams["contributionTypes"];
+  if (rawContributionTypes) {
+    if (!(rawContributionTypes instanceof Array)) {
+      rawContributionTypes = [ rawContributionTypes ];
+    }
+    contributionTypes = _.map(rawContributionTypes, ensureQuoted);
+  }
 
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "'Misc candidates' as targetname, -1 as targetid, "
