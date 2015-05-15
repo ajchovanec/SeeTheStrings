@@ -1,10 +1,11 @@
-var Finalhandler = require('finalhandler')
-var Http = require('http')
-var Router = require('router')
+var Finalhandler = require('finalhandler');
+var Http = require('http');
+var Router = require('router');
 var Url = require('url');
-var ServeStatic = require('serve-static')
+var ServeStatic = require('serve-static');
 var DBWrapper = require('node-dbi').DBWrapper;
 var CacheManager = require('cache-manager');
+var _ = require('underscore');
 
 var port = process.env.PORT || 3000;
 
@@ -76,15 +77,51 @@ function getDbWrapper() {
   return cachingDbWrapper;
 }
 
+function ensureQuoted(str) {
+  var regex = /^['"]?([^'"]*)['"]?$/;
+  var result = str.match(regex);
+  if (result == null) {
+    console.log("Warning: input string contains quotation marks: " + str);
+    return null;
+  } 
+  if (result.length != 2) {
+    console.log("Warning: unexpected result from attempted string match: " + str + " -> " + result);
+  } else {
+    return "'" + result[1] + "'";
+  }
+}
+
 function queryContributions(req, res) {
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
-  var seedRace = queryParams["race"];
-  var seedCandidates = queryParams["candidates"];
-  var seedPacs = queryParams["pacs"];
+
+  var rawSeedRace = queryParams["race"];
+  var rawSeedCandidates = queryParams["candidates"];
+  var rawSeedPacs = queryParams["pacs"];
+
+  var seedRace = null;
+  var seedCandidates = [];
+  var seedPacs = [];
+  if (rawSeedRace) {
+    seedRace = ensureQuoted(rawSeedRace);
+  }
+  if (rawSeedCandidates) {
+    if (!(rawSeedCandidates instanceof Array)) {
+      rawSeedCandidates = [ rawSeedCandidates ];
+    }
+    seedCandidates = _.map(rawSeedCandidates, ensureQuoted);
+  }
+  if (rawSeedPacs) {
+    if (!(rawSeedPacs instanceof Array)) {
+      rawSeedPacs = [ rawSeedPacs ];
+    }
+    seedPacs = _.map(rawSeedPacs, ensureQuoted);
+  }
+
   var groupCandidatesBy = queryParams["groupCandidatesBy"];
   var groupContributionsBy = queryParams["groupContributionsBy"];
   var contributionTypes = queryParams["contributionTypes"];
+
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "'Misc candidates' as targetname, -1 as targetid, "
       : "firstlastp as targetname, cid as targetid, party, ";

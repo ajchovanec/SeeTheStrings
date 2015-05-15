@@ -188,14 +188,14 @@ function handleResponse(err, rows) {
   console.log("Got seedType: " + seedType);
   var aggregateType = getAggregateTypeForSeedType(seedType);
 
-  var pacs = queryParams["pacs"];
   var candidates = queryParams["candidates"];
+  var pacs = queryParams["pacs"];
 
-  if (!(pacs instanceof Array)) {
-    pacs = [ pacs ];
-  }
   if (!(candidates instanceof Array)) {
     candidates = [ candidates ];
+  }
+  if (!(pacs instanceof Array)) {
+    pacs = [ pacs ];
   }
 
   var seedIds = [];
