@@ -135,24 +135,25 @@ function queryContributions(req, res) {
       : "targetname, targetid, party, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
-  var seedAttributes = "";
+  var outerAttributes = "";
+  var innerAttributes = "";
   var seedTargetAttributes = "";
   var seedMatchingCriteria = "(";
   if (seedRace != null) {
-    innerSelectTargets += "(Candidates.distidrunfor = " + seedRace
+    innerAttributes += "(Candidates.distidrunfor = " + seedRace
         + " and Candidates.currCand = 'Y') as seedrace, ";
     seedTargetAttributes += "max(seedrace) or ";
     seedMatchingCriteria += "seedrace or ";
   }
   if (seedCandidates.length > 0) {
-    innerSelectTargets += "(Candidates.cid in (" + seedCandidates + ")) as seedcandidate, ";
+    innerAttributes += "(Candidates.cid in (" + seedCandidates + ")) as seedcandidate, ";
     seedTargetAttributes += "max(seedcandidate) or ";
     seedMatchingCriteria += "seedcandidate or ";
   }
-  seedAttributes += "(" + seedTargetAttributes + "0) as seedtarget, ";
+  outerAttributes += "(" + seedTargetAttributes + "0) as seedtarget, ";
   if (seedPacs.length > 0) {
-    innerSelectTargets += "(Committees.cmteid in (" + seedPacs + ")) as seedpac, ";
-    seedAttributes += "max(seedpac) as seedsource, ";
+    innerAttributes += "(Committees.cmteid in (" + seedPacs + ")) as seedpac, ";
+    outerAttributes += "max(seedpac) as seedsource, ";
     seedMatchingCriteria += "seedpac or ";
   }
   seedMatchingCriteria += "0) ";
@@ -164,20 +165,22 @@ function queryContributions(req, res) {
     return;
   }
 
-  doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, seedAttributes,
-      seedMatchingCriteria, contributionTypes, outerGroupByTargets, groupContributionsBy);
+  doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, outerAttributes,
+      innerAttributes, seedMatchingCriteria, contributionTypes, outerGroupByTargets,
+      groupContributionsBy);
 }
 
-function doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, seedAttributes,
-    seedMatchingCriteria, contributionTypes, outerGroupByTargets, groupContributionsBy) {
+function doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, outerAttributes,
+    innerAttributes, seedMatchingCriteria, contributionTypes, outerGroupByTargets,
+    groupContributionsBy) {
   console.log("i'm here");
   var sqlQuery;
   if (groupContributionsBy == "PAC") {
     console.log("PAC");
     sqlQuery =
-        "select pacshort as sourcename, cmteid as sourceid, " + outerSelectTargets + seedAttributes
+        "select pacshort as sourcename, cmteid as sourceid, " + outerSelectTargets + outerAttributes
             + "directorindirect, isagainst, sum(amount) as amount from "
-            + "(select distinct fecrecno, pacshort, cmteid, " + innerSelectTargets
+            + "(select distinct fecrecno, pacshort, cmteid, " + innerSelectTargets + innerAttributes
                 + "directorindirect, type in ('24A', '24N') as isagainst, "
                 + "amount from PACsToCandidates "
                 + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
@@ -189,9 +192,9 @@ function doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, 
             + "order by amount desc ";
   } else if (groupContributionsBy == "Industry") {
     sqlQuery =
-        "select catname as sourcename, catcode as sourceid, " + outerSelectTargets + seedAttributes
+        "select catname as sourcename, catcode as sourceid, " + outerSelectTargets + outerAttributes
             + "directorindirect, isagainst, sum(amount) as amount from "
-            + "(select distinct fecrecno, catname, catcode, " + innerSelectTargets
+            + "(select distinct fecrecno, catname, catcode, " + innerSelectTargets + innerAttributes
                 + "directorindirect, type in ('24A', '24N') as isagainst, "
                 + "amount from PACsToCandidates "
                 + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
@@ -204,9 +207,9 @@ function doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, 
             + "order by amount desc ";
   } else if (groupContributionsBy == "Sector") {
     sqlQuery =
-        "select sector as sourcename, sector as sourceid, " + outerSelectTargets + seedAttributes
+        "select sector as sourcename, sector as sourceid, " + outerSelectTargets + outerAttributes
             + "directorindirect, isagainst, sum(amount) as amount from "
-            + "(select distinct fecrecno, sector, " + innerSelectTargets
+            + "(select distinct fecrecno, sector, " + innerSelectTargets + innerAttributes
                 + "directorindirect, type in ('24A', '24N') as isagainst, "
                 + "amount from PACsToCandidates "
                 + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
