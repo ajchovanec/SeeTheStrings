@@ -1,6 +1,6 @@
 
-var initLinksPerRelative = 5;
-var newLinksPerExpansion = 5;
+var initLinksPerRelative = 2;
+var newLinksPerExpansion = 2;
 
 function getSelfProperties(selfType) {
   var childType = selfType;
@@ -123,6 +123,8 @@ function processRows(rows, seedIds) {
       aggregateLink.count = newCount;
       aggregateLink.amount = newAmount;
       aggregateLink.isRefund = (newAmount < 0);
+      aggregateLink.seedsource |= row.seedsource;
+      aggregateLink.seedtarget |= row.seedtarget;
       // TODO: In the future some links may not have a party field. Consider finding a way to
       // generalize this.
       if (row.party != aggregateLink.party) {
@@ -144,6 +146,8 @@ function processRows(rows, seedIds) {
       newLink.isagainst = isagainst;
       newLink.isRefund = firstLink.amount < 0 ? true : false;
       newLink.subLinks = [ firstLink ];
+      newLink.seedsource = firstLink.seedsource;
+      newLink.seedtarget = firstLink.seedtarget;
 
       // It's up to the caller to set newLink[newLink.childNameType], since that's a pretty-printed
       // string whose format depends on the application-specific rendering of aggregate nodes.

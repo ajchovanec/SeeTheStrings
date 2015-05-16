@@ -207,13 +207,21 @@ var graph = {
                   (nodesMap[link.sourceid] = {
                     name: link.sourcename,
                     id: link.sourceid,
-                    aggregateLinks: []
+                    aggregateLinks: [],
+                    // TODO: Once we have nodes that are both a source and a target at the same
+                    // time, it may be necessary to mark a node as a seed if *any* link that has it
+                    // as a source or a target has it marked as a seed.
+                    seed: link.seedsource
                   });
               link.target = nodesMap[link.targetid] ||
                   (nodesMap[link.targetid] = {
                     name: link.targetname,
                     id: link.targetid,
-                    aggregateLinks: []
+                    aggregateLinks: [],
+                    // TODO: Once we have nodes that are both a source and a target at the same
+                    // time, it may be necessary to mark a node as a seed if *any* link that has it
+                    // as a source or a target has it marked as a seed.
+                    seed: link.seedtarget
                   });
               // Set the display properties for both nodes based on the properties of the link.
               //
@@ -507,7 +515,11 @@ function showGraph(inputLinks) {
         nodeChild = {
           name: link[childNameType],  // This will be null if the child is another aggregate.
           id: link[childIdType],
-          aggregateLinks: []
+          aggregateLinks: [],
+          // TODO: Once we have nodes that are both a source and a target at the same
+          // time, it may be necessary to mark a node as a seed if *any* link that has it
+          // as a source or a target has it marked as a seed.
+          seed: link["seed" + link.childType]  // FIXME
         };
         graph.addNode(nodeChild);
         // Set the display properties for the new node based on the properties of the link.
@@ -564,6 +576,13 @@ function showGraph(inputLinks) {
 
     function isAggregateNode(d) { return d.aggregateLinks.length > 0; }
 
+    function getNodeOpacity(d) {
+      // TODO: Consider setting this < 1.0 once the links have been modified to start from the
+      // outsides of the PAC circles, rather than from their centers.
+      var nonSeedNodeOpacity = 1.0;
+      return d.seed ? 1.0 : nonSeedNodeOpacity;
+    }
+
     function getImageForNodeWithParty(d) {
       // TODO: Try to find a way to avoid having one .svg file per party.
       return "images/person-" + d.party + ".svg";
@@ -577,6 +596,7 @@ function showGraph(inputLinks) {
     halo.enter().append("circle")
         .attr("r", 12)
         .attr("class", "halo")
+        .attr("opacity", getNodeOpacity)
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
@@ -613,6 +633,7 @@ function showGraph(inputLinks) {
     singleContributor.enter().append("circle")
         .attr("r", 6)
         .attr("class", "contributor gray")
+        .attr("opacity", getNodeOpacity)
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
@@ -628,6 +649,7 @@ function showGraph(inputLinks) {
             getJoinFunc(nodeKeyFunc));
     aggregateContributor.exit().remove();
     var gAggregateContributors = aggregateContributor.enter().append("g")
+        .attr("opacity", getNodeOpacity)
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
@@ -656,6 +678,7 @@ function showGraph(inputLinks) {
         .attr("width", 8)
         .attr("height", 20)
         .attr("xlink:href", getImageForNodeWithParty)
+        .attr("opacity", getNodeOpacity)
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
@@ -674,6 +697,7 @@ function showGraph(inputLinks) {
             getJoinFunc(nodeKeyFunc));
     aggregateCandidate.exit().remove();
     var gAggregateCandidates = aggregateCandidate.enter().append("g")
+        .attr("opacity", getNodeOpacity)
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
@@ -701,6 +725,7 @@ function showGraph(inputLinks) {
     nodeText.exit().remove();
     nodeText.enter().append("text")
         .attr("class", "textNode")
+        .attr("opacity", getNodeOpacity)
         .attr("x", "8")
         .attr("y", ".31em")
         .text(function(d) { return d.name; });
