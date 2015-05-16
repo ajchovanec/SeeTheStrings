@@ -161,8 +161,6 @@ function queryContributions(req, res) {
     res.end();
     return;
   }
-  console.log("groupCandidatesBy: " + groupCandidatesBy);
-  console.log("outerSelectTargets: " + outerSelectTargets);
 
   doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, seedMatchingCriteria,
       contributionTypes, outerGroupByTargets, groupContributionsBy);
