@@ -173,7 +173,6 @@ function queryContributions(req, res) {
 function doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, outerAttributes,
     innerAttributes, seedMatchingCriteria, contributionTypes, outerGroupByTargets,
     groupContributionsBy) {
-  console.log("i'm here");
   var sqlQuery;
   if (groupContributionsBy == "PAC") {
     console.log("PAC");
