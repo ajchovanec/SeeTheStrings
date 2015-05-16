@@ -137,33 +137,35 @@ function queryContributions(req, res) {
       : "firstlastp, Candidates.cid, Candidates.party, ";
   var outerAttributes = "";
   var innerAttributes = "";
-  var seedTargetAttributes = "";
-  var seedMatchingCriteria = "(";
+  var seedTargetAttributes = [];
+  var seedMatchingCriteria = [];
   if (seedRace != null) {
     innerAttributes += "(Candidates.distidrunfor = " + seedRace
         + " and Candidates.currCand = 'Y') as seedrace, ";
-    seedTargetAttributes += "max(seedrace) or ";
-    seedMatchingCriteria += "seedrace or ";
+    seedTargetAttributes.push("max(cast(seedrace as integer))");
+    seedMatchingCriteria.push("seedrace");
   }
   if (seedCandidates.length > 0) {
     innerAttributes += "(Candidates.cid in (" + seedCandidates + ")) as seedcandidate, ";
-    seedTargetAttributes += "max(seedcandidate) or ";
-    seedMatchingCriteria += "seedcandidate or ";
+    seedTargetAttributes.push("max(cast(seedcandidate as integer))");  // aggregate OR
+    seedMatchingCriteria.push("seedcandidate");
   }
-  outerAttributes += "(" + seedTargetAttributes + "0) as seedtarget, ";
+  if (seedTargetAttributes.length > 0) {
+    outerAttributes += "(" + seedTargetAttributes.join(" or ") + ") as seedtarget, ";
+  }
   if (seedPacs.length > 0) {
     innerAttributes += "(Committees.cmteid in (" + seedPacs + ")) as seedpac, ";
-    outerAttributes += "max(seedpac) as seedsource, ";
-    seedMatchingCriteria += "seedpac or ";
+    outerAttributes += "max(cast(seedpac as integer)) as seedsource, ";  // aggregate OR
+    seedMatchingCriteria.push("seedpac");
   }
-  seedMatchingCriteria += "0) ";
-  if (seedMatchingCriteria == "(0) ") {
+  if (seedMatchingCriteria.length == 0) {
     // TODO: Is this the right way to fast fail the request?
     console.log("Error: No seed IDs were specified.");
     res.writeHead(400);
     res.end();
     return;
   }
+  seedMatchingCriteria = seedMatchingCriteria.join(" or ");
 
   doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, outerAttributes,
       innerAttributes, seedMatchingCriteria, contributionTypes, outerGroupByTargets,
