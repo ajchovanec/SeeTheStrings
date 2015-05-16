@@ -12,29 +12,29 @@ var port = process.env.PORT || 3000;
 var dbType;
 var dbConnectionConfig;
 switch (process.env.DB_INSTANCE) {
-case "heroku":
-  function getEnvVarOrDie(envVarName) {
-    var envVar = process.env[envVarName];
-    if (envVar == null) {
-      console.log("Environment variable " + envVarName + " is required when DB_INSTANCE=heroku, "
-          + "but is undefined! Aborting.");
-      process.exit(1);
+  case "heroku":
+    function getEnvVarOrDie(envVarName) {
+      var envVar = process.env[envVarName];
+      if (envVar == null) {
+        console.log("Environment variable " + envVarName + " is required when DB_INSTANCE=heroku, "
+            + "but is undefined! Aborting.");
+        process.exit(1);
+      }
+      return envVar;
     }
-    return envVar;
-  }
-  dbType = "pg";
-  dbConnectionConfig = {
-    host: getEnvVarOrDie("PG_HOST"),
-    user: getEnvVarOrDie("PG_USER"),
-    password: getEnvVarOrDie("PG_PASSWORD"),
-    database: getEnvVarOrDie("PG_DATABASE")
-  };
-  break;
-default:
-  console.log("DB_INSTANCE environment variable not set. Defaulting to 'local'.")
-case "local":
-  dbType = "sqlite3";
-  dbConnectionConfig = { path: "data/sqlite/CampaignFin14.db" };
+    dbType = "pg";
+    dbConnectionConfig = {
+      host: getEnvVarOrDie("PG_HOST"),
+      user: getEnvVarOrDie("PG_USER"),
+      password: getEnvVarOrDie("PG_PASSWORD"),
+      database: getEnvVarOrDie("PG_DATABASE")
+    };
+    break;
+  default:
+    console.log("DB_INSTANCE environment variable not set. Defaulting to 'local'.")
+  case "local":
+    dbType = "sqlite3";
+    dbConnectionConfig = { path: "data/sqlite/CampaignFin14.db" };
 };
 console.log("Using database type " + dbType);
 
@@ -131,24 +131,24 @@ function queryContributions(req, res) {
   var outerSelectSources;
   var innerSelectSources;
   switch (groupContributionsBy) {
-  case "PAC":
-    outerSelectSources = "pacshort as sourcename, cmteid as sourceid, ";
-    innerSelectSources = "pacshort, cmteid, ";
-    break;
-  case "Industry":
-    outerSelectSources = "catname as sourcename, catcode as sourceid, ";
-    innerSelectSources = "catname, catcode, ";
-    break;
-  case "Sector":
-    outerSelectSources = "sector as sourcename, sector as sourceid, ";
-    innerSelectSources = "sector, ";
-    break;
-  default:
-    // TODO: Is this the right way to fast fail the request?
-    console.log("Error: No seed IDs were specified.");
-    res.writeHead(400);
-    res.end();
-    return;
+    case "PAC":
+      outerSelectSources = "pacshort as sourcename, cmteid as sourceid, ";
+      innerSelectSources = "pacshort, cmteid, ";
+      break;
+    case "Industry":
+      outerSelectSources = "catname as sourcename, catcode as sourceid, ";
+      innerSelectSources = "catname, catcode, ";
+      break;
+    case "Sector":
+      outerSelectSources = "sector as sourcename, sector as sourceid, ";
+      innerSelectSources = "sector, ";
+      break;
+    default:
+      // TODO: Is this the right way to fast fail the request?
+      console.log("Error: Invalid groupContributionsBy value " + groupContributionsBy);
+      res.writeHead(400);
+      res.end();
+      return;
   }
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "'Misc candidates' as targetname, -1 as targetid, "
@@ -208,8 +208,8 @@ function doQueryContributions(req, res, outerSelectSources, innerSelectSources,
       "select " + outerSelectSources + outerSelectTargets + outerAttributes
           + "directorindirect, isagainst, sum(amount) as amount from "
           + "(select * from "
-              + "(select distinct fecrecno, " + innerSelectSources + "directorindirect, "
-                  + "type in ('24A', '24N') as isagainst, "
+              + "(select distinct fecrecno, " + innerSelectSources + innerSelectTargets
+                  + innerAttributes + "directorindirect, type in ('24A', '24N') as isagainst, "
                   + innerSelectTargets + innerAttributes + " amount from PACsToCandidates "
                   + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
                   + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
