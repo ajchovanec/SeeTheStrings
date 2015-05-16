@@ -137,26 +137,26 @@ function queryContributions(req, res) {
       : "firstlastp, Candidates.cid, Candidates.party, ";
   var seedAttributes = "";
   var seedTargetAttributes = "";
-  var seedMatchingCriteria = "( ";
+  var seedMatchingCriteria = "(";
   if (seedRace != null) {
     innerSelectTargets += "(Candidates.distidrunfor = " + seedRace
         + " and Candidates.currCand = 'Y') as seedrace, ";
     seedTargetAttributes += "max(seedrace) or ";
     seedMatchingCriteria += "seedrace or ";
   }
-  if (seedCandidates != null) {
+  if (seedCandidates.length > 0) {
     innerSelectTargets += "(Candidates.cid in (" + seedCandidates + ")) as seedcandidate, ";
     seedTargetAttributes += "max(seedcandidate) or ";
     seedMatchingCriteria += "seedcandidate or ";
   }
-  seedAttributes += "(" + seedTargetAttributes + "0 ) as seedtarget, ";
-  if (seedPacs != null) {
+  seedAttributes += "(" + seedTargetAttributes + "0) as seedtarget, ";
+  if (seedPacs.length > 0) {
     innerSelectTargets += "(Committees.cmteid in (" + seedPacs + ")) as seedpac, ";
     seedAttributes += "max(seedpac) as seedsource, ";
     seedMatchingCriteria += "seedpac or ";
   }
-  seedMatchingCriteria += "0 )";
-  if (seedMatchingCriteria == "( 0 )") {
+  seedMatchingCriteria += "0) ";
+  if (seedMatchingCriteria == "(0) ") {
     // TODO: Is this the right way to fast fail the request?
     console.log("Error: No seed IDs were specified.");
     res.writeHead(400);
