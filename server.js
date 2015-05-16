@@ -179,13 +179,15 @@ function doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, 
     sqlQuery =
         "select pacshort as sourcename, cmteid as sourceid, " + outerSelectTargets + outerAttributes
             + "directorindirect, isagainst, sum(amount) as amount from "
-            + "(select distinct fecrecno, pacshort, cmteid, " + innerSelectTargets + innerAttributes
-                + "directorindirect, type in ('24A', '24N') as isagainst, "
-                + "amount from PACsToCandidates "
-                + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
-                + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
-                + "where " + seedMatchingCriteria
-                + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
+            + "(select * from "
+                + "(select distinct fecrecno, pacshort, cmteid, directorindirect, "
+                    + "type in ('24A', '24N') as isagainst, "
+                    + innerSelectTargets + innerAttributes + " amount from PACsToCandidates "
+                    + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
+                    + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
+                    + "inner join Categories on Categories.catcode = Committees.primcode "
+                    + "where directorindirect in (" + contributionTypes + ")) as Inner2Query "
+                + "where " + seedMatchingCriteria + ") as InnerQuery "
             + "group by sourcename, sourceid, " + outerGroupByTargets
             + "directorindirect, isagainst "
             + "order by amount desc ";
@@ -193,14 +195,15 @@ function doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, 
     sqlQuery =
         "select catname as sourcename, catcode as sourceid, " + outerSelectTargets + outerAttributes
             + "directorindirect, isagainst, sum(amount) as amount from "
-            + "(select distinct fecrecno, catname, catcode, " + innerSelectTargets + innerAttributes
-                + "directorindirect, type in ('24A', '24N') as isagainst, "
-                + "amount from PACsToCandidates "
-                + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
-                + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
-                + "inner join Categories on Categories.catcode = Committees.primcode "
-                + "where " + seedMatchingCriteria
-                + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
+            + "(select * from "
+                + "(select distinct fecrecno, catname, catcode, directorindirect, "
+                    + "type in ('24A', '24N') as isagainst, "
+                    + innerSelectTargets + innerAttributes + " amount from PACsToCandidates "
+                    + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
+                    + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
+                    + "inner join Categories on Categories.catcode = Committees.primcode "
+                    + "where directorindirect in (" + contributionTypes + ")) as Inner2Query "
+                + "where " + seedMatchingCriteria + ") as InnerQuery "
             + "group by sourcename, sourceid, " + outerGroupByTargets
             + "directorindirect, isagainst "
             + "order by amount desc ";
@@ -208,18 +211,20 @@ function doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, 
     sqlQuery =
         "select sector as sourcename, sector as sourceid, " + outerSelectTargets + outerAttributes
             + "directorindirect, isagainst, sum(amount) as amount from "
-            + "(select distinct fecrecno, sector, " + innerSelectTargets + innerAttributes
-                + "directorindirect, type in ('24A', '24N') as isagainst, "
-                + "amount from PACsToCandidates "
-                + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
-                + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
-                + "inner join Categories on Categories.catcode = Committees.primcode "
-                + "where " + seedMatchingCriteria
-                + "and directorindirect in (" + contributionTypes + ")) as SubQuery "
+            + "(select * from "
+                + "(select distinct fecrecno, sector, directorindirect, "
+                    + "type in ('24A', '24N') as isagainst, "
+                    + innerSelectTargets + innerAttributes + " amount from PACsToCandidates "
+                    + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
+                    + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
+                    + "inner join Categories on Categories.catcode = Committees.primcode "
+                    + "where directorindirect in (" + contributionTypes + ")) as Inner2Query "
+                + "where " + seedMatchingCriteria + ") as InnerQuery "
             + "group by sourcename, sourceid, " + outerGroupByTargets
             + "directorindirect, isagainst "
             + "order by amount desc ";
   } else {
+
     // TODO
   }
 
