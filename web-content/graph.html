@@ -100,15 +100,15 @@ function getLabelForLink(link) {
 
 function getAdjectiveForParty(party) {
   switch (party) {
-  case "R": return "Republican";
-  case "D": return "Democratic";
-  case "L": return "Libertarian";
-  case "I": return "Independent"
-  case "3": return "other third party";
-  case "U":
-    // Don't return "Unknown" for unknown candidates since it isn't informative.
-  default:
-    return null;
+    case "R": return "Republican";
+    case "D": return "Democratic";
+    case "L": return "Libertarian";
+    case "I": return "Independent"
+    case "3": return "other third party";
+    case "U":
+      // Don't return "Unknown" for unknown candidates since it isn't informative.
+    default:
+      return null;
   }
 }
 function setDisplayPropertiesForCandidateNode(node, link) {
@@ -380,17 +380,17 @@ function showGraph(inputLinks) {
 
     var typeKey = graph.getLinkTypeKey(link);
     switch (typeKey) {
-    case directInFavorTypeKey:
-      return multipliers[0];
-    case indirectInFavorTypeKey:
-      return hasDirectInFavor ?
-          multipliers[1]
-        : multipliers[0];
-    case indirectAgainstTypeKey:
-      var index = 0;
-      index += hasDirectInFavor;
-      index += hasIndirectInFavor;
-      return multipliers[index];
+      case directInFavorTypeKey:
+        return multipliers[0];
+      case indirectInFavorTypeKey:
+        return hasDirectInFavor ?
+            multipliers[1]
+          : multipliers[0];
+      case indirectAgainstTypeKey:
+        var index = 0;
+        index += hasDirectInFavor;
+        index += hasIndirectInFavor;
+        return multipliers[index];
     }
   }
 
