@@ -140,12 +140,12 @@ function queryContributions(req, res) {
   var seedTargetAttributes = [];
   var seedMatchingCriteria = [];
   // SQLite doesn't have the bit_or() function that we need to do the disjunction across the values
-  // of each of {seedrace, seedcandidate, seedpac}, so we have to use max() instead. But then we
-  // need to take another disjunction across the max values, and Postgres won't let us treat boolean
-  // values as integers, so we have to cast to integers first. But then Postgres won't let us pass
-  // integer values into an "or" expression, so we have to cast back to boolean values; furthermore,
-  // we can't instead take a max() of max values, because the functions to do this in Postgres and
-  // SQLite have different names (greatest() and max(), respectively). Sigh.
+  // of each of {seedrace, seedcandidate, seedpac}, so we have to use max() instead. But Postgres
+  // won't let us treat boolean values as integers, so we have to cast to integers first. But then
+  // we need to take another disjunction across the max values, and Postgres won't let us treat
+  // integer values as booleans either, so we have to cast back; furthermore, we can't instead take
+  // a max() of max values, because the functions to do this in Postgres and SQLite have different
+  // names -- greatest() and max(), respectively. Sigh.
   if (seedRace != null) {
     innerAttributes += "(Candidates.distidrunfor = " + seedRace
         + " and Candidates.currCand = 'Y') as seedrace, ";
