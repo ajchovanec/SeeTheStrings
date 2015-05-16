@@ -168,6 +168,11 @@ function queryContributions(req, res) {
   // integer values as booleans either, so we have to cast back; furthermore, we can't instead take
   // a max() of max values, because the functions to do this in Postgres and SQLite have different
   // names -- greatest() and max(), respectively. Sigh.
+  if (seedPacs.length > 0) {
+    innerAttributes += "(Committees.cmteid in (" + seedPacs + ")) as seedpac, ";
+    outerAttributes += "cast(max(cast(seedpac as integer)) as boolean) as seedsource, ";
+    seedMatchingCriteria.push("seedpac");
+  }
   if (seedRace != null) {
     innerAttributes += "(Candidates.distidrunfor = " + seedRace
         + " and Candidates.currCand = 'Y') as seedrace, ";
@@ -181,11 +186,6 @@ function queryContributions(req, res) {
   }
   if (seedTargetAttributes.length > 0) {
     outerAttributes += "(" + seedTargetAttributes.join(" or ") + ") as seedtarget, ";
-  }
-  if (seedPacs.length > 0) {
-    innerAttributes += "(Committees.cmteid in (" + seedPacs + ")) as seedpac, ";
-    outerAttributes += "cast(max(cast(seedpac as integer)) as boolean) as seedsource, ";
-    seedMatchingCriteria.push("seedpac");
   }
   if (seedMatchingCriteria.length == 0) {
     // TODO: Is this the right way to fast fail the request?
