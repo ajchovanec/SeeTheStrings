@@ -128,6 +128,28 @@ function queryContributions(req, res) {
     contributionTypes = _.map(rawContributionTypes, ensureQuoted);
   }
 
+  var outerSelectSources;
+  var innerSelectSources;
+  switch (groupContributionsBy) {
+  case "PAC":
+    outerSelectSources = "pacshort as sourcename, cmteid as sourceid, ";
+    innerSelectSources = "pacshort, cmteid, ";
+    break;
+  case "Industry":
+    outerSelectSources = "catname as sourcename, catcode as sourceid, ";
+    innerSelectSources = "catname, catcode, ";
+    break;
+  case "Sector":
+    outerSelectSources = "sector as sourcename, sector as sourceid, ";
+    innerSelectSources = "sector, ";
+    break;
+  default:
+    // TODO: Is this the right way to fast fail the request?
+    console.log("Error: No seed IDs were specified.");
+    res.writeHead(400);
+    res.end();
+    return;
+  }
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "'Misc candidates' as targetname, -1 as targetid, "
       : "firstlastp as targetname, cid as targetid, party, ";
@@ -174,68 +196,29 @@ function queryContributions(req, res) {
   }
   seedMatchingCriteria = seedMatchingCriteria.join(" or ");
 
-  doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, outerAttributes,
-      innerAttributes, seedMatchingCriteria, contributionTypes, outerGroupByTargets,
-      groupContributionsBy);
+  doQueryContributions(req, res, outerSelectSources, innerSelectSources,
+      outerSelectTargets, innerSelectTargets, outerAttributes, innerAttributes,
+      seedMatchingCriteria, contributionTypes, outerGroupByTargets, groupContributionsBy);
 }
 
-function doQueryContributions(req, res, outerSelectTargets, innerSelectTargets, outerAttributes,
-    innerAttributes, seedMatchingCriteria, contributionTypes, outerGroupByTargets,
-    groupContributionsBy) {
-  var sqlQuery;
-  if (groupContributionsBy == "PAC") {
-    console.log("PAC");
-    sqlQuery =
-        "select pacshort as sourcename, cmteid as sourceid, " + outerSelectTargets + outerAttributes
-            + "directorindirect, isagainst, sum(amount) as amount from "
-            + "(select * from "
-                + "(select distinct fecrecno, pacshort, cmteid, directorindirect, "
-                    + "type in ('24A', '24N') as isagainst, "
-                    + innerSelectTargets + innerAttributes + " amount from PACsToCandidates "
-                    + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
-                    + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
-                    + "inner join Categories on Categories.catcode = Committees.primcode "
-                    + "where directorindirect in (" + contributionTypes + ")) as Inner2Query "
-                + "where " + seedMatchingCriteria + ") as InnerQuery "
-            + "group by sourcename, sourceid, " + outerGroupByTargets
-            + "directorindirect, isagainst "
-            + "order by amount desc ";
-  } else if (groupContributionsBy == "Industry") {
-    sqlQuery =
-        "select catname as sourcename, catcode as sourceid, " + outerSelectTargets + outerAttributes
-            + "directorindirect, isagainst, sum(amount) as amount from "
-            + "(select * from "
-                + "(select distinct fecrecno, catname, catcode, directorindirect, "
-                    + "type in ('24A', '24N') as isagainst, "
-                    + innerSelectTargets + innerAttributes + " amount from PACsToCandidates "
-                    + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
-                    + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
-                    + "inner join Categories on Categories.catcode = Committees.primcode "
-                    + "where directorindirect in (" + contributionTypes + ")) as Inner2Query "
-                + "where " + seedMatchingCriteria + ") as InnerQuery "
-            + "group by sourcename, sourceid, " + outerGroupByTargets
-            + "directorindirect, isagainst "
-            + "order by amount desc ";
-  } else if (groupContributionsBy == "Sector") {
-    sqlQuery =
-        "select sector as sourcename, sector as sourceid, " + outerSelectTargets + outerAttributes
-            + "directorindirect, isagainst, sum(amount) as amount from "
-            + "(select * from "
-                + "(select distinct fecrecno, sector, directorindirect, "
-                    + "type in ('24A', '24N') as isagainst, "
-                    + innerSelectTargets + innerAttributes + " amount from PACsToCandidates "
-                    + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
-                    + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
-                    + "inner join Categories on Categories.catcode = Committees.primcode "
-                    + "where directorindirect in (" + contributionTypes + ")) as Inner2Query "
-                + "where " + seedMatchingCriteria + ") as InnerQuery "
-            + "group by sourcename, sourceid, " + outerGroupByTargets
-            + "directorindirect, isagainst "
-            + "order by amount desc ";
-  } else {
-
-    // TODO
-  }
+function doQueryContributions(req, res, outerSelectSources, innerSelectSources,
+    outerSelectTargets, innerSelectTargets, outerAttributes, innerAttributes,
+    seedMatchingCriteria, contributionTypes, outerGroupByTargets, groupContributionsBy) {
+  var sqlQuery =
+      "select " + outerSelectSources + outerSelectTargets + outerAttributes
+          + "directorindirect, isagainst, sum(amount) as amount from "
+          + "(select * from "
+              + "(select distinct fecrecno, " + innerSelectSources + "directorindirect, "
+                  + "type in ('24A', '24N') as isagainst, "
+                  + innerSelectTargets + innerAttributes + " amount from PACsToCandidates "
+                  + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
+                  + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
+                  + "inner join Categories on Categories.catcode = Committees.primcode "
+                  + "where directorindirect in (" + contributionTypes + ")) as Inner2Query "
+              + "where " + seedMatchingCriteria + ") as InnerQuery "
+          + "group by sourcename, sourceid, " + outerGroupByTargets
+          + "directorindirect, isagainst "
+          + "order by amount desc ";
 
   console.log("SQL query: " + sqlQuery);
   var dbWrapper = getDbWrapper();
