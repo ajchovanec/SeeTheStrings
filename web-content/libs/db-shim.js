@@ -1,6 +1,6 @@
 
-var initLinksPerRelative = 2;
-var newLinksPerExpansion = 2;
+var initLinksPerRelative = 5;
+var newLinksPerExpansion = 5;
 
 function getSelfProperties(selfType) {
   var childType = selfType;
