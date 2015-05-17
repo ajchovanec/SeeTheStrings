@@ -404,7 +404,7 @@ function showGraph(inputLinks) {
   function linkLine(d) {
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
-    var distance = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
+    var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     if (distance < effectiveTargetRadius) {
       return null;  // no path to draw
     }
@@ -415,43 +415,76 @@ function showGraph(inputLinks) {
     var multiplier = getLinkArcRadiusMultiplier(d);
     var arcRadius = multiplier * distance;
     var arcCenterX = midX
-        + Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(distance / 2, 2))
+        + Math.sqrt(arcRadius * arcRadius - distance * distance / 4)
             * linkOrientationMultiplier * deltaY / distance;
     var arcCenterY = midY
-        - Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(distance / 2, 2))
+        - Math.sqrt(arcRadius * arcRadius - distance * distance / 4)
             * linkOrientationMultiplier * deltaX / distance;
-    var arcCenterTargetDeltaX = d.target.x - arcCenterX;
-    var arcCenterTargetDeltaY = d.target.y - arcCenterY;
-    var arcCenterTargetDistance =
-        Math.sqrt(Math.pow(arcCenterTargetDeltaX, 2) + Math.pow(arcCenterTargetDeltaY, 2));
-    var arcCenterTargetCos = arcCenterTargetDeltaX / arcCenterTargetDistance;
-    var arcCenterTargetSin = arcCenterTargetDeltaY / arcCenterTargetDistance;
-    var arcCenterLineDistance = (Math.pow(arcCenterTargetDistance, 2) + Math.pow(arcRadius, 2)
-        - Math.pow(effectiveTargetRadius, 2)) / (2 * arcCenterTargetDistance);
 
-    var endX = arcCenterX + arcCenterTargetCos * arcCenterLineDistance
-        - Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(arcCenterLineDistance, 2))
-            * linkOrientationMultiplier * arcCenterTargetSin;
-    var endY = arcCenterY + arcCenterTargetSin * arcCenterLineDistance
-        + Math.sqrt(Math.pow(arcRadius, 2) - Math.pow(arcCenterLineDistance, 2))
-            * linkOrientationMultiplier * arcCenterTargetCos;
+    var arcSourceIntersect = getCircleIntersection(arcCenterX, arcCenterY, arcRadius,
+        d.source.x, d.source.y, 10, -linkOrientationMultiplier);
+    var arcTargetIntersect = getCircleIntersection(arcCenterX, arcCenterY, arcRadius,
+        d.target.x, d.target.y, effectiveTargetRadius, linkOrientationMultiplier);
+    var sourceX = arcSourceIntersect[0],
+        sourceY = arcSourceIntersect[1];
+    var targetX = arcTargetIntersect[0],
+        targetY = arcTargetIntersect[1];
 
-    return "M" + d.source.x + "," + d.source.y + "A" + arcRadius + "," + arcRadius
-        + " 0 0," + linkOrientation + " " + endX + "," + endY;
+    return "M" + sourceX + "," + sourceY + "A" + arcRadius + "," + arcRadius
+        + " 0 0," + linkOrientation + " " + targetX + "," + targetY;
+  }
+
+  function getCircleIntersection(x0, y0, radius0, x1, y1, radius1, which) {
+    var a, dx, dy, d, h, rx, ry;
+    var x2, y2;
+
+    dx = x1 - x0;
+    dy = y1 - y0;
+
+    d = Math.sqrt((dy * dy) + (dx * dx));
+
+    if (d > (radius0 + radius1)) {
+      return false;
+    }
+    if (d < Math.abs(radius0 - radius1)) {
+      return false;
+    }
+
+    // Point 2 is the point where the line through the circle intersection points crosses the line
+    // between the circle centers.
+
+    // Determine the distance from point 0 to point 2.
+    a = ((radius0 * radius0) - (radius1 * radius1) + (d * d)) / (2.0 * d) ;
+
+    // Determine the coordinates of point 2.
+    x2 = x0 + (dx * a / d);
+    y2 = y0 + (dy * a / d);
+
+    // Determine the distance from point 2 to either of the intersection points.
+    h = Math.sqrt((radius0 * radius0) - (a*a));
+
+    // Now determine the offsets of the intersection points from point 2.
+    rx = -dy * (h / d);
+    ry = dx * (h / d);
+
+    // Determine the absolute intersection points.
+    var xi = x2 + which * rx;
+    var yi = y2 + which * ry;
+    return [xi, yi];
   }
 
   function transformLinkText(d) {
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
-    var distance = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
+    var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     if (distance < effectiveTargetRadius) {
       return null;  // no path to draw
     }
 
     var multiplier = getLinkArcRadiusMultiplier(d);
     var arcRadius = multiplier * distance;
-    var arcHeight = (multiplier - Math.sqrt(4 * Math.pow(multiplier, 2) - 1) / 2) * distance;
-    var textDistance = Math.sqrt(Math.pow(arcHeight, 2) + Math.pow(distance / 2, 2));
+    var arcHeight = (multiplier - Math.sqrt(4 * multiplier * multiplier - 1) / 2) * distance;
+    var textDistance = Math.sqrt(arcHeight * arcHeight + Math.pow(distance / 2, 2));
     var adjAngle = Math.atan(2 * arcHeight / distance);
     var textAngle = Math.atan2(deltaY, deltaX) + linkOrientationMultiplier * adjAngle;
     var textX = d.source.x + Math.cos(textAngle) * textDistance;
@@ -623,23 +656,28 @@ function showGraph(inputLinks) {
         .attr("y", ".31em")
         .text(function(d) { return getLabelForLink(d); });
 
-    singleContributor = svg.select(".gSingleContributors").selectAll("circle")
+    singleContributor = svg.select(".gSingleContributors").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
               return d.party == null && d.aggregateLinks.length == 0;
             }),
             getJoinFunc(nodeKeyFunc));
     singleContributor.exit().remove();
-    singleContributor.enter().append("circle")
-        .attr("r", 6)
-        .attr("class", "contributor gray")
+    singleContributor.enter().append("image")
+        .attr("x", -10)
+        .attr("y", -10)
+        .attr("width", 20)
+        .attr("height", 20)
+        .attr("xlink:href", "images/money.svg")
         .attr("opacity", getNodeOpacity)
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
 
-    var centerCircleRadius = 4.5;
-    var circleOffset = 10;
+    // TODO: Figure out to add a light drop shadow around each circle so that they can overlap
+    // and create a better sense of perspective.
+    var centerCircleRadius = 6;
+    var circleOffset = 14;
     var circleScalingFactor = 0.75;
     aggregateContributor = svg.select(".gAggregateContributors").selectAll("g")
         .data(graph.nodes().filter(
@@ -653,17 +691,24 @@ function showGraph(inputLinks) {
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
-    gAggregateContributors.append("circle")
-        .attr("cx", circleOffset)
-        .attr("r", circleScalingFactor * centerCircleRadius)
-        .attr("class", "contributor gray");
-    gAggregateContributors.append("circle")
-        .attr("cx", -1 * circleOffset)
-        .attr("r", circleScalingFactor * centerCircleRadius)
-        .attr("class", "contributor gray");
-    gAggregateContributors.append("circle")
-        .attr("r", centerCircleRadius)
-        .attr("class", "contributor gray");
+    gAggregateContributors.append("image")
+        .attr("x", circleScalingFactor * (-centerCircleRadius + circleOffset))
+        .attr("y",  circleScalingFactor * -centerCircleRadius)
+        .attr("width", centerCircleRadius * circleScalingFactor * 2)
+        .attr("height", centerCircleRadius * circleScalingFactor * 2)
+        .attr("xlink:href", "images/money.svg");
+    gAggregateContributors.append("image")
+        .attr("x", circleScalingFactor * (-centerCircleRadius - circleOffset))
+        .attr("y", circleScalingFactor * -centerCircleRadius)
+        .attr("width", centerCircleRadius * circleScalingFactor * 2)
+        .attr("height", centerCircleRadius * circleScalingFactor * 2)
+        .attr("xlink:href", "images/money.svg");
+    gAggregateContributors.append("image")
+        .attr("x", -centerCircleRadius)
+        .attr("y", -centerCircleRadius)
+        .attr("width", centerCircleRadius * 2)
+        .attr("height", centerCircleRadius * 2)
+        .attr("xlink:href", "images/money.svg");
 
     singleCandidate = svg.select(".gSingleCandidates").selectAll("image")
         .data(graph.nodes().filter(
