@@ -178,7 +178,8 @@ function queryContributions(req, res) {
   // a max() of max values, because the functions to do this in Postgres and SQLite have different
   // names -- greatest() and max(), respectively. Sigh.
   if (seedPacs.length > 0) {
-    innerAttributes += "(Committees.cmteid in (" + seedPacs + ")) as seedpac, ";
+    innerAttributes += "(Committees.pacshort in (" + seedPacs + ") or "
+        + "Committees.cmteid in (" + seedPacs + ")) as seedpac, ";  // for backwards compatibility
     outerAttributes += "cast(max(cast(seedpac as integer)) as boolean) as seedsource, ";
     seedMatchingCriteria.push("seedpac");
   }
