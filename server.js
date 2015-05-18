@@ -181,18 +181,18 @@ function queryContributions(req, res) {
     innerAttributes += "(Committees.pacshort in (" + seedPacs + ") or "
         + "Committees.cmteid in (" + seedPacs + ")) as seedpac, ";  // for backwards compatibility
     outerAttributes += "cast(max(cast(seedpac as integer)) as boolean) as seedsource, ";
-    seedMatchingCriteria.push("seedpac");
+    seedMatchingCriteria.push("seedpac ");
   }
   if (seedRace != null) {
     innerAttributes += "(Candidates.distidrunfor = " + seedRace
         + " and Candidates.currCand = 'Y') as seedrace, ";
     seedTargetAttributes.push("cast(max(cast(seedrace as integer)) as boolean)");
-    seedMatchingCriteria.push("seedrace");
+    seedMatchingCriteria.push("seedrace ");
   }
   if (seedCandidates.length > 0) {
     innerAttributes += "(Candidates.cid in (" + seedCandidates + ")) as seedcandidate, ";
     seedTargetAttributes.push("cast(max(cast(seedcandidate as integer)) as boolean)");
-    seedMatchingCriteria.push("seedcandidate");
+    seedMatchingCriteria.push("seedcandidate ");
   }
   if (seedTargetAttributes.length > 0) {
     outerAttributes += "(" + seedTargetAttributes.join(" or ") + ") as seedtarget, ";
@@ -204,7 +204,7 @@ function queryContributions(req, res) {
     res.end();
     return;
   }
-  seedMatchingCriteria = seedMatchingCriteria.join(" or ");
+  seedMatchingCriteria = seedMatchingCriteria.join("or ");
 
   doQueryContributions(req, res, outerSelectSources, innerSelectSources,
       outerSelectTargets, innerSelectTargets, outerAttributes, innerAttributes,
@@ -217,15 +217,14 @@ function doQueryContributions(req, res, outerSelectSources, innerSelectSources,
   var sqlQuery =
       "select " + outerSelectSources + outerSelectTargets + outerAttributes
           + "directorindirect, isagainst, sum(amount) as amount from "
-          + "(select * from "
-              + "(select distinct fecrecno, " + innerSelectSources + innerSelectTargets
-                  + innerAttributes + "directorindirect, type in ('24A', '24N') as isagainst, "
-                  + "amount from PACsToCandidates "
-                  + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
-                  + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
-                  + "inner join Categories on Categories.catcode = Committees.primcode "
-                  + "where directorindirect in (" + contributionTypes + ")) as Inner2Query "
-              + "where " + seedMatchingCriteria + ") as InnerQuery "
+          + "(select distinct fecrecno, " + innerSelectSources + innerSelectTargets
+              + innerAttributes + "directorindirect, type in ('24A', '24N') as isagainst, "
+              + "amount from PACsToCandidates "
+              + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
+              + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
+              + "inner join Categories on Categories.catcode = Committees.primcode "
+              + "where directorindirect in (" + contributionTypes + ")) as InnerQuery "
+          + "where " + seedMatchingCriteria
           + "group by sourcename, sourceid, " + outerGroupByTargets
           + "directorindirect, isagainst "
           + "order by amount desc ";
