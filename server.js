@@ -210,7 +210,7 @@ function doQueryContributions(req, res, outerSelectSources, innerSelectSources,
           + "(select * from "
               + "(select distinct fecrecno, " + innerSelectSources + innerSelectTargets
                   + innerAttributes + "directorindirect, type in ('24A', '24N') as isagainst, "
-                  + innerSelectTargets + innerAttributes + " amount from PACsToCandidates "
+                  + "amount from PACsToCandidates "
                   + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
                   + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
                   + "inner join Categories on Categories.catcode = Committees.primcode "
