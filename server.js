@@ -186,16 +186,16 @@ function queryContributions(req, res) {
   if (seedRace != null) {
     innerAttributes += "(Candidates.distidrunfor = " + seedRace
         + " and Candidates.currCand = 'Y') as seedrace, ";
-    seedTargetAttributes.push("cast(max(cast(seedrace as integer)) as boolean)");
+    seedTargetAttributes.push("cast(max(cast(seedrace as integer)) as boolean) ");
     seedMatchingCriteria.push("seedrace ");
   }
   if (seedCandidates.length > 0) {
     innerAttributes += "(Candidates.cid in (" + seedCandidates + ")) as seedcandidate, ";
-    seedTargetAttributes.push("cast(max(cast(seedcandidate as integer)) as boolean)");
+    seedTargetAttributes.push("cast(max(cast(seedcandidate as integer)) as boolean) ");
     seedMatchingCriteria.push("seedcandidate ");
   }
   if (seedTargetAttributes.length > 0) {
-    outerAttributes += "(" + seedTargetAttributes.join(" or ") + ") as seedtarget, ";
+    outerAttributes += "(" + seedTargetAttributes.join("or ") + ") as seedtarget, ";
   }
   if (seedMatchingCriteria.length == 0) {
     // TODO: Is this the right way to fast fail the request?
