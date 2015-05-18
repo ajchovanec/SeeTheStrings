@@ -618,7 +618,9 @@ function showGraph(inputLinks) {
 
     function getImageForNodeWithParty(d) {
       // TODO: Try to find a way to avoid having one .svg file per party.
-      return "images/person-" + d.party + ".svg";
+      var imageToUse = "images/person-" + d.party + ".svg";
+      console.log("Selecting image " + imageToUse);
+      return imageToUse;
     }
 
     // Global variables representing UI element selections are defined below.
@@ -670,6 +672,7 @@ function showGraph(inputLinks) {
         .attr("height", 20)
         .attr("xlink:href", "images/money.svg")
         .attr("opacity", getNodeOpacity)
+        .attr("overflow", "visible")
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
@@ -725,7 +728,6 @@ function showGraph(inputLinks) {
         .attr("height", 20)
         .attr("xlink:href", getImageForNodeWithParty)
         .attr("opacity", getNodeOpacity)
-        .attr("overflow", "visible")
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
