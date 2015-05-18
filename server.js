@@ -132,8 +132,17 @@ function queryContributions(req, res) {
   var innerSelectSources;
   switch (groupContributionsBy) {
     case "PAC":
-      outerSelectSources = "pacshort as sourcename, cmteid as sourceid, ";
-      innerSelectSources = "pacshort, cmteid, ";
+      // For now we use the pacshort field as a unique identifier, even though that's ostensibly
+      // what the cmteid field is for. The cmteid field doesn't work well in practice, because there
+      // are many duplicate rows with the same pacshort but different cmteid values. Using cmteid as
+      // a unique identifier causes these PACs to be displayed as distinct entities with the same
+      // name, which is confusing and misleading.
+      //
+      // TODO: There may be negative performance implications of using a variable length field as a
+      // unique id. We should find a way to sanitize the PACsToCandidates table so that it no longer
+      // has this problem.
+      outerSelectSources = "pacshort as sourcename, pacshort as sourceid, ";
+      innerSelectSources = "pacshort, ";
       break;
     case "Industry":
       outerSelectSources = "catname as sourcename, catcode as sourceid, ";
@@ -304,7 +313,7 @@ function queryCandidates(req, res) {
 }
 
 function queryPacs(req, res) {
-  var sqlQuery = "select distinct cmteid, pacshort, lower(pacshort) as sortkey "
+  var sqlQuery = "select pacshort, lower(pacshort) as sortkey "
       + "from Committees where cycle = '2014' and pacshort != '' order by sortkey asc ";
   console.log("SQL query for list of PACs: " + sqlQuery);
   var dbWrapper = getDbWrapper();

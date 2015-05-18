@@ -308,7 +308,7 @@ function showPacs(err, pacs) {
   var selectBox = document.getElementById("pacsList");
   pacs.forEach(
       function(row) {
-        addOptionToSelectBox(selectBox, row.pacshort, row.cmteid);
+        addOptionToSelectBox(selectBox, row.pacshort, row.pacshort);
       });
 
   selectBox.setAttribute("size", 20);
