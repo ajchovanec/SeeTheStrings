@@ -688,6 +688,7 @@ function showGraph(inputLinks) {
     aggregateContributor.exit().remove();
     var gAggregateContributors = aggregateContributor.enter().append("g")
         .attr("opacity", getNodeOpacity)
+        .attr("overflow", "visible")
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
@@ -724,6 +725,7 @@ function showGraph(inputLinks) {
         .attr("height", 20)
         .attr("xlink:href", getImageForNodeWithParty)
         .attr("opacity", getNodeOpacity)
+        .attr("overflow", "visible")
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
