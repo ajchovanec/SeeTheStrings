@@ -397,6 +397,7 @@ function showGraph(inputLinks) {
   // These values are shared between the linkLine() and transformLinkText() methods.
   //
   // TODO: Find a better place to put these.
+  var effectiveSourceRadius = 10;
   var effectiveTargetRadius = 8;
   var linkOrientation = 1;  // 1 for clockwise, 0 for counter clockwise
   var linkOrientationMultiplier = linkOrientation ? -1 : 1;
@@ -422,7 +423,7 @@ function showGraph(inputLinks) {
             * linkOrientationMultiplier * deltaX / distance;
 
     var arcSourceIntersect = getCircleIntersection(arcCenterX, arcCenterY, arcRadius,
-        d.source.x, d.source.y, 10, -linkOrientationMultiplier);
+        d.source.x, d.source.y, effectiveSourceRadius, -linkOrientationMultiplier);
     var arcTargetIntersect = getCircleIntersection(arcCenterX, arcCenterY, arcRadius,
         d.target.x, d.target.y, effectiveTargetRadius, linkOrientationMultiplier);
     var sourceX = arcSourceIntersect[0],
