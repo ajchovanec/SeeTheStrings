@@ -314,7 +314,7 @@ function queryCandidates(req, res) {
 }
 
 function queryPacs(req, res) {
-  var sqlQuery = "select pacshort, lower(pacshort) as sortkey "
+  var sqlQuery = "select distinct pacshort, lower(pacshort) as sortkey "
       + "from Committees where cycle = '2014' and pacshort != '' order by sortkey asc ";
   console.log("SQL query for list of PACs: " + sqlQuery);
   var dbWrapper = getDbWrapper();
