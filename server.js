@@ -313,6 +313,9 @@ function queryCandidates(req, res) {
 }
 
 function queryPacs(req, res) {
+  // TODO: Dedupe pacshort values with the same names but different cases (e.g.,
+  // "Americans for Tax Reform" vs. "Americans For Tax Reform"), and make
+  //  certain that all are queried if any is selected by the user.
   var sqlQuery = "select distinct pacshort, lower(pacshort) as sortkey "
       + "from Committees where cycle = '2014' and pacshort != '' order by sortkey asc ";
   console.log("SQL query for list of PACs: " + sqlQuery);
