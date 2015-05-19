@@ -178,7 +178,7 @@ function queryContributions(req, res) {
   // a max() of max values, because the functions to do this in Postgres and SQLite have different
   // names -- greatest() and max(), respectively. Sigh.
   if (seedPacs.length > 0) {
-    innerAttributes += "(Committees.pacshort in (" + seedPacs + ") or "
+    innerAttributes += "(lower(Committees.pacshort) in (" + seedPacs + ") or "
         + "Committees.cmteid in (" + seedPacs + ")) as seedpac, ";  // for backwards compatibility
     outerAttributes += "cast(max(cast(seedpac as integer)) as boolean) as seedsource, ";
     seedMatchingCriteria.push("seedpac ");
@@ -316,8 +316,8 @@ function queryPacs(req, res) {
   // TODO: Dedupe pacshort values with the same names but different cases (e.g.,
   // "Americans for Tax Reform" vs. "Americans For Tax Reform"), and make
   //  certain that all are queried if any is selected by the user.
-  var sqlQuery = "select distinct pacshort, lower(pacshort) as sortkey "
-      + "from Committees where cycle = '2014' and pacshort != '' order by sortkey asc ";
+  var sqlQuery = "select distinct pacshort, lower(pacshort) as key from Committees "
+    + "where cycle = '2014' and pacshort != '' group by key order by key asc ";
   console.log("SQL query for list of PACs: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
