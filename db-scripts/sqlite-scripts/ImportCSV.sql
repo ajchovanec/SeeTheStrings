@@ -6,4 +6,4 @@
 .import cmtes14.sanitized Committees
 .import pacs14.sanitized PACsToCandidates
 .import pac_other14.sanitized PACsToPACs
-.import indivs14.sanitized IndivsToCandidates
+.import indivs14.sanitized IndivsToAny

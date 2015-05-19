@@ -3,7 +3,7 @@ DROP TABLE Candidates;
 DROP TABLE Committees;
 DROP TABLE PACsToCandidates;
 DROP TABLE PACsToPACs;
-DROP TABLE IndivsToCandidates;
+DROP TABLE IndivsToAny;
 
 CREATE TABLE Categories (
     catcode TEXT,
@@ -50,7 +50,7 @@ CREATE TABLE PACsToCandidates (
     fecrecno TEXT,
     pacid TEXT,
     cid TEXT,
-    amount REAL,
+    amount INTEGER,
     date TEXT,
     realcode TEXT,
     type TEXT,
@@ -85,7 +85,7 @@ CREATE TABLE PACsToPACs (
     source TEXT
 );
 
-CREATE TABLE IndivsToCandidates (
+CREATE TABLE IndivsToAny (
     cycle TEXT,
     fectransid TEXT,
     contribid TEXT,
