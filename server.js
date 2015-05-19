@@ -5,6 +5,7 @@ var Url = require('url');
 var ServeStatic = require('serve-static');
 var DBWrapper = require('node-dbi').DBWrapper;
 var CacheManager = require('cache-manager');
+var SimpleBarrier = require('simple-barrier')
 var _ = require('underscore');
 
 var port = process.env.PORT || 3000;
@@ -221,24 +222,32 @@ function queryContributions(req, res) {
           + "directorindirect, isagainst "
           + "order by amount desc ";
 
-  doQueryContributions(req, res, sqlQuery);
+  doQueryContributions(req, res, [ sqlQuery ]);
 }
 
-function doQueryContributions(req, res, sqlQuery) {
-  console.log("SQL query: " + sqlQuery);
+function doQueryContributions(req, res, sqlQueries) {
+  function handleQueryResult(err, contributions) {
+    if (err != null) {
+      console.log("Query error: " + JSON.stringify(err));
+      return null;
+    }
+    return contributions;
+  }
+  var barrier = SimpleBarrier();
   var dbWrapper = getDbWrapper();
-  dbWrapper.connect();
-  dbWrapper.fetchAll(sqlQuery,
-      function(err, contributions) {
-        if (err != null) {
-          console.log("query error: " + JSON.stringify(err));
-          // TODO: Should we exit here?
-        }
-        res.writeHead(200, {"Content-Type": "application/json"});
+  dbWrapper.connect();  
+  sqlQueries.forEach(function(sqlQuery) {
+    console.log("SQL query: " + sqlQuery);
+    dbWrapper.fetchAll(sqlQuery, barrier.waitOn(handleQueryResult));
+  });
+  barrier.endWith(function(contributionsLists) {
+      res.writeHead(200, {"Content-Type": "application/json"});
+      contributionsLists.forEach(function(contributions) {
         res.write(JSON.stringify(contributions));
-        res.end();
-        dbWrapper.close();
       });
+      res.end();
+      dbWrapper.close();
+  });
 }
 
 function queryRaces(req, res) {
