@@ -206,14 +206,6 @@ function queryContributions(req, res) {
   }
   seedMatchingCriteria = seedMatchingCriteria.join("or ");
 
-  doQueryContributions(req, res, outerSelectSources, innerSelectSources,
-      outerSelectTargets, innerSelectTargets, outerAttributes, innerAttributes,
-      seedMatchingCriteria, contributionTypes, outerGroupByTargets, groupContributionsBy);
-}
-
-function doQueryContributions(req, res, outerSelectSources, innerSelectSources,
-    outerSelectTargets, innerSelectTargets, outerAttributes, innerAttributes,
-    seedMatchingCriteria, contributionTypes, outerGroupByTargets, groupContributionsBy) {
   var sqlQuery =
       "select " + outerSelectSources + outerSelectTargets + outerAttributes
           + "directorindirect, isagainst, sum(amount) as amount from "
@@ -229,6 +221,10 @@ function doQueryContributions(req, res, outerSelectSources, innerSelectSources,
           + "directorindirect, isagainst "
           + "order by amount desc ";
 
+  doQueryContributions(req, res, sqlQuery);
+}
+
+function doQueryContributions(req, res, sqlQuery) {
   console.log("SQL query: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
