@@ -138,9 +138,9 @@ function queryContributions(req, res) {
       // a unique identifier causes these PACs to be displayed as distinct entities with the same
       // name, which is confusing and misleading.
       //
-      // TODO: There may be negative performance implications of using a variable length field as a
-      // unique id. We should find a way to sanitize the PACsToCandidates table so that it no longer
-      // has this problem.
+      // TODO: Per the OpenData User's Guide, if the grouping unit (candidate, state, race, etc) has
+      // more than one distinct orgname for any given ultorg, you list the ultorg with the total of
+      // the orgnames. If an ultorg has but a single orgname for a given group, you list the orgname.
       outerSelectSources = "pacshort as sourcename, pacshort as sourceid, ";
       innerSelectSources = "pacshort, ";
       break;
