@@ -143,8 +143,9 @@ function queryContributions(req, res) {
     contributionTypes = _.map(rawContributionTypes, ensureQuoted);
   }
 
+  var pacContributionsQuery;
   try {
-    var sqlQuery = getPacContributions(seedRace, seedCandidates, seedPacs,
+    pacContributionsQuery = getPacContributions(seedRace, seedCandidates, seedPacs,
         groupCandidatesBy, groupContributionsBy, contributionTypes);
   } catch (e) {
     // TODO: Is this the right way to fast fail a request?
@@ -153,7 +154,7 @@ function queryContributions(req, res) {
     res.end();
     return;
   }
-  doQueryContributions(req, res, [ sqlQuery ]);
+  doQueryContributions(req, res, [ pacContributionsQuery ]);
 }
 
 function getPacContributions(seedRace, seedCandidates, seedPacs,
