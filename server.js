@@ -12,9 +12,9 @@ var _ = require('underscore');
 var port = process.env.PORT || 3000;
 
 // Ensure that node-pg parses all integer fields as integers, not strings.
-PGTypes.setTypeParser(1, function(val) {
+PGTypes.setTypeParser(256, function(val) {
   return val === null ? null : parseInt(val)
-})
+});
 
 var dbType;
 var dbConnectionConfig;
