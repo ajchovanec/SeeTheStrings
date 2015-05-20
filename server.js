@@ -4,11 +4,17 @@ var Router = require('router');
 var Url = require('url');
 var ServeStatic = require('serve-static');
 var DBWrapper = require('node-dbi').DBWrapper;
+var PGTypes = require('pg').types
 var CacheManager = require('cache-manager');
 var SimpleBarrier = require('simple-barrier')
 var _ = require('underscore');
 
 var port = process.env.PORT || 3000;
+
+// Ensure that node-pg parses all integer fields as integers, not strings.
+PGTypes.setTypeParser(1, function(val) {
+  return val === null ? null : parseInt(val)
+})
 
 var dbType;
 var dbConnectionConfig;
