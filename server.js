@@ -113,6 +113,7 @@ function queryContributions(req, res) {
   var rawSeedRace = queryParams["race"];
   var rawSeedCandidates = queryParams["candidates"];
   var rawSeedPacs = queryParams["pacs"];
+  var rawSeedIndivs = queryParams["indivs"];
   var rawContributionTypes = queryParams["contributionTypes"];
   var groupCandidatesBy = queryParams["groupCandidatesBy"];
   var groupContributionsBy = queryParams["groupContributionsBy"];
@@ -120,6 +121,7 @@ function queryContributions(req, res) {
   var seedRace = null;
   var seedCandidates = [];
   var seedPacs = [];
+  var seedIndivs = [];
   var contributionTypes = [];
   if (rawSeedRace) {
     seedRace = ensureQuoted(rawSeedRace);
@@ -136,6 +138,12 @@ function queryContributions(req, res) {
     }
     seedPacs = _.map(rawSeedPacs, ensureQuoted);
   }
+  if (rawSeedIndivs) {
+    if (!(rawSeedIndivs instanceof Array)) {
+      rawSeedIndivs = [ rawSeedIndivs ];
+    }
+    seedIndivs = _.map(rawSeedIndivs, ensureQuoted);
+  }
   if (rawContributionTypes) {
     if (!(rawContributionTypes instanceof Array)) {
       rawContributionTypes = [ rawContributionTypes ];
@@ -143,10 +151,17 @@ function queryContributions(req, res) {
     contributionTypes = _.map(rawContributionTypes, ensureQuoted);
   }
 
-  var pacContributionsQuery;
+  var queries = [];
   try {
-    pacContributionsQuery = getPacContributions(seedRace, seedCandidates, seedPacs,
+    var pacContributionsQuery = getPacContributions(seedRace, seedCandidates, seedPacs,
         groupCandidatesBy, groupContributionsBy, contributionTypes);
+    queries.push(pacContributionsQuery)
+    // For now we only show individual contributions if a seed individual has been specified.
+    if (seedIndivs.length > 0) {
+      var indivContributionsQuery = getIndivContributions(seedRace, seedCandidates, seedIndivs,
+          groupCandidatesBy);
+      queries.push(indivContributionsQuery);
+    }
   } catch (e) {
     // TODO: Is this the right way to fast fail a request?
     console.log("Error: " + e.message);
@@ -154,7 +169,7 @@ function queryContributions(req, res) {
     res.end();
     return;
   }
-  doQueryContributions(req, res, [ pacContributionsQuery ]);
+  doQueryContributions(req, res, queries);
 }
 
 function getPacContributions(seedRace, seedCandidates, seedPacs,
@@ -194,7 +209,7 @@ function getPacContributions(seedRace, seedCandidates, seedPacs,
       : "targetname, targetid, party, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
       : "firstlastp, Candidates.cid, Candidates.party, ";
-  var outerAttributes = "";
+  var outerAttributes = "'pac' as sourcetype, ";
   var innerAttributes = "";
   var seedTargetAttributes = [];
   var seedMatchingCriteria = [];
@@ -247,6 +262,81 @@ function getPacContributions(seedRace, seedCandidates, seedPacs,
   return sqlQuery;
 }
 
+// TODO: In the interest of conciseness, remove degrees of freedom from this method, and factor
+// functionality that's shared with getPacContributions() out into a separate method.
+function getIndivContributions(seedRace, seedCandidates, seedIndivs, groupCandidatesBy) {
+  var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
+  var innerSelectSources = "contrib, contribid, ";
+  // TODO: Verify that groupCandidatesBy is actually set.
+  var outerSelectTargets = (groupCandidatesBy == "Selection")
+      ? "'Misc candidates' as targetname, -1 as targetid, "
+      : "firstlastp as targetname, cid as targetid, party, ";
+  var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
+      : "targetname, targetid, party, ";
+  var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
+      : "firstlastp, Candidates.cid, Candidates.party, ";
+  var outerAttributes = "'indiv' as sourcetype, ";
+  var innerAttributes = "";
+  var seedTargetAttributes = [];
+  var seedMatchingCriteria = [];
+  // SQLite doesn't have the bit_or() function that we need to do the disjunction across the values
+  // of each of {seedrace, seedcandidate, seedpac}, so we have to use max() instead. But Postgres
+  // won't let us treat boolean values as integers, so we have to cast to integers first. But then
+  // we need to take another disjunction across the max values, and Postgres won't let us treat
+  // integer values as booleans either, so we have to cast back; furthermore, we can't instead take
+  // a max() of max values, because the functions to do this in Postgres and SQLite have different
+  // names -- greatest() and max(), respectively. Sigh.
+  if (seedIndivs.length > 0) {
+    innerAttributes += "(IndivsToAny.contribid in (" + seedIndivs + ")) as seedindiv, ";
+    outerAttributes += "cast(max(cast(seedindiv as integer)) as boolean) as seedsource, ";
+    seedMatchingCriteria.push("seedindiv ");
+  }
+  if (seedRace != null) {
+    innerAttributes += "(Candidates.distidrunfor = " + seedRace
+        + " and Candidates.currCand = 'Y') as seedrace, ";
+    seedTargetAttributes.push("cast(max(cast(seedrace as integer)) as boolean) ");
+    seedMatchingCriteria.push("seedrace ");
+  }
+  if (seedCandidates.length > 0) {
+    innerAttributes += "(Candidates.cid in (" + seedCandidates + ")) as seedcandidate, ";
+    seedTargetAttributes.push("cast(max(cast(seedcandidate as integer)) as boolean) ");
+    seedMatchingCriteria.push("seedcandidate ");
+  }
+  if (seedTargetAttributes.length > 0) {
+    outerAttributes += "(" + seedTargetAttributes.join("or ") + ") as seedtarget, ";
+  }
+  if (seedMatchingCriteria.length == 0) {
+    throw new ClientError("No seed IDs were specified");
+  }
+  seedMatchingCriteria = seedMatchingCriteria.join("or ");
+
+  // It's unfortunate that the IndivsToAny table is denormalized with respect to individual donors'
+  // names. E.g., for David Koch we have contrib values "KOCH, DAVID", "KOCH, DAVID H",
+  // "KOCH, DAVID H MR", "KOCH, DAVID MR", and "DAVID H KOCH 2003 TRUST", yet all with the same
+  // contribid. This means that aggregating contributions from the same individual requires that we
+  // arbitrarily pick one contrib value to display for the total, and in reality that value may not
+  // be applicable for all of the contributions that we're aggregating.
+  //
+  // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
+  // into a separate table.
+  var sqlQuery =
+    "select " + outerSelectSources + outerSelectTargets + outerAttributes
+        + "'D' as directorindirect, cast(0 as boolean) as isagainst, sum(amount) as amount from "
+        + "(select distinct fectransid, " + innerSelectSources + innerSelectTargets
+            + innerAttributes
+            + "amount from IndivsToAny "
+            // TODO: Right now this query just looks up individual to candidate contributions. We
+            // should show individual to PAC contributions too.
+            + "inner join Candidates on IndivsToAny.recipid = Candidates.cid "
+            + "inner join Categories on Categories.catcode = IndivsToAny.realcode) as InnerQuery "
+        + "where " + seedMatchingCriteria
+        // Don't group by sourcename. Choose one arbitrarily. (See above.)
+        + "group by sourceid, " + outerGroupByTargets
+        + "directorindirect, isagainst "
+        + "order by amount desc ";
+  return sqlQuery;
+}
+
 function doQueryContributions(req, res, sqlQueries) {
   function handleQueryResult(err, contributions) {
     if (err != null) {
@@ -263,10 +353,9 @@ function doQueryContributions(req, res, sqlQueries) {
     dbWrapper.fetchAll(sqlQuery, barrier.waitOn(handleQueryResult));
   });
   barrier.endWith(function(contributionsLists) {
+      var allContributions = _.flatten(contributionsLists, true /* shallow */);
       res.writeHead(200, {"Content-Type": "application/json"});
-      contributionsLists.forEach(function(contributions) {
-        res.write(JSON.stringify(contributions));
-      });
+      res.write(JSON.stringify(allContributions));
       res.end();
       dbWrapper.close();
   });

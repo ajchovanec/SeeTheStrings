@@ -211,7 +211,8 @@ var graph = {
                     // TODO: Once we have nodes that are both a source and a target at the same
                     // time, it may be necessary to mark a node as a seed if *any* link that has it
                     // as a source or a target has it marked as a seed.
-                    seed: link.seedsource
+                    seed: link.seedsource,
+                    sourcetype: link.sourcetype
                   });
               link.target = nodesMap[link.targetid] ||
                   (nodesMap[link.targetid] = {
@@ -356,8 +357,10 @@ function showGraph(inputLinks) {
   function tick() {
     path.attr("d", linkLine);
     halo.attr("transform", transformNodes);
-    singleContributor.attr("transform", transformNodes);
-    aggregateContributor.attr("transform", transformNodes);
+    singlePac.attr("transform", transformNodes);
+    aggregatePac.attr("transform", transformNodes);
+    singleIndiv.attr("transform", transformNodes);
+    aggregateIndiv.attr("transform", transformNodes);
     singleCandidate.attr("transform", transformNodes);
     aggregateCandidate.attr("transform", transformNodes);
     nodeText.attr("transform", transformNodes);
@@ -553,7 +556,8 @@ function showGraph(inputLinks) {
           // TODO: Once we have nodes that are both a source and a target at the same
           // time, it may be necessary to mark a node as a seed if *any* link that has it
           // as a source or a target has it marked as a seed.
-          seed: link["seed" + link.childType]  // FIXME
+          seed: link["seed" + link.childType],  // FIXME
+          sourcetype: (childType == "source" ? link.sourcetype : null)  // FIXME
         };
         graph.addNode(nodeChild);
         // Set the display properties for the new node based on the properties of the link.
@@ -590,8 +594,10 @@ function showGraph(inputLinks) {
       svg.append("g").attr("class", "gHalos");
       svg.append("g").attr("class", "gPaths");
       svg.append("g").attr("class", "gTextLink");
-      svg.append("g").attr("class", "gSingleContributors");
-      svg.append("g").attr("class", "gAggregateContributors");
+      svg.append("g").attr("class", "gSinglePacs");
+      svg.append("g").attr("class", "gAggregatePacs");
+      svg.append("g").attr("class", "gSingleIndivs");
+      svg.append("g").attr("class", "gAggregateIndivs");
       svg.append("g").attr("class", "gSingleCandidates");
       svg.append("g").attr("class", "gAggregateCandidates");
       svg.append("g").attr("class", "gTextNode");
@@ -617,7 +623,7 @@ function showGraph(inputLinks) {
       return d.seed ? 1.0 : nonSeedNodeOpacity;
     }
 
-    function getImageForNodeWithParty(d) {
+    function getImageForCandidateNode(d) {
       // TODO: Try to find a way to avoid having one .svg file per party.
       var imageToUse = "images/person-" + d.party + ".svg";
       console.log("Selecting image " + imageToUse);
@@ -659,14 +665,14 @@ function showGraph(inputLinks) {
         .attr("y", ".31em")
         .text(function(d) { return getLabelForLink(d); });
 
-    singleContributor = svg.select(".gSingleContributors").selectAll("image")
+    singlePac = svg.select(".gSinglePacs").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.party == null && d.aggregateLinks.length == 0;
+              return d.sourcetype == "pac" && d.aggregateLinks.length == 0;
             }),
             getJoinFunc(nodeKeyFunc));
-    singleContributor.exit().remove();
-    singleContributor.enter().append("image")
+    singlePac.exit().remove();
+    singlePac.enter().append("image")
         .attr("x", -10)
         .attr("y", -10)
         .attr("width", 20)
@@ -683,42 +689,97 @@ function showGraph(inputLinks) {
     var centerCircleRadius = 6;
     var circleOffset = 14;
     var circleScalingFactor = 0.75;
-    aggregateContributor = svg.select(".gAggregateContributors").selectAll("g")
+    aggregatePac = svg.select(".gAggregatePacs").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.party == null && d.aggregateLinks.length > 0;
+              return d.sourcetype == "pac" && d.aggregateLinks.length > 0;
             }),
             getJoinFunc(nodeKeyFunc));
-    aggregateContributor.exit().remove();
-    var gAggregateContributors = aggregateContributor.enter().append("g")
+    aggregatePac.exit().remove();
+    var gAggregatePacs = aggregatePac.enter().append("g")
         .attr("opacity", getNodeOpacity)
         .attr("overflow", "visible")
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
         .call(force.drag);
-    gAggregateContributors.append("image")
+    gAggregatePacs.append("image")
         .attr("x", circleScalingFactor * (-centerCircleRadius + circleOffset))
         .attr("y",  circleScalingFactor * -centerCircleRadius)
         .attr("width", centerCircleRadius * circleScalingFactor * 2)
         .attr("height", centerCircleRadius * circleScalingFactor * 2)
         .attr("xlink:href", "images/money.svg");
-    gAggregateContributors.append("image")
+    gAggregatePacs.append("image")
         .attr("x", circleScalingFactor * (-centerCircleRadius - circleOffset))
         .attr("y", circleScalingFactor * -centerCircleRadius)
         .attr("width", centerCircleRadius * circleScalingFactor * 2)
         .attr("height", centerCircleRadius * circleScalingFactor * 2)
         .attr("xlink:href", "images/money.svg");
-    gAggregateContributors.append("image")
+    gAggregatePacs.append("image")
         .attr("x", -centerCircleRadius)
         .attr("y", -centerCircleRadius)
         .attr("width", centerCircleRadius * 2)
         .attr("height", centerCircleRadius * 2)
         .attr("xlink:href", "images/money.svg");
 
+    singleIndiv = svg.select(".gSingleIndivs").selectAll("image")
+        .data(graph.nodes().filter(
+            function(d) {
+              return d.sourcetype == "indiv" && d.aggregateLinks.length == 0;
+            }),
+        getJoinFunc(nodeKeyFunc));
+    singleIndiv.exit().remove();
+    singleIndiv.enter().append("image")
+        .attr("x", "-4")
+        .attr("y", "-10")
+        .attr("width", 8)
+        .attr("height", 20)
+        .attr("xlink:href", "images/indiv.svg")
+        .attr("opacity", getNodeOpacity)
+        .attr("nodeId", function (d) { return d.id; })
+        .on("dblclick", dblclick)
+        .call(force.drag);
+    
+    // TODO: Figure out to add a light drop shadow around each person so that they can overlap
+    // and create a better sense of perspective.
+    var centerPersonWidth = 6;
+    var centerPersonHeight = 16;
+    var personOffset = 8;
+    var personScalingFactor = 0.75;
+    aggregateIndiv = svg.select(".gAggregateIndivs").selectAll("g")
+        .data(graph.nodes().filter(
+            function(d) {
+              return d.sourcetype == "indiv" && d.aggregateLinks.length > 0;
+            }),
+            getJoinFunc(nodeKeyFunc));
+    aggregateIndiv.exit().remove();
+    var gAggregateIndivs = aggregateIndiv.enter().append("g")
+        .attr("opacity", getNodeOpacity)
+        .attr("nodeId", function (d) { return d.id; })
+        .on("dblclick", dblclick)
+        .call(force.drag);
+    gAggregateIndivs.append("image")
+        .attr("x", personScalingFactor * (centerPersonWidth / -2 + personOffset))
+        .attr("y",  personScalingFactor * centerPersonHeight / -2)
+        .attr("width", centerPersonWidth * personScalingFactor)
+        .attr("height", centerPersonHeight * personScalingFactor)
+        .attr("xlink:href", "images/indiv.svg");
+    gAggregateIndivs.append("image")
+        .attr("x", personScalingFactor * (centerPersonWidth / -2 - personOffset))
+        .attr("y", personScalingFactor * centerPersonHeight / -2)
+        .attr("width", centerPersonWidth * personScalingFactor)
+        .attr("height", centerPersonHeight * personScalingFactor)
+        .attr("xlink:href", "images/indiv.svg");
+    gAggregateIndivs.append("image")
+        .attr("x", centerPersonWidth / -2)
+        .attr("y", centerPersonHeight / -2)
+        .attr("width", centerPersonWidth)
+        .attr("height", centerPersonHeight)
+        .attr("xlink:href", "images/indiv.svg");
+
     singleCandidate = svg.select(".gSingleCandidates").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.party != null && d.aggregateLinks.length == 0;
+              return d.sourcetype == null && d.aggregateLinks.length == 0;
             }),
             getJoinFunc(nodeKeyFunc));
     singleCandidate.exit().remove();
@@ -727,7 +788,7 @@ function showGraph(inputLinks) {
         .attr("y", "-10")
         .attr("width", 8)
         .attr("height", 20)
-        .attr("xlink:href", getImageForNodeWithParty)
+        .attr("xlink:href", getImageForCandidateNode)
         .attr("opacity", getNodeOpacity)
         .attr("nodeId", function (d) { return d.id; })
         .on("dblclick", dblclick)
@@ -742,7 +803,7 @@ function showGraph(inputLinks) {
     aggregateCandidate = svg.select(".gAggregateCandidates").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.party != null && d.aggregateLinks.length > 0;
+              return d.sourcetype == null && d.aggregateLinks.length > 0;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregateCandidate.exit().remove();
@@ -756,19 +817,19 @@ function showGraph(inputLinks) {
         .attr("y",  personScalingFactor * centerPersonHeight / -2)
         .attr("width", centerPersonWidth * personScalingFactor)
         .attr("height", centerPersonHeight * personScalingFactor)
-        .attr("xlink:href", getImageForNodeWithParty);
+        .attr("xlink:href", getImageForCandidateNode);
     gAggregateCandidates.append("image")
         .attr("x", personScalingFactor * (centerPersonWidth / -2 - personOffset))
         .attr("y", personScalingFactor * centerPersonHeight / -2)
         .attr("width", centerPersonWidth * personScalingFactor)
         .attr("height", centerPersonHeight * personScalingFactor)
-        .attr("xlink:href", getImageForNodeWithParty);
+        .attr("xlink:href", getImageForCandidateNode);
     gAggregateCandidates.append("image")
         .attr("x", centerPersonWidth / -2)
         .attr("y", centerPersonHeight / -2)
         .attr("width", centerPersonWidth)
         .attr("height", centerPersonHeight)
-        .attr("xlink:href", getImageForNodeWithParty);
+        .attr("xlink:href", getImageForCandidateNode);
 
     nodeText = svg.select(".gTextNode").selectAll(".textNode")
         .data(graph.nodes(), getJoinFunc(nodeKeyFunc));

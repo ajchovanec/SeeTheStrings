@@ -69,7 +69,8 @@ function processRows(rows, seedIds) {
   return links;
 
   function getNodeAndLinkTypeId(row, relativeId) {
-    return "key " + relativeId + "; " + row.directorindirect + "; " + row.isagainst;
+    return "key " + relativeId + "; " + row.sourcetype + "; "
+        + row.directorindirect + "; " + row.isagainst;
   }
 
   // TODO: Consider merging the logic above that calls this method 0, 1, or 2 times into the method
@@ -125,6 +126,8 @@ function processRows(rows, seedIds) {
       aggregateLink.isRefund = (newAmount < 0);
       aggregateLink.seedsource |= row.seedsource;
       aggregateLink.seedtarget |= row.seedtarget;
+      // TODO: Verify that sourcetype is the same.
+      //
       // TODO: In the future some links may not have a party field. Consider finding a way to
       // generalize this.
       if (row.party != aggregateLink.party) {
@@ -148,6 +151,7 @@ function processRows(rows, seedIds) {
       newLink.subLinks = [ firstLink ];
       newLink.seedsource = firstLink.seedsource;
       newLink.seedtarget = firstLink.seedtarget;
+      newLink.sourcetype = firstLink.sourcetype;
 
       // It's up to the caller to set newLink[newLink.childNameType], since that's a pretty-printed
       // string whose format depends on the application-specific rendering of aggregate nodes.
