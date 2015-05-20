@@ -46,6 +46,8 @@ switch (process.env.DB_INSTANCE) {
 console.log("Using database type " + dbType);
 
 var memoryCache = CacheManager.caching({store: 'memory', max: 10, ttl: 604800 /* 1 week */});
+
+// TODO: Move this and other helper methods into a utilities module.
 function getDbWrapper() {
   var cachingDbWrapper = {
     dbWrapper: new DBWrapper(dbType, dbConnectionConfig),
@@ -84,6 +86,7 @@ function getDbWrapper() {
   return cachingDbWrapper;
 }
 
+// TODO: Move this and other helper methods into a utilities module.
 function ensureQuoted(str) {
   var regex = /^['"]?([^'"]*)['"]?$/;
   var result = str.match(regex);
@@ -96,6 +99,11 @@ function ensureQuoted(str) {
   } else {
     return "'" + result[1] + "'";
   }
+}
+
+// TODO: Move this and other helper methods into a utilities module.
+function ClientError(message) {
+  this.message = message;
 }
 
 function queryContributions(req, res) {
@@ -135,6 +143,21 @@ function queryContributions(req, res) {
     contributionTypes = _.map(rawContributionTypes, ensureQuoted);
   }
 
+  try {
+    var sqlQuery = getPacContributions(seedRace, seedCandidates, seedPacs,
+        groupCandidatesBy, groupContributionsBy, contributionTypes);
+  } catch (e) {
+    // TODO: Is this the right way to fast fail a request?
+    console.log("Error: " + e.message);
+    res.writeHead(400);
+    res.end();
+    return;
+  }
+  doQueryContributions(req, res, [ sqlQuery ]);
+}
+
+function getPacContributions(seedRace, seedCandidates, seedPacs,
+    groupCandidatesBy, groupContributionsBy, contributionTypes) {
   var outerSelectSources;
   var innerSelectSources;
   switch (groupContributionsBy) {
@@ -160,12 +183,9 @@ function queryContributions(req, res) {
       innerSelectSources = "sector, ";
       break;
     default:
-      // TODO: Is this the right way to fast fail the request?
-      console.log("Error: Invalid groupContributionsBy value " + groupContributionsBy);
-      res.writeHead(400);
-      res.end();
-      return;
+      throw new ClientError("Invalid groupContributionsBy value " + groupContributionsBy);
   }
+  // TODO: Verify that groupCandidatesBy is actually set.
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "'Misc candidates' as targetname, -1 as targetid, "
       : "firstlastp as targetname, cid as targetid, party, ";
@@ -205,11 +225,7 @@ function queryContributions(req, res) {
     outerAttributes += "(" + seedTargetAttributes.join("or ") + ") as seedtarget, ";
   }
   if (seedMatchingCriteria.length == 0) {
-    // TODO: Is this the right way to fast fail the request?
-    console.log("Error: No seed IDs were specified.");
-    res.writeHead(400);
-    res.end();
-    return;
+    throw new ClientError("No seed IDs were specified");
   }
   seedMatchingCriteria = seedMatchingCriteria.join("or ");
 
@@ -227,8 +243,7 @@ function queryContributions(req, res) {
           + "group by sourcename, sourceid, " + outerGroupByTargets
           + "directorindirect, isagainst "
           + "order by amount desc ";
-
-  doQueryContributions(req, res, [ sqlQuery ]);
+  return sqlQuery;
 }
 
 function doQueryContributions(req, res, sqlQueries) {
