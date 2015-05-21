@@ -328,10 +328,16 @@ function getIndivContributions(seedRace, seedCandidates, seedIndivs, groupCandid
             + "amount from IndivsToAny "
             // TODO: Right now this query just looks up individual to candidate contributions. We
             // should show individual to PAC contributions too.
+            //
+            // TODO: Check the OpenData User's Guide to make certain this is a valid method for
+            // computing individual to candidate contributions.
             + "inner join Candidates on IndivsToAny.recipid = Candidates.cid "
             + "inner join Categories on Categories.catcode = IndivsToAny.realcode) as InnerQuery "
         + "where " + seedMatchingCriteria
-        // Don't group by sourcename. Choose one arbitrarily. (See above.)
+        // Don't group by sourcename. Choose one arbitrarily. (See above.) This won't work in
+        // Postgres. There we have to either group by sourcename or use it in an aggregate function.
+        //
+        // TODO: Find a way to fix this before exposing this feature.
         + "group by sourceid, " + outerGroupByTargets
         + "directorindirect, isagainst "
         + "order by amount desc ";
