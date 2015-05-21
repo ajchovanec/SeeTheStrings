@@ -433,10 +433,10 @@ function queryPacs(req, res) {
   // TODO: Dispatching on the database type is a hack. This branch should be eliminated once we've
   // migrated to using Postgres for the localhost case as well as the online case.
   var sqlQuery;
-  if (dbType == "sqlite3") {
+  if (dbType == "pg") {
     sqlQuery = "select distinct on (lower(pacshort)) lower(pacshort) as key, pacshort "
         + "from Committees where Cycle = '2014' and pacshort != '' order by key, pacshort asc ";
-  } else if (dbType == "pg") {
+  } else if (dbType == "sqlite3") {
     sqlQuery = "select lower(pacshort) as key, pacshort "
         + "from Committees where Cycle = '2014' and pacshort != '' group by key order by key asc "
   } else {
