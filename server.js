@@ -16,6 +16,7 @@ PGTypes.setTypeParser(20 /* int8 */, function(value) {
   return value === null ? null : parseInt(value)
 });
 
+// TODO: Migrate off of SQLite and use Postgres for the localhost case as well as the online case.
 var dbType;
 var dbConnectionConfig;
 switch (process.env.DB_INSTANCE) {
@@ -429,11 +430,18 @@ function queryCandidates(req, res) {
 }
 
 function queryPacs(req, res) {
-  // TODO: Dedupe pacshort values with the same names but different cases (e.g.,
-  // "Americans for Tax Reform" vs. "Americans For Tax Reform"), and make
-  //  certain that all are queried if any is selected by the user.
-  var sqlQuery = "select distinct pacshort, lower(pacshort) as key from Committees "
-    + "where cycle = '2014' and pacshort != '' group by key order by key asc ";
+  // TODO: Dispatching on the database type is a hack. This branch should be eliminated once we've
+  // migrated to using Postgres for the localhost case as well as the online case.
+  var sqlQuery;
+  if (dbType == "sqlite3") {
+    sqlQuery = "select distinct on (lower(pacshort)) lower(pacshort) as key, pacshort "
+        + "from Committees where Cycle = '2014' and pacshort != '' order by key, pacshort asc ";
+  } else if (dbType == "pg") {
+    sqlQuery = "select lower(pacshort) as key, pacshort "
+        + "from Committees where Cycle = '2014' and pacshort != '' group by key order by key asc "
+  } else {
+    // TODO
+  }
   console.log("SQL query for list of PACs: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
