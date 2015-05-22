@@ -38,6 +38,7 @@ var memoryCache = CacheManager.caching({store: 'memory', max: 10, ttl: 604800 /*
 function getDbWrapper() {
   var cachingDbWrapper = {
     dbWrapper: new DBWrapper("pg", postgresDbConfig),
+    isConnected: false,
     connect:
         function() {
           // This is actually a no-op. The real call to the underlying DBWrapper.connect() is done
@@ -48,10 +49,13 @@ function getDbWrapper() {
           if (this.dbWrapper.isConnected()) {
             this.dbWrapper.close(
                 function(err) {
-                  console.log(err ?
-                      "Error closing connection: " + err
-                    : "Connection closed!");
-                  });
+                  if (err) {
+                    console.log("Error closing connection: " + err);
+                  } else {
+                    console.log("Connection closed!");
+                    isConnected = false;
+                  }
+                });
           }
         },
     fetchAll:
@@ -61,10 +65,16 @@ function getDbWrapper() {
               sqlQuery,
               function (cacheCallback) {
                 console.log("Cache miss, querying the SQL database")
-                if (!self.dbWrapper.isConnected()) {
-                  self.dbWrapper.connect();
+                function doFetchAll() {
+                  self.dbWrapper.fetchAll(sqlQuery, null, cacheCallback);
                 }
-                self.dbWrapper.fetchAll(sqlQuery, null, cacheCallback);
+                if (!self.isConnected) {
+                  // TODO: There may still be a race condition here.
+                  self.isConnected = true;
+                  self.dbWrapper.connect(doFetchAll);
+                } else {
+                  doFetchAll();
+                }
               },
               604800 /* 1 week */,
               callback);
@@ -214,7 +224,7 @@ function getPacContributions(seedRace, seedCandidates, seedPacs,
   }
   if (seedCandidates.length > 0) {
     innerAttributes += "(Candidates.cid in (" + seedCandidates + ")) as seedcandidate, ";
-    seedTargetAttributes.push("bool_or(seed_candidate) ");
+    seedTargetAttributes.push("bool_or(seedcandidate) ");
     seedMatchingCriteria.push("seedcandidate ");
   }
   if (seedTargetAttributes.length > 0) {
