@@ -306,11 +306,7 @@ function getIndivContributions(seedRace, seedCandidates, seedIndivs, groupCandid
             + "inner join Candidates on IndivsToAny.recipid = Candidates.cid "
             + "inner join Categories on Categories.catcode = IndivsToAny.realcode) as InnerQuery "
         + "where " + seedMatchingCriteria
-        // Don't group by sourcename. Choose one arbitrarily. (See above.) This won't work in
-        // Postgres. There we have to either group by sourcename or use it in an aggregate function.
-        //
-        // TODO: Find a way to fix this before exposing this feature.
-        + "group by sourceid, " + outerGroupByTargets
+        + "group by sourcename, sourceid, " + outerGroupByTargets
         + "directorindirect, isagainst "
         + "order by amount desc ";
   return sqlQuery;
@@ -326,17 +322,20 @@ function doQueryContributions(req, res, sqlQueries) {
   }
   var barrier = SimpleBarrier();
   var dbWrapper = getDbWrapper();
-  dbWrapper.connect();  
+  dbWrapper.connect();
+  // TODO: Postgres breaks with "ERROR: connect: Error: write EPIPE" when we try to do two queries
+  // on the same connection at the same time. Find out why. It may be necessary to perform the
+  // queries serially.
   sqlQueries.forEach(function(sqlQuery) {
     console.log("SQL query: " + sqlQuery);
     dbWrapper.fetchAll(sqlQuery, barrier.waitOn(handleQueryResult));
   });
   barrier.endWith(function(contributionsLists) {
-      var allContributions = _.flatten(contributionsLists, true /* shallow */);
-      res.writeHead(200, {"Content-Type": "application/json"});
-      res.write(JSON.stringify(allContributions));
-      res.end();
-      dbWrapper.close();
+    var allContributions = _.flatten(contributionsLists, true /* shallow */);
+    res.writeHead(200, {"Content-Type": "application/json"});
+    res.write(JSON.stringify(allContributions));
+    res.end();
+    dbWrapper.close();
   });
 }
 
