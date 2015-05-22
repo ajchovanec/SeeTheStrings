@@ -37,8 +37,8 @@ var memoryCache = CacheManager.caching({store: 'memory', max: 10, ttl: 604800 /*
 // TODO: Move this and other helper methods into a utilities module.
 function getDbWrapper() {
   var cachingDbWrapper = {
-    dbWrapper: new DBWrapper("pg", postgresDbConfig),
-    isConnected: false,
+    _dbWrapper: new DBWrapper("pg", postgresDbConfig),
+    _isConnected: false,
     connect:
         function() {
           // This is actually a no-op. The real call to the underlying DBWrapper.connect() is done
@@ -46,8 +46,8 @@ function getDbWrapper() {
         },
     close:
         function(errCallback) {
-          if (this.dbWrapper.isConnected()) {
-            this.dbWrapper.close(
+          if (this._isConnected) {
+            this._dbWrapper.close(
                 function(err) {
                   if (err) {
                     console.log("Error closing connection: " + err);
@@ -66,12 +66,12 @@ function getDbWrapper() {
               function (cacheCallback) {
                 console.log("Cache miss, querying the SQL database")
                 function doFetchAll() {
-                  self.dbWrapper.fetchAll(sqlQuery, null, cacheCallback);
+                  self._dbWrapper.fetchAll(sqlQuery, null, cacheCallback);
                 }
-                if (!self.isConnected) {
+                if (!self._isConnected) {
                   // TODO: There may still be a race condition here.
-                  self.isConnected = true;
-                  self.dbWrapper.connect(doFetchAll);
+                  self._isConnected = true;
+                  self._dbWrapper.connect(doFetchAll);
                 } else {
                   doFetchAll();
                 }
