@@ -31,10 +31,6 @@ function processRows(rows, seedIds) {
       function(row) {
         row.isRefund = row.amount < 0;
 
-        // This is necessary to normalize behavior between SQLite and PostgreSQL, since the former
-        // resolves boolean expressions to 1 or 0, but the latter resolves them to true or false.
-        row.isagainst = row.isagainst ? true : false;
-
         row.id = row.sourceid + "; " + row.targetid + "; "
             + row.directorindirect + "; " + row.isagainst;
 
