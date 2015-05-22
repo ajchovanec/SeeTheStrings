@@ -16,42 +16,28 @@ PGTypes.setTypeParser(20 /* int8 */, function(value) {
   return value === null ? null : parseInt(value)
 });
 
-// TODO: Migrate off of SQLite and use Postgres for the localhost case as well as the online case.
-var dbType;
-var dbConnectionConfig;
-switch (process.env.DB_INSTANCE) {
-  case "heroku":
-    function getEnvVarOrDie(envVarName) {
-      var envVar = process.env[envVarName];
-      if (envVar == null) {
-        console.log("Environment variable " + envVarName + " is required when DB_INSTANCE=heroku, "
-            + "but is undefined! Aborting.");
-        process.exit(1);
-      }
-      return envVar;
-    }
-    dbType = "pg";
-    dbConnectionConfig = {
-      host: getEnvVarOrDie("PG_HOST"),
-      user: getEnvVarOrDie("PG_USER"),
-      password: getEnvVarOrDie("PG_PASSWORD"),
-      database: getEnvVarOrDie("PG_DATABASE")
-    };
-    break;
-  default:
-    console.log("DB_INSTANCE environment variable not set. Defaulting to 'local'.")
-  case "local":
-    dbType = "sqlite3";
-    dbConnectionConfig = { path: "data/sqlite/CampaignFin14.db" };
+function getEnvVarOrDie(envVarName) {
+  var envVar = process.env[envVarName];
+  if (envVar == null) {
+    console.log("Required environment variable " + envVarName + " is undefined! Aborting.");
+    process.exit(1);
+  }
+  return envVar;
+}
+
+var postgresDbConfig = {
+  host: getEnvVarOrDie("PG_HOST"),
+  user: getEnvVarOrDie("PG_USER"),
+  password: getEnvVarOrDie("PG_PASSWORD"),
+  database: getEnvVarOrDie("PG_DATABASE")
 };
-console.log("Using database type " + dbType);
 
 var memoryCache = CacheManager.caching({store: 'memory', max: 10, ttl: 604800 /* 1 week */});
 
 // TODO: Move this and other helper methods into a utilities module.
 function getDbWrapper() {
   var cachingDbWrapper = {
-    dbWrapper: new DBWrapper(dbType, dbConnectionConfig),
+    dbWrapper: new DBWrapper("pg", postgresDbConfig),
     connect:
         function() {
           // This is actually a no-op. The real call to the underlying DBWrapper.connect() is done
@@ -436,18 +422,8 @@ function queryCandidates(req, res) {
 }
 
 function queryPacs(req, res) {
-  // TODO: Dispatching on the database type is a hack. This branch should be eliminated once we've
-  // migrated to using Postgres for the localhost case as well as the online case.
-  var sqlQuery;
-  if (dbType == "pg") {
-    sqlQuery = "select distinct on (lower(pacshort)) lower(pacshort) as key, pacshort "
-        + "from Committees where Cycle = '2014' and pacshort != '' order by key, pacshort asc ";
-  } else if (dbType == "sqlite3") {
-    sqlQuery = "select lower(pacshort) as key, pacshort "
-        + "from Committees where Cycle = '2014' and pacshort != '' group by key order by key asc "
-  } else {
-    // TODO
-  }
+  var sqlQuery = "select distinct on (lower(pacshort)) lower(pacshort) as key, pacshort "
+      + "from Committees where Cycle = '2014' and pacshort != '' order by key, pacshort asc ";
   console.log("SQL query for list of PACs: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
