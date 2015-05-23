@@ -1,9 +1,23 @@
-DROP TABLE Categories;
-DROP TABLE Candidates;
-DROP TABLE Committees;
-DROP TABLE PACsToCandidates;
-DROP TABLE PACsToPACs;
-DROP TABLE IndivsToAny;
+-- This SQL script populates the PostgreSQL database that it's run on with all tables pertaining to
+-- campaign finance. Prior to running this script, you should initialize your database and
+-- associated role in psql as follows:
+-- 
+-- DROP DATABASE IF EXISTS [database];
+-- CREATE DATABASE seethestrings_local TEMPLATE template0 ENCODING 'SQL_ASCII';
+-- DROP USER IF EXISTS [user];
+-- CREATE USER [user] WITH PASSWORD '[password]';
+-- GRANT ALL PRIVILEGES ON DATABASE [database] TO [user];
+--
+-- This script should then be invoked via the following command:
+--
+-- psql -d [database] -U [user] -f CreateTables.sql
+
+DROP TABLE IF EXISTS Categories;
+DROP TABLE IF EXISTS Candidates;
+DROP TABLE IF EXISTS Committees;
+DROP TABLE IF EXISTS PACsToCandidates;
+DROP TABLE IF EXISTS PACsToPACs;
+DROP TABLE IF EXISTS IndivsToAny;
 
 CREATE TABLE Categories (
     catcode TEXT,

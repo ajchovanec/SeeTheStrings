@@ -1,5 +1,11 @@
 #/bin/bash
 
+# This bash script generates a SQL script which can then be invoked to import sanitized campaign
+# finance data into a previously created database with the schema defined in CreateTables.sql.
+# The output of this script should be piped to a .sql file which should then be invoked as follows:
+#
+# psql -d [database] -U [user] -f [file]
+
 echo "\encoding SQL_ASCII"
 
 CYCLES=$@
