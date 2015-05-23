@@ -3,9 +3,9 @@
 rm -f ./CRP_Categories.txt
 rm -f ./*.sanitized
 
-cp ../../data/CampaignFin14/CRP_Categories.txt ./
-cat ../../data/CampaignFin14/cands14.txt | sed -e 's/"//g' -e 's/|/"/g' | ../SanitizeCSV.py  > ./cands14.sanitized
-cat ../../data/CampaignFin14/cmtes14.txt | sed -e 's/|/"/g' | ../SanitizeCSV.py > ./cmtes14.sanitized
-cat ../../data/CampaignFin14/pacs14.txt | sed -e 's/|/"/g' | ../SanitizeCSV.py  > ./pacs14.sanitized
-cat ../../data/CampaignFin14/pac_other14.txt | sed -e 's/|/"/g' | ../SanitizeCSV.py > ./pac_other14.sanitized
-cat ../../data/CampaignFin14/indivs14.txt | sed -e 's/\\|/|/g' -e 's/|/"/g' | ../SanitizeCSV.py > ./indivs14.sanitized
+cp ../../data/CRP_Categories.txt ./
+
+./PrepCampaignCSV.sh 12
+./PrepCampaignCSV.sh 14
+
+./GenImportScript.sh 12 14 > ./ImportCSV.sql

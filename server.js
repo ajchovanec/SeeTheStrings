@@ -103,6 +103,10 @@ function ClientError(message) {
   this.message = message;
 }
 
+// TODO: Ensure that the cycle query param is always sent, so that we will no longer need to
+// choose a default value here.
+var defaultCycle = 2014;
+
 function queryContributions(req, res) {
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
@@ -115,6 +119,7 @@ function queryContributions(req, res) {
   var groupCandidatesBy = queryParams["groupCandidatesBy"];
   var groupContributionsBy = queryParams["groupContributionsBy"];
 
+  var cycle = queryParams["cycle"] || defaultCycle;
   var seedRace = null;
   var seedCandidates = [];
   var seedPacs = [];
@@ -150,13 +155,13 @@ function queryContributions(req, res) {
 
   var queries = [];
   try {
-    var pacContributionsQuery = getPacContributions(seedRace, seedCandidates, seedPacs,
+    var pacContributionsQuery = getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
         groupCandidatesBy, groupContributionsBy, contributionTypes);
     queries.push(pacContributionsQuery)
     // For now we only show individual contributions if a seed individual has been specified.
     if (seedIndivs.length > 0) {
-      var indivContributionsQuery = getIndivContributions(seedRace, seedCandidates, seedIndivs,
-          groupCandidatesBy);
+      var indivContributionsQuery = getIndivContributions(cycle, seedRace, seedCandidates,
+          seedIndivs, groupCandidatesBy);
       queries.push(indivContributionsQuery);
     }
   } catch (e) {
@@ -169,7 +174,7 @@ function queryContributions(req, res) {
   doQueryContributions(req, res, queries);
 }
 
-function getPacContributions(seedRace, seedCandidates, seedPacs,
+function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
     groupCandidatesBy, groupContributionsBy, contributionTypes) {
   var outerSelectSources;
   var innerSelectSources;
@@ -238,14 +243,17 @@ function getPacContributions(seedRace, seedCandidates, seedPacs,
   var sqlQuery =
       "select " + outerSelectSources + outerSelectTargets + outerAttributes
           + "directorindirect, isagainst, sum(amount) as amount from "
-          + "(select distinct fecrecno, " + innerSelectSources + innerSelectTargets
-              + innerAttributes + "directorindirect, type in ('24A', '24N') as isagainst, "
+          + "(select distinct PACsToCandidates.cycle as cycle, fecrecno, "
+              + innerSelectSources + innerSelectTargets + innerAttributes
+              + "directorindirect, type in ('24A', '24N') as isagainst, "
               + "amount from PACsToCandidates "
               + "inner join Candidates on PACsToCandidates.cid = Candidates.cid "
+                  + "and PACsToCandidates.cycle = Candidates.cycle "
               + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
+                  + "and PACsToCandidates.cycle = Committees.cycle "
               + "inner join Categories on Categories.catcode = Committees.primcode "
               + "where directorindirect in (" + contributionTypes + ")) as InnerQuery "
-          + "where " + seedMatchingCriteria
+          + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
           + "group by sourcename, sourceid, " + outerGroupByTargets
           + "directorindirect, isagainst "
           + "order by amount desc ";
@@ -254,7 +262,7 @@ function getPacContributions(seedRace, seedCandidates, seedPacs,
 
 // TODO: In the interest of conciseness, remove degrees of freedom from this method, and factor
 // functionality that's shared with getPacContributions() out into a separate method.
-function getIndivContributions(seedRace, seedCandidates, seedIndivs, groupCandidatesBy) {
+function getIndivContributions(cycle, seedRace, seedCandidates, seedIndivs, groupCandidatesBy) {
   var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
   var innerSelectSources = "contrib, contribid, ";
   // TODO: Verify that groupCandidatesBy is actually set.
@@ -305,8 +313,8 @@ function getIndivContributions(seedRace, seedCandidates, seedIndivs, groupCandid
   var sqlQuery =
     "select " + outerSelectSources + outerSelectTargets + outerAttributes
         + "'D' as directorindirect, false as isagainst, sum(amount) as amount from "
-        + "(select distinct fectransid, " + innerSelectSources + innerSelectTargets
-            + innerAttributes
+        + "(select distinct IndivsToAny.cycle as cycle, fectransid, "
+            + innerSelectSources + innerSelectTargets + innerAttributes
             + "amount from IndivsToAny "
             // TODO: Right now this query just looks up individual to candidate contributions. We
             // should show individual to PAC contributions too.
@@ -314,8 +322,9 @@ function getIndivContributions(seedRace, seedCandidates, seedIndivs, groupCandid
             // TODO: Check the OpenData User's Guide to make certain this is a valid method for
             // computing individual to candidate contributions.
             + "inner join Candidates on IndivsToAny.recipid = Candidates.cid "
+                + "and IndivsToAny.cycle = Candidates.cycle "
             + "inner join Categories on Categories.catcode = IndivsToAny.realcode) as InnerQuery "
-        + "where " + seedMatchingCriteria
+        + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
         + "group by sourcename, sourceid, " + outerGroupByTargets
         + "directorindirect, isagainst "
         + "order by amount desc ";
@@ -398,7 +407,8 @@ function queryRaces(req, res) {
 
 function queryCandidates(req, res) {
   var sqlQuery = "select distinct cid, firstlastp, lower(firstlastp) as sortkey "
-      + "from Candidates where cycle = '2014' and cyclecand = 'Y' order by sortkey asc ";
+      + "from Candidates where cycle = '" + defaultCycle + "' and cyclecand = 'Y' "
+      + "order by sortkey asc ";
   console.log("SQL query for list of candidates: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
@@ -418,7 +428,7 @@ function queryCandidates(req, res) {
 
 function queryPacs(req, res) {
   var sqlQuery = "select distinct on (lower(pacshort)) lower(pacshort) as key, pacshort "
-      + "from Committees where Cycle = '2014' and pacshort != '' order by key, pacshort asc ";
+      + "from Committees where cycle = '" + defaultCycle + "' and pacshort != '' order by key, pacshort asc ";
   console.log("SQL query for list of PACs: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
