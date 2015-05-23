@@ -428,7 +428,8 @@ function queryCandidates(req, res) {
 
 function queryPacs(req, res) {
   var sqlQuery = "select distinct on (lower(pacshort)) lower(pacshort) as key, pacshort "
-      + "from Committees where cycle = '" + defaultCycle + "' and pacshort != '' order by key, pacshort asc ";
+      + "from Committees where cycle = '" + defaultCycle + "' and pacshort != '' "
+      + "order by key, pacshort asc ";
   console.log("SQL query for list of PACs: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
