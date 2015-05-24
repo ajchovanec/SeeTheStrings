@@ -3,7 +3,7 @@
 rm -f ./CRP_Categories.txt
 rm -f ./*.sanitized
 
-cp ../../data/CRP_Categories.txt ./
+cp ../data/CRP_Categories.txt ./
 
 ./PrepCampaignCSV.sh 12
 ./PrepCampaignCSV.sh 14

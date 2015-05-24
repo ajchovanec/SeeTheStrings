@@ -2,4 +2,4 @@
 
 rm -f ./CRP_Categories.txt
 rm -f ./*.sanitized
-rm -r ./ImportCSV.sql
+rm -f ./ImportCSV.sql
