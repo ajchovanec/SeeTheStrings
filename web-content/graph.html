@@ -169,7 +169,14 @@ function setDisplayPropertiesForNode(node, link) {
 d3.json("/contributions" + window.location.search, handleResponse);
 
 function handleResponse(err, rows) {
-  // TODO: Check for errors.
+  if (err != null) {
+    console.log("Error while fetching contributions: " + err);
+    // TODO: This code will never execute as long as server.js isn't configured to return a 400 or
+    // 500 server error when something goes wrong. We need to make a corresponding change there too.
+    //
+    // TODO: Also display a visible error message to the user.
+    return;
+  }
 
   var candidates = queryParams["candidates"];
   var pacs = queryParams["pacs"];
