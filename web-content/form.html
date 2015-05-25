@@ -162,9 +162,7 @@ function removeOptionsFromSelectBox(selectBox) {
   if (selectBox.options == null) {
     return;
   }
-  while (selectBox.options.length > 0) {
-    selectBox.remove(0);
-  }
+  selectBox.options.length = 0;
 }
 
 var cachedCandidates = null;
