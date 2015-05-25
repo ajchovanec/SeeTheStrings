@@ -391,8 +391,10 @@ function queryRaces(req, res) {
             races.splice(0, 0, row);
           } else {
             var houseDistNumber = parseInt(suffix);
+            // TODO: As written, this logic will discard the Presidential race ("PRES"). This needs
+            // to be fixed.
             if (isNaN(houseDistNumber)) {
-              console.log("raceid " + row.distid + " could not be parsed and is being ignored.");
+              console.log("raceid " + row.raceid + " could not be parsed and is being ignored.");
               return;
             }
             row.racename = "District " + houseDistNumber;
