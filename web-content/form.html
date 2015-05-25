@@ -64,11 +64,18 @@
   Let's get started then.
   <br><br>
   <form id="graphForm" action="graph.html" method="GET" target="blank_">
+    For which election cycle would you like to view contributions?
+    <br>
+    <select name="cycle" id="cyclesList" size=1 onchange="queryAndUpdateAll()">
+      <option value="2012">2012</option>
+      <option value="2014" selected>2014</option>
+    </select>
+    <br><br>
     How would you like to specify which contributions you're interested in? You can choose a
     specific Congressional race, or you can choose one or more candidates or PACs.
     <br><br>
     <input type="radio" name="seedType" id="raceButton" value="Race"
-        onclick="updateSeedType()" checked="true">
+        onclick="updateSeedType()" checked>
       Choose a race
     <br>
     <input type="radio" name="seedType" id="candidateButton" value="Candidate"
@@ -160,16 +167,39 @@ function removeOptionsFromSelectBox(selectBox) {
   }
 }
 
-console.log("Trying to fetch candidates list...");
-d3.json("/candidates", showCandidates);
+var cachedCandidates = null;
+var cachedPacs = null;
+var cachedRaces = null;
 
-console.log("Trying to fetch PACs list...");
-d3.json("/pacs", showPacs);
-
-console.log("Trying to fetch states list...")
+console.log("Trying to fetch all states")
 d3.json("/states.json", showStates);
 
-var cachedRaces = null;
+updateSeedType();
+queryAndUpdateAll();
+
+function queryAndUpdateAll() {
+  queryAndShowCandidates();
+  queryAndShowPacs();
+  queryAndShowRaces();
+}
+
+function queryAndShowCandidates() {
+  if (cachedCandidates == null) {
+    console.log("Trying to fetch all candidates")
+    d3.json("/candidates", storeAndShowCandidates);
+  } else {
+    showCandidates();
+  }
+}
+
+function queryAndShowPacs() {
+  if (cachedPacs == null) {
+    console.log("Trying to fetch all pacs")
+    d3.json("/pacs", storeAndShowPacs);
+  } else {
+    showPacs();
+  }
+}
 
 function queryAndShowRaces() {
   if (cachedRaces == null) {
@@ -179,8 +209,6 @@ function queryAndShowRaces() {
     showRaces();
   }
 }
-
-updateSeedType();
 
 function updateSeedType() {
   console.log("Updating seed type.")
@@ -257,30 +285,37 @@ function storeAndShowRaces(err, races) {
   cachedRaces = {};
   races.forEach(
       function(row) {
-        if (cachedRaces[row.stateid] == null) {
-          cachedRaces[row.stateid] = [];
+        if (cachedRaces[row.cycle] == null) {
+          cachedRaces[row.cycle] = {};
         }
-        cachedRaces[row.stateid].push(row);
+        if (cachedRaces[row.cycle][row.stateid] == null) {
+          cachedRaces[row.cycle][row.stateid] = [];
+        }
+        cachedRaces[row.cycle][row.stateid].push(row);
       });
 
   showRaces();
 }
 
 function showRaces() {
-  var selectBox = document.getElementById("racesList");
-  removeOptionsFromSelectBox(selectBox);
-
   var stateid = document.getElementById("statesList").value;
-  cachedRaces[stateid].forEach(
-      function(row) {
-        addOptionToSelectBox(selectBox, row.racename, row.raceid);
-      });
+  if (stateid != null && stateid != "") {
+    var selectBox = document.getElementById("racesList");
+    removeOptionsFromSelectBox(selectBox);
 
-  selectBox.setAttribute("size", 10);
-  document.getElementById("raceFormSubSection").style.display = "block";
+    var cycle = document.getElementById("cyclesList").value;
+    console.log("Cycle " + cycle + ", state " + stateid);
+    cachedRaces[cycle][stateid].forEach(
+        function(row) {
+          addOptionToSelectBox(selectBox, row.racename, row.raceid);
+        });
+
+    selectBox.setAttribute("size", 10);
+    document.getElementById("raceFormSubSection").style.display = "block";
+  }
 }
 
-function showCandidates(err, candidates) {
+function storeAndShowCandidates(err, candidates) {
   if (err != null) {
     console.log("Error fetching candidates list from HTML page: " + JSON.stringify(err));
     // TODO: What should we do here?
@@ -288,8 +323,24 @@ function showCandidates(err, candidates) {
     console.log("Got a list of " + candidates.length + " candidates on HTML page");
   }
 
-  var selectBox = document.getElementById("candidatesList");
+  cachedCandidates = {};
   candidates.forEach(
+      function(row) {
+        if (cachedCandidates[row.cycle] == null) {
+          cachedCandidates[row.cycle] = [];
+        }
+        cachedCandidates[row.cycle].push(row);
+      });
+
+  showCandidates();
+}
+
+function showCandidates() {
+  var selectBox = document.getElementById("candidatesList");
+  removeOptionsFromSelectBox(selectBox);
+
+  var cycle = document.getElementById("cyclesList").value;
+  cachedCandidates[cycle].forEach(
       function(row) {
         addOptionToSelectBox(selectBox, row.firstlastp, row.cid);
       });
@@ -297,7 +348,7 @@ function showCandidates(err, candidates) {
   selectBox.setAttribute("size", 20);
 }
 
-function showPacs(err, pacs) {
+function storeAndShowPacs(err, pacs) {
   if (err != null) {
     console.log("Error fetching PACs list from HTML page: " + JSON.stringify(err));
     // TODO: What should we do here?
@@ -305,8 +356,24 @@ function showPacs(err, pacs) {
     console.log("Got a list of " + pacs.length + " PACs on HTML page");
   }
 
-  var selectBox = document.getElementById("pacsList");
+  cachedPacs = {};
   pacs.forEach(
+      function(row) {
+        if (cachedPacs[row.cycle] == null) {
+          cachedPacs[row.cycle] = [];
+        }
+        cachedPacs[row.cycle].push(row);
+      });
+
+  showPacs();
+}
+
+function showPacs() {
+  var selectBox = document.getElementById("pacsList");
+  removeOptionsFromSelectBox(selectBox);
+
+  var cycle = document.getElementById("cyclesList").value;
+  cachedPacs[cycle].forEach(
       function(row) {
         addOptionToSelectBox(selectBox, row.pacshort, row.key);
       });

@@ -311,23 +311,23 @@ function getIndivContributions(cycle, seedRace, seedCandidates, seedIndivs, grou
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
   // into a separate table.
   var sqlQuery =
-    "select " + outerSelectSources + outerSelectTargets + outerAttributes
-        + "'D' as directorindirect, false as isagainst, sum(amount) as amount from "
-        + "(select distinct IndivsToAny.cycle as cycle, fectransid, "
-            + innerSelectSources + innerSelectTargets + innerAttributes
-            + "amount from IndivsToAny "
-            // TODO: Right now this query just looks up individual to candidate contributions. We
-            // should show individual to PAC contributions too.
-            //
-            // TODO: Check the OpenData User's Guide to make certain this is a valid method for
-            // computing individual to candidate contributions.
-            + "inner join Candidates on IndivsToAny.recipid = Candidates.cid "
-                + "and IndivsToAny.cycle = Candidates.cycle "
-            + "inner join Categories on Categories.catcode = IndivsToAny.realcode) as InnerQuery "
-        + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
-        + "group by sourcename, sourceid, " + outerGroupByTargets
-        + "directorindirect, isagainst "
-        + "order by amount desc ";
+      "select " + outerSelectSources + outerSelectTargets + outerAttributes
+          + "'D' as directorindirect, false as isagainst, sum(amount) as amount from "
+          + "(select distinct IndivsToAny.cycle as cycle, fectransid, "
+              + innerSelectSources + innerSelectTargets + innerAttributes
+              + "amount from IndivsToAny "
+              // TODO: Right now this query just looks up individual to candidate contributions. We
+              // should show individual to PAC contributions too.
+              //
+              // TODO: Check the OpenData User's Guide to make certain this is a valid method for
+              // computing individual to candidate contributions.
+              + "inner join Candidates on IndivsToAny.recipid = Candidates.cid "
+                  + "and IndivsToAny.cycle = Candidates.cycle "
+              + "inner join Categories on Categories.catcode = IndivsToAny.realcode) as InnerQuery "
+          + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
+          + "group by sourcename, sourceid, " + outerGroupByTargets
+          + "directorindirect, isagainst "
+          + "order by amount desc ";
   return sqlQuery;
 }
 
@@ -362,8 +362,9 @@ function queryRaces(req, res) {
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
 
-  var sqlQuery = "select distinct substr(distidrunfor, 1, 2) as stateid, distidrunfor as raceid "
-    + "from Candidates where currcand = 'Y' order by stateid asc, raceid asc ";
+  var sqlQuery =
+    "select distinct cycle, substr(distidrunfor, 1, 2) as stateid, distidrunfor as raceid "
+        + "from Candidates where currcand = 'Y' order by stateid asc, raceid asc ";
   console.log("SQL query for list of races: " + sqlQuery);
   var races = [];
   var dbWrapper = getDbWrapper();
@@ -406,9 +407,11 @@ function queryRaces(req, res) {
 }
 
 function queryCandidates(req, res) {
-  var sqlQuery = "select distinct cid, firstlastp, lower(firstlastp) as sortkey "
-      + "from Candidates where cycle = '" + defaultCycle + "' and cyclecand = 'Y' "
-      + "order by sortkey asc ";
+  var url = req.url;
+  var queryParams = Url.parse(url, true).query;
+
+  var sqlQuery = "select distinct cycle, cid, firstlastp, lower(firstlastp) as sortkey "
+      + "from Candidates where cyclecand = 'Y' order by cycle asc, sortkey asc ";
   console.log("SQL query for list of candidates: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
@@ -427,9 +430,12 @@ function queryCandidates(req, res) {
 }
 
 function queryPacs(req, res) {
-  var sqlQuery = "select distinct on (lower(pacshort)) lower(pacshort) as key, pacshort "
-      + "from Committees where cycle = '" + defaultCycle + "' and pacshort != '' "
-      + "order by key, pacshort asc ";
+  var url = req.url;
+  var queryParams = Url.parse(url, true).query;
+
+  var sqlQuery =
+    "select distinct on (cycle, lower(pacshort)) cycle, lower(pacshort) as key, pacshort "
+    + "from Committees where pacshort != '' order by cycle asc, key asc";
   console.log("SQL query for list of PACs: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
