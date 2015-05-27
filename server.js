@@ -364,8 +364,8 @@ function queryRaces(req, res) {
   var queryParams = Url.parse(url, true).query;
 
   var sqlQuery =
-    "select distinct cycle, substr(distidrunfor, 1, 2) as stateid, distidrunfor as raceid "
-        + "from Candidates where currcand = 'Y' order by stateid asc, raceid asc ";
+      "select distinct cycle, substr(distidrunfor, 1, 2) as stateid, distidrunfor as raceid "
+          + "from Candidates where currcand = 'Y' order by stateid asc, raceid asc ";
   console.log("SQL query for list of races: " + sqlQuery);
   var races = [];
   var dbWrapper = getDbWrapper();
@@ -437,8 +437,8 @@ function queryPacs(req, res) {
   var queryParams = Url.parse(url, true).query;
 
   var sqlQuery = "select distinct on (cycle, lower(pacshort)) "
-    + "cycle, lower(pacshort) as sortkey, cmteid, pacshort "
-    + "from Committees where pacshort != '' order by cycle asc, sortkey asc";
+      + "cycle, lower(pacshort) as sortkey, cmteid, pacshort "
+      + "from Committees where pacshort != '' order by cycle asc, sortkey asc";
   console.log("SQL query for list of PACs: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
