@@ -6,12 +6,10 @@
 #
 # psql -d [database] -U [user] -f [file]
 
-echo "\encoding SQL_ASCII"
+echo "\copy Categories from ./CRP_Categories.txt delimiter E'\t'"
 
 CYCLES=$@
-
 for CYCLE in $CYCLES; do
-  echo "\copy Categories from ./CRP_Categories.txt delimiter E'\t'"
   echo "\copy Candidates from ./cands$CYCLE.sanitized delimiter '|'"
   echo "\copy Committees from ./cmtes$CYCLE.sanitized delimiter '|'"
   echo "\copy PACsToCandidates from ./pacs$CYCLE.sanitized delimiter '|'"
