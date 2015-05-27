@@ -216,8 +216,9 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
   var seedTargetAttributes = [];
   var seedMatchingCriteria = [];
   if (seedPacs.length > 0) {
-    innerAttributes += "(lower(Committees.pacshort) in (" + seedPacs + ") or "
-        + "Committees.cmteid in (" + seedPacs + ")) as seedpac, ";  // for backwards compatibility
+    var lowerPacshortQuery =
+        "select lower(pacshort) from Committees where Committees.cmteid in (" + seedPacs + ")";
+    innerAttributes += "(lower(Committees.pacshort) in (" + lowerPacshortQuery + ")) as seedpac, ";
     outerAttributes += "bool_or(seedpac) as seedsource, ";
     seedMatchingCriteria.push("seedpac ");
   }
@@ -412,7 +413,7 @@ function queryCandidates(req, res) {
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
 
-  var sqlQuery = "select distinct cycle, cid, firstlastp, lower(firstlastp) as sortkey "
+  var sqlQuery = "select distinct cycle, lower(firstlastp) as sortkey, cid, firstlastp "
       + "from Candidates where cyclecand = 'Y' order by cycle asc, sortkey asc ";
   console.log("SQL query for list of candidates: " + sqlQuery);
   var dbWrapper = getDbWrapper();
@@ -435,9 +436,9 @@ function queryPacs(req, res) {
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
 
-  var sqlQuery =
-    "select distinct on (cycle, lower(pacshort)) cycle, lower(pacshort) as key, pacshort "
-    + "from Committees where pacshort != '' order by cycle asc, key asc";
+  var sqlQuery = "select distinct on (cycle, lower(pacshort)) "
+    + "cycle, lower(pacshort) as sortkey, cmteid, pacshort "
+    + "from Committees where pacshort != '' order by cycle asc, sortkey asc";
   console.log("SQL query for list of PACs: " + sqlQuery);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();

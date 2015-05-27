@@ -374,7 +374,7 @@ function showPacs() {
   var cycle = document.getElementById("cyclesList").value;
   cachedPacs[cycle].forEach(
       function(row) {
-        addOptionToSelectBox(selectBox, row.pacshort, row.key);
+        addOptionToSelectBox(selectBox, row.pacshort, row.cmteid);
       });
 
   selectBox.setAttribute("size", 20);
