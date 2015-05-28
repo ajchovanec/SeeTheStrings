@@ -11,7 +11,6 @@
 
 .link {
   fill: none;
-  stroke-width: 1.5px;
 }
 .link.plain.gray {
   stroke: #666;
@@ -34,14 +33,6 @@
   stroke: #ccc;
   stroke-width: 4px;
   fill: none
-}
-
-.contributor {
-  stroke: #333;
-  stroke-width: 1.5px;
-}
-.contributor.gray {
-  fill: #bbb;
 }
 
 text {
@@ -661,6 +652,13 @@ function showGraph(inputLinks) {
         .attr("marker-end",
             function(d) {
               return "url(#" + isagainstToMarkerColor[d.isagainst] + ")";
+            })
+        .attr("stroke-width",
+            function(d) {
+              var absAmount = Math.abs(d.amount);
+              // TODO: Tune the base of the logarithm that is used to determine stroke width. A
+              // lower base means greater variation in stroke widths.
+              return Math.log(absAmount) / Math.log(250);
             });
 
     linkText = svg.select(".gTextLink").selectAll(".textLink")
