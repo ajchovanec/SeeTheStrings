@@ -5,7 +5,10 @@ rm -f ./*.sanitized
 
 cp ../data/CRP_Categories.txt ./
 
-./PrepCampaignCSV.sh 12
-./PrepCampaignCSV.sh 14
+CYCLES="10 12 14"
 
-./GenImportScript.sh 12 14 > ./ImportCSV.sql
+for CYCLE in $CYCLES; do
+  ./PrepCampaignCSV.sh $CYCLE
+done
+
+./GenImportScript.sh $CYCLES > ./ImportCSV.sql
