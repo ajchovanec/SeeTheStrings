@@ -29,9 +29,8 @@
   <p>
   This tool makes it possible to generate <a href="http://en.wikipedia.org/wiki/Graph_drawing">
   graph drawings</a> to visualize the contributions and expenditures made by Political Action
-  Committees (PACs) during the 2012 and 2014 U.S. Congressional campaign cycles. These drawings
-  represent PACs and candidates as "nodes", and the cash flows between them as "links" connecting
-  the nodes.
+  Committees (PACs) during past U.S. Congressional campaign cycles. These drawings represent PACs
+  and candidates as "nodes", and the cash flows between them as "links" connecting the nodes.
   </p>
   <p>
   A political action committee exists to raise and spend money for and against political candidates,
@@ -68,8 +67,9 @@
     For which election cycle would you like to view contributions?
     <br>
     <select name="cycle" id="cyclesList" size=1 onchange="queryAndUpdateAll()">
-      <option value="2012">2012</option>
       <option value="2014" selected>2014</option>
+      <option value="2012">2012</option>
+      <option value="2010">2010</option>
     </select>
     <br><br>
     How would you like to specify which contributions you're interested in? You can choose a
