@@ -1,4 +1,5 @@
 [
+  { "stateid": "US", "statename": "Federal" },
   { "stateid": "AL", "statename": "Alabama" },
   { "stateid": "AK", "statename": "Alaska" },
   { "stateid": "AS", "statename": "American Samoa" },

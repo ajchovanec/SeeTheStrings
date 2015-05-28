@@ -363,9 +363,8 @@ function queryRaces(req, res) {
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
 
-  var sqlQuery =
-      "select distinct cycle, substr(distidrunfor, 1, 2) as stateid, distidrunfor as raceid "
-          + "from Candidates where currcand = 'Y' order by stateid asc, raceid asc ";
+  var sqlQuery = "select distinct cycle, distidrunfor as raceid from Candidates "
+      + "where currcand = 'Y' order by raceid asc ";
   console.log("SQL query for list of races: " + sqlQuery);
   var races = [];
   var dbWrapper = getDbWrapper();
@@ -383,23 +382,28 @@ function queryRaces(req, res) {
                 + " and is being ignored. Should be 4.");
             return;
           }
-          var suffix = row.raceid.substr(2, 2);
-          if (suffix[0] == "S") {
-            row.racename = "Senate";
-            // We want to list all Senate races before any of the House races.
-            //
-            // TODO: Arguably this should be done on the client side since it's presentation logic.
-            races.splice(0, 0, row);
-          } else {
-            var houseDistNumber = parseInt(suffix);
-            // TODO: As written, this logic will discard the Presidential race ("PRES"). This needs
-            // to be fixed.
-            if (isNaN(houseDistNumber)) {
-              console.log("raceid " + row.raceid + " could not be parsed and is being ignored.");
-              return;
-            }
-            row.racename = "District " + houseDistNumber;
+          if (row.raceid == "PRES") {
+            row.stateid = "US";
+            row.racename = "President";
             races.push(row);
+          } else {
+            row.stateid = row.raceid.substr(0, 2);
+            var suffix = row.raceid.substr(2, 2);
+            if (suffix[0] == "S") {
+              row.racename = "Senate";
+              // We want to list all Senate races before any of the House races.
+              //
+              // TODO: Arguably this should be done on the client since it's presentation logic.
+              races.splice(0, 0, row);
+            } else {
+              var houseDistNumber = parseInt(suffix);
+              if (isNaN(houseDistNumber)) {
+                console.log("raceid " + row.raceid + " could not be parsed and is being ignored.");
+                return;
+              }
+              row.racename = "District " + houseDistNumber;
+              races.push(row);
+            } 
           }
         });
         res.writeHead(200, {"Content-Type": "application/json"});
