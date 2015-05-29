@@ -656,9 +656,9 @@ function showGraph(inputLinks) {
         .attr("stroke-width",
             function(d) {
               var absAmount = Math.abs(d.amount);
-              // TODO: Tune the base of the logarithm that is used to determine stroke width. A
-              // lower base means greater variation in stroke widths.
-              return Math.log(absAmount) / Math.log(250);
+              // TODO: Tune the exponent that is applied to the absolute value of the amount to
+              // calculate stroke width. A higher exponent means greater variation in stroke widths.
+              return Math.pow(absAmount, 0.07);
             });
 
     linkText = svg.select(".gTextLink").selectAll(".textLink")
