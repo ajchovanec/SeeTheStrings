@@ -215,12 +215,14 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
   var innerAttributes = "";
   var seedTargetAttributes = [];
   var seedMatchingCriteria = [];
+  var outerOrderBy = "";
   if (seedPacs.length > 0) {
     var lowerPacshortQuery =
         "select lower(pacshort) from Committees where Committees.cmteid in (" + seedPacs + ")";
     innerAttributes += "(lower(Committees.pacshort) in (" + lowerPacshortQuery + ")) as seedpac, ";
     outerAttributes += "bool_or(seedpac) as seedsource, ";
     seedMatchingCriteria.push("seedpac ");
+    outerOrderBy += "seedsource desc, ";
   }
   if (seedRace != null) {
     innerAttributes += "(Candidates.distidrunfor = " + seedRace
@@ -235,6 +237,7 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
   }
   if (seedTargetAttributes.length > 0) {
     outerAttributes += "(" + seedTargetAttributes.join("or ") + ") as seedtarget, ";
+    outerOrderBy += "seedtarget desc, ";
   }
   if (seedMatchingCriteria.length == 0) {
     throw new ClientError("No seed IDs were specified");
@@ -257,7 +260,7 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
           + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
           + "group by sourcename, sourceid, " + outerGroupByTargets
           + "directorindirect, isagainst "
-          + "order by amount desc ";
+          + "order by " + outerOrderBy + "amount desc ";
   return sqlQuery;
 }
 
@@ -278,10 +281,12 @@ function getIndivContributions(cycle, seedRace, seedCandidates, seedIndivs, grou
   var innerAttributes = "";
   var seedTargetAttributes = [];
   var seedMatchingCriteria = [];
+  var outerOrderBy = "";
   if (seedIndivs.length > 0) {
     innerAttributes += "(IndivsToAny.contribid in (" + seedIndivs + ")) as seedindiv, ";
     outerAttributes += "bool_or(seedindiv) as seedsource, ";
     seedMatchingCriteria.push("seedindiv ");
+    outerOrderBy += "seedsource desc, ";
   }
   if (seedRace != null) {
     innerAttributes += "(Candidates.distidrunfor = " + seedRace
@@ -296,6 +301,7 @@ function getIndivContributions(cycle, seedRace, seedCandidates, seedIndivs, grou
   }
   if (seedTargetAttributes.length > 0) {
     outerAttributes += "(" + seedTargetAttributes.join("or ") + ") as seedtarget, ";
+    outerOrderBy += "seedtarget desc, ";
   }
   if (seedMatchingCriteria.length == 0) {
     throw new ClientError("No seed IDs were specified");
@@ -328,7 +334,7 @@ function getIndivContributions(cycle, seedRace, seedCandidates, seedIndivs, grou
           + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
           + "group by sourcename, sourceid, " + outerGroupByTargets
           + "directorindirect, isagainst "
-          + "order by amount desc ";
+          + "order by " + outerOrderBy + "amount desc ";
   return sqlQuery;
 }
 
