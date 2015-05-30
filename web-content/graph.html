@@ -318,7 +318,7 @@ function showGraph(inputLinks) {
   graph.init(inputLinks);
 
   var width = 1600,
-      height = 1000;
+      height = 1200;
 
   var svg = d3.select("body").append("svg")
       .attr("width", width)
@@ -337,8 +337,8 @@ function showGraph(inputLinks) {
       .nodes(graph.nodes())
       .links(graph.links())
       .size([width, height])
-      .linkDistance(200)
-      .charge(-500)
+      .linkDistance(250)
+      .charge(-600)
       .friction(.75)
       .on("tick", tick);
 
@@ -367,7 +367,7 @@ function showGraph(inputLinks) {
     aggregateIndiv.attr("transform", transformNodes);
     singleCandidate.attr("transform", transformNodes);
     aggregateCandidate.attr("transform", transformNodes);
-    nodeText.attr("transform", transformNodes);
+    nodeText.attr("transform", transformNodeText);
     linkText.attr("transform", transformLinkText);
   }
 
@@ -401,15 +401,52 @@ function showGraph(inputLinks) {
     }
   }
 
+  function isAggregateNode(node) {
+    return node.aggregateLinks.length > 0;
+  }
+  function getAmountMagnitudeForNode(node) {
+    return Math.max(Math.abs(node.incomingAmount), Math.abs(node.outgoingAmount));
+  }
+  function getWidthForLink(link) {
+    var amountMagnitude = Math.abs(link.amount);
+    return Math.pow(amountMagnitude, 0.07);
+  }
+  function getScaleForNode(node) {
+    if (!queryParams["useAmountScaling"]) {
+      return 1;
+    }
+    var amountMagnitude = getAmountMagnitudeForNode(node);
+    return Math.pow(amountMagnitude, 0.06);
+  }
+  function getScaleForText(amount) {
+    if (!queryParams["useAmountScaling"]) {
+      return 1;
+    }
+    var amountMagnitude = Math.abs(amount);
+    return Math.pow(amountMagnitude, 0.03);
+  }
+  function getEffectiveNodeRadius(node) {
+    // TODO: This logic is overly simplistic and will have to evolve. It assumes that PAC nodes will
+    // always be sources, and it assumes that all non-PAC nodes will have the same pre-scaled size.
+    if (isAggregateNode(node)) {
+      return 12 * getScaleForNode(node);
+    } else if (node.sourcetype == "pac") {
+      return 10 * getScaleForNode(node);
+    } else {
+      return 8 * getScaleForNode(node);
+    }
+  }
+
   // These values are shared between the linkLine() and transformLinkText() methods.
   //
   // TODO: Find a better place to put these.
-  var effectiveSourceRadius = 10;
-  var effectiveTargetRadius = 8;
   var linkOrientation = 1;  // 1 for clockwise, 0 for counter clockwise
   var linkOrientationMultiplier = linkOrientation ? -1 : 1;
 
   function linkLine(d) {
+    var effectiveSourceRadius = getEffectiveNodeRadius(d.source);
+    var effectiveTargetRadius = getEffectiveNodeRadius(d.target);
+
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
     var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
@@ -485,6 +522,7 @@ function showGraph(inputLinks) {
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
     var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    var effectiveTargetRadius = getEffectiveNodeRadius(d.target)
     if (distance < effectiveTargetRadius) {
       return null;  // no path to draw
     }
@@ -497,11 +535,19 @@ function showGraph(inputLinks) {
     var textAngle = Math.atan2(deltaY, deltaX) + linkOrientationMultiplier * adjAngle;
     var textX = d.source.x + Math.cos(textAngle) * textDistance;
     var textY = d.source.y + Math.sin(textAngle) * textDistance;
-    return "translate(" + textX + "," + textY + ")";
+    var scale = getScaleForText(d.amount);
+    return "translate(" + textX + "," + textY + ") scale(" + scale + ")";
+  }
+
+  function transformNodeText(d) {
+    var effectiveAmount = getAmountMagnitudeForNode(d);
+    var scale = getScaleForText(effectiveAmount);
+    return "translate(" + d.x + "," + d.y + ") scale(" + scale + ")";
   }
 
   function transformNodes(d) {
-    return "translate(" + d.x + "," + d.y + ")";
+    var scale = getScaleForNode(d);
+    return "translate(" + d.x + "," + d.y + ") scale(" + scale + ")";
   }
 
   // action to take on mouse double click
@@ -561,8 +607,15 @@ function showGraph(inputLinks) {
           // time, it may be necessary to mark a node as a seed if *any* link that has it
           // as a source or a target has it marked as a seed.
           seed: link["seed" + link.childType],  // FIXME
-          sourcetype: (childType == "source" ? link.sourcetype : null)  // FIXME
+          sourcetype: (childType == "source" ? link.sourcetype : null),  // FIXME
+          incomingAmount: 0,
+          outgoingAmount: 0
         };
+        if (childType == "source") {  // FIXME
+          nodeChild.outgoingAmount += link.amount;
+        } else {
+          nodeChild.incomingAmount += link.amount;
+        }
         graph.addNode(nodeChild);
         // Set the display properties for the new node based on the properties of the link.
         setDisplayPropertiesForNode(nodeChild, link);
@@ -618,8 +671,6 @@ function showGraph(inputLinks) {
     function linkKeyFunc(d) { return d.id + "; " + d.amount; }
     function nodeKeyFunc(d) { return d.id + "; " + d.name; }
 
-    function isAggregateNode(d) { return d.aggregateLinks.length > 0; }
-
     function getNodeOpacity(d) {
       // TODO: Consider setting this < 1.0 once the links have been modified to start from the
       // outsides of the PAC circles, rather than from their centers.
@@ -659,13 +710,7 @@ function showGraph(inputLinks) {
             function(d) {
               return "url(#" + isagainstToMarkerColor[d.isagainst] + ")";
             })
-        .attr("stroke-width",
-            function(d) {
-              var absAmount = Math.abs(d.amount);
-              // TODO: Tune the exponent that is applied to the absolute value of the amount to
-              // calculate stroke width. A higher exponent means greater variation in stroke widths.
-              return Math.pow(absAmount, 0.07);
-            });
+        .attr("stroke-width", getWidthForLink);
 
     linkText = svg.select(".gTextLink").selectAll(".textLink")
         .data(graph.links(), getJoinFunc(linkKeyFunc));
