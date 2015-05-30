@@ -210,7 +210,9 @@ var graph = {
                     // time, it may be necessary to mark a node as a seed if *any* link that has it
                     // as a source or a target has it marked as a seed.
                     seed: link.seedsource,
-                    sourcetype: link.sourcetype
+                    sourcetype: link.sourcetype,
+                    incomingAmount: 0,
+                    outgoingAmount: 0
                   });
               link.target = nodesMap[link.targetid] ||
                   (nodesMap[link.targetid] = {
@@ -220,8 +222,12 @@ var graph = {
                     // TODO: Once we have nodes that are both a source and a target at the same
                     // time, it may be necessary to mark a node as a seed if *any* link that has it
                     // as a source or a target has it marked as a seed.
-                    seed: link.seedtarget
+                    seed: link.seedtarget,
+                    incomingAmount: 0,
+                    outgoingAmount: 0
                   });
+              link.source.outgoingAmount += link.amount;
+              link.target.incomingAmount += link.amount;
               // Set the display properties for both nodes based on the properties of the link.
               //
               // TODO: Move these display-related calls out of this method.
