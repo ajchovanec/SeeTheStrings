@@ -1,5 +1,5 @@
 
-var initLinksPerRelative = 5;
+var initLinksPerRelative = 3;
 var newLinksPerExpansion = 5;
 
 function getSelfProperties(selfType) {
