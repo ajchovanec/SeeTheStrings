@@ -65,7 +65,7 @@ function processRows(rows, seedIds) {
   return links;
 
   function getNodeAndLinkTypeId(row, relativeId) {
-    return "key " + relativeId + "; " + row.sourcetype + "; "
+    return "key " + relativeId + "; " + row.sourcetype + "; " + row.targettype + "; "
         + row.directorindirect + "; " + row.isagainst;
   }
 
@@ -148,6 +148,7 @@ function processRows(rows, seedIds) {
       newLink.seedsource = firstLink.seedsource;
       newLink.seedtarget = firstLink.seedtarget;
       newLink.sourcetype = firstLink.sourcetype;
+      newLink.targettype = firstLink.targettype;
 
       // It's up to the caller to set newLink[newLink.childNameType], since that's a pretty-printed
       // string whose format depends on the application-specific rendering of aggregate nodes.

@@ -158,11 +158,13 @@ function queryContributions(req, res) {
     var pacContributionsQuery = getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
         groupCandidatesBy, groupContributionsBy, contributionTypes);
     queries.push(pacContributionsQuery)
-    // For now we only show individual contributions if a seed individual has been specified.
     if (seedIndivs.length > 0) {
-      var indivContributionsQuery = getIndivContributions(cycle, seedRace, seedCandidates,
-          seedIndivs, groupCandidatesBy);
-      queries.push(indivContributionsQuery);
+      var indivToCandidateContributionsQuery = getIndivToCandidateContributions(cycle,
+          seedRace, seedCandidates, seedIndivs, groupCandidatesBy);
+      queries.push(indivToCandidateContributionsQuery);
+      var indivToPacContributionsQuery = getIndivToPacContributions(cycle,
+          seedPacs, seedIndivs, groupContributionsBy);
+      queries.push(indivToPacContributionsQuery);
     }
   } catch (e) {
     // TODO: Is this the right way to fast fail a request?
@@ -174,10 +176,19 @@ function queryContributions(req, res) {
   doQueryContributions(req, res, queries);
 }
 
-function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
-    groupCandidatesBy, groupContributionsBy, contributionTypes) {
-  var outerSelectSources;
-  var innerSelectSources;
+function getCandidateAttributesToSelectAndGroupBy(groupCandidatesBy) {
+  return {
+    outer: (groupCandidatesBy == "Selection")
+        ? "'Misc candidates' as targetname, -1 as targetid, "
+        : "firstlastp as targetname, cid as targetid, party, ",
+    inner: (groupCandidatesBy == "Selection") ? ""
+        : "firstlastp, Candidates.cid, Candidates.party, ",
+    groupBy: (groupCandidatesBy == "Selection") ? ""
+        : "targetname, targetid, party, "
+  }
+}
+
+function getPacAttributesToSelect(groupContributionsBy, relativeType) {
   switch (groupContributionsBy) {
     case "PAC":
       // For now we use the pacshort field as a unique identifier, even though that's ostensibly
@@ -188,30 +199,42 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
       //
       // TODO: Per the OpenData User's Guide, if the grouping unit (candidate, state, race, etc) has
       // more than one distinct orgname for any given ultorg, you list the ultorg with the total of
-      // the orgnames. If an ultorg has but a single orgname for a given group, you list the orgname.
-      outerSelectSources = "pacshort as sourcename, pacshort as sourceid, ";
-      innerSelectSources = "pacshort, ";
+      // the orgnames. If an ultorg has but a single orgname for a given group, you list the
+      // orgname.
+      return {
+        outer: "pacshort as " + relativeType + "name, pacshort as " + relativeType + "id, ",
+        inner: "pacshort, "
+      };
       break;
     case "Industry":
-      outerSelectSources = "catname as sourcename, catcode as sourceid, ";
-      innerSelectSources = "catname, catcode, ";
+      return {
+        outer: "catname as " + relativeType + "name, catcode as " + relativeType + "id, ",
+        inner: "catname, catcode, "
+      };
       break;
     case "Sector":
-      outerSelectSources = "sector as sourcename, sector as sourceid, ";
-      innerSelectSources = "sector, ";
+      return {
+        outer: "sector as " + relativeType + "name, sector as " + relativeType + "id, ",
+        inner: "sector, "
+      };
       break;
     default:
       throw new ClientError("Invalid groupContributionsBy value " + groupContributionsBy);
   }
+}
+
+function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
+    groupCandidatesBy, groupContributionsBy, contributionTypes) {
+  var pacAttributesToSelect = getPacAttributesToSelect(groupContributionsBy, "source");
+  var outerSelectSources = pacAttributesToSelect.outer;
+  var innerSelectSources = pacAttributesToSelect.inner;
   // TODO: Verify that groupCandidatesBy is actually set.
-  var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "'Misc candidates' as targetname, -1 as targetid, "
-      : "firstlastp as targetname, cid as targetid, party, ";
-  var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
-      : "targetname, targetid, party, ";
-  var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
-      : "firstlastp, Candidates.cid, Candidates.party, ";
-  var outerAttributes = "'pac' as sourcetype, ";
+  var candidateAttributesToSelectAndGroupBy =
+      getCandidateAttributesToSelectAndGroupBy(groupCandidatesBy);
+  var outerSelectTargets = candidateAttributesToSelectAndGroupBy.outer;
+  var innerSelectTargets = candidateAttributesToSelectAndGroupBy.inner;
+  var outerGroupByTargets = candidateAttributesToSelectAndGroupBy.groupBy;
+  var outerAttributes = "'pac' as sourcetype, 'candidate' as targettype, ";
   var innerAttributes = "";
   var seedTargetAttributes = [];
   var seedMatchingCriteria = [];
@@ -266,18 +289,17 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
 
 // TODO: In the interest of conciseness, remove degrees of freedom from this method, and factor
 // functionality that's shared with getPacContributions() out into a separate method.
-function getIndivContributions(cycle, seedRace, seedCandidates, seedIndivs, groupCandidatesBy) {
+function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedIndivs,
+    groupCandidatesBy) {
   var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
   var innerSelectSources = "contrib, contribid, ";
   // TODO: Verify that groupCandidatesBy is actually set.
-  var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "'Misc candidates' as targetname, -1 as targetid, "
-      : "firstlastp as targetname, cid as targetid, party, ";
-  var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
-      : "targetname, targetid, party, ";
-  var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
-      : "firstlastp, Candidates.cid, Candidates.party, ";
-  var outerAttributes = "'indiv' as sourcetype, ";
+  var candidateAttributesToSelectAndGroupBy =
+      getCandidateAttributesToSelectAndGroupBy(groupCandidatesBy);
+  var outerSelectTargets = candidateAttributesToSelectAndGroupBy.outer;
+  var innerSelectTargets = candidateAttributesToSelectAndGroupBy.inner;
+  var outerGroupByTargets = candidateAttributesToSelectAndGroupBy.groupBy;
+  var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";
   var innerAttributes = "";
   var seedTargetAttributes = [];
   var seedMatchingCriteria = [];
@@ -330,11 +352,79 @@ function getIndivContributions(cycle, seedRace, seedCandidates, seedIndivs, grou
               // computing individual to candidate contributions.
               + "inner join Candidates on IndivsToAny.recipid = Candidates.cid "
                   + "and IndivsToAny.cycle = Candidates.cycle "
-              + "inner join Categories on Categories.catcode = IndivsToAny.realcode) as InnerQuery "
+              + "inner join Categories on Categories.catcode = IndivsToAny.realcode "
+              + "where contribid is not null and trim(contribid) != '') as InnerQuery "
           + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
           + "group by sourcename, sourceid, " + outerGroupByTargets
           + "directorindirect, isagainst "
           + "order by " + outerOrderBy + "amount desc ";
+  return sqlQuery;
+}
+
+// TODO: In the interest of conciseness, remove degrees of freedom from this method, and factor
+// functionality that's shared with getPacContributions() out into a separate method.
+function getIndivToPacContributions(cycle, seedPacs, seedIndivs, groupContributionsBy) {
+  var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
+  var innerSelectSources = "contrib, contribid, ";
+  var outerGroupBySources = "sourcename, sourceid, ";
+  var pacAttributesToSelect = getPacAttributesToSelect(groupContributionsBy, "target");
+  var outerSelectTargets = pacAttributesToSelect.outer;
+  var innerSelectTargets = pacAttributesToSelect.inner;
+  var outerAttributes = "'indiv' as sourcetype, 'pac' as targettype, ";
+  var innerAttributes = "";
+  var seedTargetAttributes = [];
+  var seedMatchingCriteria = [];
+  var outerOrderBy = "";
+  if (seedIndivs.length > 0) {
+    innerAttributes += "(IndivsToAny.contribid in (" + seedIndivs + ")) as seedindiv, ";
+    outerAttributes += "bool_or(seedindiv) as seedsource, ";
+    seedMatchingCriteria.push("seedindiv ");
+    outerOrderBy += "seedsource desc, ";
+  }
+  if (seedPacs.length > 0) {
+    var lowerPacshortQuery =
+        "select lower(pacshort) from Committees where Committees.cmteid in (" + seedPacs + ")";
+    innerAttributes += "(lower(Committees.pacshort) in (" + lowerPacshortQuery + ")) as seedpac, ";
+    outerAttributes += "bool_or(seedpac) as seedtarget, ";
+    seedMatchingCriteria.push("seedpac ");
+    outerOrderBy += "seedtarget desc, ";
+  }
+  if (seedTargetAttributes.length > 0) {  // FIXME: This will be 1 at most.
+   outerAttributes += "(" + seedTargetAttributes.join("or ") + ") as seedtarget, ";
+   outerOrderBy += "seedtarget desc, ";
+  }
+  if (seedMatchingCriteria.length == 0) {
+   throw new ClientError("No seed IDs were specified");
+  }
+  seedMatchingCriteria = seedMatchingCriteria.join("or ");
+  
+  // It's unfortunate that the IndivsToAny table is denormalized with respect to individual donors'
+  // names. E.g., for David Koch we have contrib values "KOCH, DAVID", "KOCH, DAVID H",
+  // "KOCH, DAVID H MR", "KOCH, DAVID MR", and "DAVID H KOCH 2003 TRUST", yet all with the same
+  // contribid. This means that aggregating contributions from the same individual requires that we
+  // arbitrarily pick one contrib value to display for the total, and in reality that value may not
+  // be applicable for all of the contributions that we're aggregating.
+  //
+  // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
+  // into a separate table.
+  var sqlQuery =
+     "select " + outerSelectSources + outerSelectTargets + outerAttributes
+         + "'D' as directorindirect, false as isagainst, sum(amount) as amount from "
+         + "(select distinct IndivsToAny.cycle as cycle, fectransid, "
+             + innerSelectSources + innerSelectTargets + innerAttributes
+             + "amount from IndivsToAny "
+             // TODO: Right now this query just looks up individual to candidate contributions. We
+             // should show individual to PAC contributions too.
+             //
+             // TODO: Check the OpenData User's Guide to make certain this is a valid method for
+             // computing individual to candidate contributions.
+             + "inner join Committees on IndivsToAny.recipid = Committees.cmteid "
+                 + "and IndivsToAny.cycle = Committees.cycle "
+             + "inner join Categories on Categories.catcode = IndivsToAny.realcode "
+             + "where contribid is not null and trim(contribid) != '') as InnerQuery "
+         + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
+         + "group by sourcename, sourceid, targetname, targetid, directorindirect, isagainst "
+         + "order by " + outerOrderBy + "amount desc ";
   return sqlQuery;
 }
 

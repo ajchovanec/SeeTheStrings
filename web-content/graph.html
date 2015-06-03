@@ -102,11 +102,28 @@ function getAdjectiveForParty(party) {
       return null;
   }
 }
+
+function setDisplayPropertiesForPacNode(node, link) {
+  if (node.name == null) {
+    if (link.subLinks != null) {
+      // TODO: Should we only be accessing queryParams from high level methods like handleResponse
+      // and buildGraph?
+      var groupContributionsBy = queryParams["groupContributionsBy"];
+      node.name = link.count + " ";
+      if (groupContributionsBy == "Sector") {
+        node.name += "sectors";
+      } else if (groupContributionsBy == "Industry") {
+        node.name += "industries";
+      } else {
+        node.name += "committees"
+      }
+      node.name += ". Double click...";
+    }
+  }
+}
 function setDisplayPropertiesForCandidateNode(node, link) {
   if (node.name == null) {
-    if (link.targetname != null) {
-      node.name = link.targetname;
-    } else if (link.subLinks != null) {
+    if (link.subLinks != null) {
       node.name = link.count + " ";
       if (link.party != null) {
         var adjective = getAdjectiveForParty(link.party);
@@ -127,11 +144,9 @@ function setDisplayPropertiesForCandidateNode(node, link) {
     }
   }
 }
-function setDisplayPropertiesForContributorNode(node, link) {
+function setDisplayPropertiesForIndivNode(node, link) {
   if (node.name == null) {
-    if (link.sourcename != null) {
-      node.name = link.sourcename;
-    } else if (link.subLinks != null) {
+    if (link.subLinks != null) {
       // TODO: Should we only be accessing queryParams from high level methods like handleResponse
       // and buildGraph?
       var groupContributionsBy = queryParams["groupContributionsBy"];
@@ -141,17 +156,19 @@ function setDisplayPropertiesForContributorNode(node, link) {
       } else if (groupContributionsBy == "Industry") {
         node.name += "industries";
       } else {
-        node.name += "contributors"
+        node.name += "committees"
       }
       node.name += ". Double click...";
     }
   }
 }
 function setDisplayPropertiesForNode(node, link) {
-  if (node.id == link.sourceid) {
-    setDisplayPropertiesForContributorNode(node, link);
-  } else if (node.id == link.targetid) {
+  if (node.nodetype == "pac") {
+    setDisplayPropertiesForPacNode(node, link);
+  } else if (node.nodetype == "candidate") {
     setDisplayPropertiesForCandidateNode(node, link);
+  } else if (node.nodetype == "indiv") {
+    setDisplayPropertiesForIndivNode(node, link);
   } else {
     console.log("Error: node and link passed in are not related to each other");
   }
@@ -210,7 +227,7 @@ var graph = {
                     // time, it may be necessary to mark a node as a seed if *any* link that has it
                     // as a source or a target has it marked as a seed.
                     seed: link.seedsource,
-                    sourcetype: link.sourcetype,
+                    nodetype: link.sourcetype,
                     incomingAmount: 0,
                     outgoingAmount: 0
                   });
@@ -223,6 +240,7 @@ var graph = {
                     // time, it may be necessary to mark a node as a seed if *any* link that has it
                     // as a source or a target has it marked as a seed.
                     seed: link.seedtarget,
+                    nodetype: link.targettype,
                     incomingAmount: 0,
                     outgoingAmount: 0
                   });
@@ -607,7 +625,7 @@ function showGraph(inputLinks) {
           // time, it may be necessary to mark a node as a seed if *any* link that has it
           // as a source or a target has it marked as a seed.
           seed: link["seed" + link.childType],  // FIXME
-          sourcetype: (childType == "source" ? link.sourcetype : null),  // FIXME
+          nodetype: (childType == "source" ? link.sourcetype : link.targettype),  // FIXME
           incomingAmount: 0,
           outgoingAmount: 0
         };
@@ -724,7 +742,7 @@ function showGraph(inputLinks) {
     singlePac = svg.select(".gSinglePacs").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.sourcetype == "pac" && d.aggregateLinks.length == 0;
+              return d.nodetype == "pac" && d.aggregateLinks.length == 0;
             }),
             getJoinFunc(nodeKeyFunc));
     singlePac.exit().remove();
@@ -748,7 +766,7 @@ function showGraph(inputLinks) {
     aggregatePac = svg.select(".gAggregatePacs").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.sourcetype == "pac" && d.aggregateLinks.length > 0;
+              return d.nodetype == "pac" && d.aggregateLinks.length > 0;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregatePac.exit().remove();
@@ -780,7 +798,7 @@ function showGraph(inputLinks) {
     singleIndiv = svg.select(".gSingleIndivs").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.sourcetype == "indiv" && d.aggregateLinks.length == 0;
+              return d.nodetype == "indiv" && d.aggregateLinks.length == 0;
             }),
         getJoinFunc(nodeKeyFunc));
     singleIndiv.exit().remove();
@@ -804,7 +822,7 @@ function showGraph(inputLinks) {
     aggregateIndiv = svg.select(".gAggregateIndivs").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.sourcetype == "indiv" && d.aggregateLinks.length > 0;
+              return d.nodetype == "indiv" && d.aggregateLinks.length > 0;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregateIndiv.exit().remove();
@@ -835,7 +853,7 @@ function showGraph(inputLinks) {
     singleCandidate = svg.select(".gSingleCandidates").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.sourcetype == null && d.aggregateLinks.length == 0;
+              return d.nodetype == "candidate" && d.aggregateLinks.length == 0;
             }),
             getJoinFunc(nodeKeyFunc));
     singleCandidate.exit().remove();
@@ -859,7 +877,7 @@ function showGraph(inputLinks) {
     aggregateCandidate = svg.select(".gAggregateCandidates").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.sourcetype == null && d.aggregateLinks.length > 0;
+              return d.nodetype == "candidate" && d.aggregateLinks.length > 0;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregateCandidate.exit().remove();
