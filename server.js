@@ -394,10 +394,6 @@ function getIndivToPacContributions(cycle, seedPacs, seedIndivs, groupContributi
     seedMatchingCriteria.push("seedpac ");
     outerOrderBy += "seedtarget desc, ";
   }
-  if (seedTargetAttributes.length > 0) {  // FIXME: This will be 1 at most.
-   outerAttributes += "(" + seedTargetAttributes.join("or ") + ") as seedtarget, ";
-   outerOrderBy += "seedtarget desc, ";
-  }
   if (seedMatchingCriteria.length == 0) {
    throw new ClientError("No seed IDs were specified");
   }
