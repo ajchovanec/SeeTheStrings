@@ -50,7 +50,7 @@ function getDbWrapper() {
             this._dbWrapper.close(
                 function(err) {
                   if (err) {
-                    console.log("Error closing connection: " + err);
+                    console.log("Error closing connection: " + JSON.stringify(err));
                   } else {
                     console.log("Connection closed!");
                     isConnected = false;
@@ -431,7 +431,7 @@ function getIndivToPacContributions(cycle, seedPacs, seedIndivs, groupContributi
 function doQueryContributions(req, res, sqlQueries) {
   function handleQueryResult(err, contributions) {
     if (err != null) {
-      console.log("Query error: " + JSON.stringify(err));
+      console.log("queryContributions error: " + JSON.stringify(err));
       return null;
     }
     return contributions;
@@ -447,6 +447,18 @@ function doQueryContributions(req, res, sqlQueries) {
     dbWrapper.fetchAll(sqlQuery, barrier.waitOn(handleQueryResult));
   });
   barrier.endWith(function(contributionsLists) {
+    var nullCount = contributionsLists.filter(function(list) { return list == null }).length;
+    if (nullCount == contributionsLists.length) {
+      console.log("All " + contributionsLists.length + " queries failed!");
+    } else if (nullCount > 0) {
+      console.log("Out of " + contributionsLists.length + " queries, " + nullCount + " failed. "
+          + "Results of successful queries will be returned.");
+      // TODO: 500 might not be appropriate if the error is due to a malformed query.
+      res.writeHead(500);
+      res.end();
+      dbWrapper.close();
+      return;
+    }
     var allContributions = _.flatten(contributionsLists, true /* shallow */);
     res.writeHead(200, {"Content-Type": "application/json"});
     res.write(JSON.stringify(allContributions));
@@ -469,12 +481,16 @@ function queryRaces(req, res) {
       function(err, result) {
         if (err != null) {
           console.log("queryRaces error: " + JSON.stringify(err));
-          // TODO: Should we exit here?
+          // TODO: 500 might not be appropriate if the error is due to a malformed query.
+          res.writeHead(500);
+          res.end();
+          dbWrapper.close();
+          return;
         }
         console.log("Got a list of " + result.length + " races");
         result.forEach(function(row) {
           if (row.raceid.length != 4) {
-            console.log("raceid has incorrect length " + row.raceid.length
+            console.log("queryRaces warning: raceid has incorrect length " + row.raceid.length
                 + " and is being ignored. Should be 4.");
             return;
           }
@@ -494,7 +510,8 @@ function queryRaces(req, res) {
             } else {
               var houseDistNumber = parseInt(suffix);
               if (isNaN(houseDistNumber)) {
-                console.log("raceid " + row.raceid + " could not be parsed and is being ignored.");
+                console.log("queryRaces warning: raceid " + row.raceid
+                    + " could not be parsed and is being ignored.");
                 return;
               }
               row.racename = "District " + houseDistNumber;
@@ -522,7 +539,11 @@ function queryCandidates(req, res) {
       function(err, candidates) {
         if (err != null) {
           console.log("queryCandidates error: " + JSON.stringify(err));
-          // TODO: Should we exit here?
+          // TODO: 500 might not be appropriate if the error is due to a malformed query.
+          res.writeHead(500);
+          res.end();
+          dbWrapper.close();
+          return;
         }
         console.log("Got a list of " + candidates.length + " candidates");
         res.writeHead(200, {"Content-Type": "application/json"});
@@ -546,7 +567,11 @@ function queryPacs(req, res) {
       function(err, pacs) {
         if (err != null) {
           console.log("queryPacs error: " + JSON.stringify(err));
-          // TODO: Should we exit here?
+          // TODO: 500 might not be appropriate if the error is due to a malformed query.
+          res.writeHead(500);
+          res.end();
+          dbWrapper.close();
+          return;
         }
         console.log("Got a list of " + pacs.length + " PACs");
         res.writeHead(200, {"Content-Type": "application/json"});
