@@ -590,15 +590,14 @@ router.get('/pacs', queryPacs);
 // Also, Make sure we return the right Content-Type for each file.
 router.use('/', ServeStatic('web-content', {'index': ['form.html']}));
 
-function logerror(err) {
-  console.error("Error handling HTTP request: " + err.toString());
+function onRequestError(err) {
+  console.error("Error while handling HTTP request: " + err.toString());
 }
-
 var server = Http.createServer(
     function(req, res) {
-      router(req, res, Finalhandler(req, res, { onerror: logerror }));
+      router(req, res, Finalhandler(req, res, { onerror: onRequestError }));
     });
-
+server.setTimeout(process.env.REQUEST_TIMEOUT || 30000 /* 30 s */);
 server.listen(port,
     function() {
       console.log('Listening on http://localhost:' + port);
