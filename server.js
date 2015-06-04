@@ -32,7 +32,12 @@ var postgresDbConfig = {
   database: getEnvVarOrDie("PG_DATABASE")
 };
 
-var memoryCache = CacheManager.caching({store: 'memory', max: 10, ttl: 604800 /* 1 week */});
+var memoryCache = CacheManager.caching(
+    {
+      store: 'memory',
+      max: 10,
+      ttl: 604800 /* 1 week */,
+    });
 
 // TODO: Move this and other helper methods into a utilities module.
 function getDbWrapper() {
@@ -64,7 +69,7 @@ function getDbWrapper() {
           memoryCache.wrap(
               sqlQuery,
               function (cacheCallback) {
-                console.log("Cache miss, querying the SQL database")
+                console.log("Cache miss, querying the SQL database");
                 function doFetchAll() {
                   self._dbWrapper.fetchAll(sqlQuery, null, cacheCallback);
                 }
@@ -597,6 +602,7 @@ var server = Http.createServer(
     function(req, res) {
       router(req, res, Finalhandler(req, res, { onerror: onRequestError }));
     });
+// TODO: This seems to cause the request to retry, which may not be what we we want.
 server.setTimeout(process.env.REQUEST_TIMEOUT || 30000 /* 30 s */);
 server.listen(port,
     function() {
