@@ -450,14 +450,14 @@ function doQueryContributions(req, res, sqlQueries) {
     var nullCount = contributionsLists.filter(function(list) { return list == null }).length;
     if (nullCount == contributionsLists.length) {
       console.log("All " + contributionsLists.length + " queries failed!");
-    } else if (nullCount > 0) {
-      console.log("Out of " + contributionsLists.length + " queries, " + nullCount + " failed. "
-          + "Results of successful queries will be returned.");
       // TODO: 500 might not be appropriate if the error is due to a malformed query.
       res.writeHead(500);
       res.end();
       dbWrapper.close();
       return;
+    } else if (nullCount > 0) {
+      console.log("Out of " + contributionsLists.length + " queries, " + nullCount + " failed. "
+          + "Results of successful queries will be returned.");
     }
     var allContributions = _.flatten(contributionsLists, true /* shallow */);
     res.writeHead(200, {"Content-Type": "application/json"});
@@ -590,10 +590,16 @@ router.get('/pacs', queryPacs);
 // Also, Make sure we return the right Content-Type for each file.
 router.use('/', ServeStatic('web-content', {'index': ['form.html']}));
 
-var server = Http.createServer(function(req, res) {
-  router(req, res, Finalhandler(req, res))
-})
+function logerror(err) {
+  console.error("Error handling HTTP request: " + err.toString());
+}
 
-server.listen(port, function() {
-    console.log('Listening on http://localhost:' + port);
-});
+var server = Http.createServer(
+    function(req, res) {
+      router(req, res, Finalhandler(req, res, { onerror: logerror }));
+    });
+
+server.listen(port,
+    function() {
+      console.log('Listening on http://localhost:' + port);
+    });
