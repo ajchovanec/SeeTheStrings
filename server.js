@@ -598,7 +598,7 @@ var server = Http.createServer(
       router(req, res, Finalhandler(req, res, { onerror: onRequestError }));
     });
 // TODO: This seems to cause the request to retry, which may not be what we we want.
-server.setTimeout(process.env.REQUEST_TIMEOUT || 30000 /* 30 s */);
+server.setTimeout(process.env.REQUEST_TIMEOUT || 120000 /* 2 min */);
 server.listen(port,
     function() {
       console.log('Listening on http://localhost:' + port);
