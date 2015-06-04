@@ -377,7 +377,6 @@ function getIndivToPacContributions(cycle, seedPacs, seedIndivs, groupContributi
   var innerSelectTargets = pacAttributesToSelect.inner;
   var outerAttributes = "'indiv' as sourcetype, 'pac' as targettype, ";
   var innerAttributes = "";
-  var seedTargetAttributes = [];
   var seedMatchingCriteria = [];
   var outerOrderBy = "";
   if (seedIndivs.length > 0) {
