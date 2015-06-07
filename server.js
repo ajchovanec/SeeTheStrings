@@ -329,13 +329,6 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
   }
   seedMatchingCriteria = seedMatchingCriteria.join("or ");
 
-  // It's unfortunate that the IndivsToAny table is denormalized with respect to individual donors'
-  // names. E.g., for David Koch we have contrib values "KOCH, DAVID", "KOCH, DAVID H",
-  // "KOCH, DAVID H MR", "KOCH, DAVID MR", and "DAVID H KOCH 2003 TRUST", yet all with the same
-  // contribid. This means that aggregating contributions from the same individual requires that we
-  // arbitrarily pick one contrib value to display for the total, and in reality that value may not
-  // be applicable for all of the contributions that we're aggregating.
-  //
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
   // into a separate table.
   var sqlQuery =
@@ -391,13 +384,6 @@ function getIndivToPacContributions(cycle, seedPacs, seedIndivs, groupContributi
   }
   seedMatchingCriteria = seedMatchingCriteria.join("or ");
   
-  // It's unfortunate that the IndivsToAny table is denormalized with respect to individual donors'
-  // names. E.g., for David Koch we have contrib values "KOCH, DAVID", "KOCH, DAVID H",
-  // "KOCH, DAVID H MR", "KOCH, DAVID MR", and "DAVID H KOCH 2003 TRUST", yet all with the same
-  // contribid. This means that aggregating contributions from the same individual requires that we
-  // arbitrarily pick one contrib value to display for the total, and in reality that value may not
-  // be applicable for all of the contributions that we're aggregating.
-  //
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
   // into a separate table.
   var sqlQuery =
