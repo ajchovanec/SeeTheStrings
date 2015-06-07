@@ -344,9 +344,6 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
           + "(select distinct IndivsToAny.cycle as cycle, fectransid, "
               + innerSelectSources + innerSelectTargets + innerAttributes
               + "amount from IndivsToAny "
-              // TODO: Right now this query just looks up individual to candidate contributions. We
-              // should show individual to PAC contributions too.
-              //
               // TODO: Check the OpenData User's Guide to make certain this is a valid method for
               // computing individual to candidate contributions.
               + "inner join Candidates on IndivsToAny.recipid = Candidates.cid "
