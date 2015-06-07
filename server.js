@@ -181,18 +181,6 @@ function queryContributions(req, res) {
   doQueryContributions(req, res, queries);
 }
 
-function getCandidateAttributesToSelectAndGroupBy(groupCandidatesBy) {
-  return {
-    outer: (groupCandidatesBy == "Selection")
-        ? "'Misc candidates' as targetname, -1 as targetid, "
-        : "firstlastp as targetname, cid as targetid, party, ",
-    inner: (groupCandidatesBy == "Selection") ? ""
-        : "firstlastp, Candidates.cid, Candidates.party, ",
-    groupBy: (groupCandidatesBy == "Selection") ? ""
-        : "targetname, targetid, party, "
-  }
-}
-
 function getPacAttributesToSelect(groupContributionsBy, relativeType) {
   switch (groupContributionsBy) {
     case "PAC":
@@ -234,11 +222,13 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
   var outerSelectSources = pacAttributesToSelect.outer;
   var innerSelectSources = pacAttributesToSelect.inner;
   // TODO: Verify that groupCandidatesBy is actually set.
-  var candidateAttributesToSelectAndGroupBy =
-      getCandidateAttributesToSelectAndGroupBy(groupCandidatesBy);
-  var outerSelectTargets = candidateAttributesToSelectAndGroupBy.outer;
-  var innerSelectTargets = candidateAttributesToSelectAndGroupBy.inner;
-  var outerGroupByTargets = candidateAttributesToSelectAndGroupBy.groupBy;
+  var outerSelectTargets = (groupCandidatesBy == "Selection")
+      ? "'Misc candidates' as targetname, -1 as targetid, "
+      : "firstlastp as targetname, cid as targetid, party, ";
+  var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
+      : "targetname, targetid, party, ";
+  var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
+      : "firstlastp, Candidates.cid, Candidates.party, ";
   var outerAttributes = "'pac' as sourcetype, 'candidate' as targettype, ";
   var innerAttributes = "";
   var seedTargetAttributes = [];
@@ -299,18 +289,20 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
   var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
   var innerSelectSources = "contrib, contribid, ";
   // TODO: Verify that groupCandidatesBy is actually set.
-  var candidateAttributesToSelectAndGroupBy =
-      getCandidateAttributesToSelectAndGroupBy(groupCandidatesBy);
-  var outerSelectTargets = candidateAttributesToSelectAndGroupBy.outer;
-  var innerSelectTargets = candidateAttributesToSelectAndGroupBy.inner;
-  var outerGroupByTargets = candidateAttributesToSelectAndGroupBy.groupBy;
+  var outerSelectTargets = (groupCandidatesBy == "Selection")
+      ? "'Misc candidates' as targetname, -1 as targetid, "
+      : "firstlastp as targetname, cid as targetid, party, ";
+  var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
+      : "targetname, targetid, party, "
+  var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
+      : "firstlastp, Candidates.cid, Candidates.party, ";
   var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";
   var innerAttributes = "";
   var seedTargetAttributes = [];
   var seedMatchingCriteria = [];
   var outerOrderBy = "";
   if (seedIndivs.length > 0) {
-    innerAttributes += "(IndivsToAny.contribid in (" + seedIndivs + ")) as seedindiv, ";
+    innerAttributes += "(contribid in (" + seedIndivs + ")) as seedindiv, ";
     outerAttributes += "bool_or(seedindiv) as seedsource, ";
     seedMatchingCriteria.push("seedindiv ");
     outerOrderBy += "seedsource desc, ";
@@ -357,6 +349,7 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
               // computing individual to candidate contributions.
               + "inner join Candidates on IndivsToAny.recipid = Candidates.cid "
                   + "and IndivsToAny.cycle = Candidates.cycle "
+              // TODO: Don't join against Categories unless necessary.
               + "inner join Categories on Categories.catcode = IndivsToAny.realcode "
               + "where contribid is not null and trim(contribid) != '') as InnerQuery "
           + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
@@ -413,13 +406,11 @@ function getIndivToPacContributions(cycle, seedPacs, seedIndivs, groupContributi
          + "(select distinct IndivsToAny.cycle as cycle, fectransid, "
              + innerSelectSources + innerSelectTargets + innerAttributes
              + "amount from IndivsToAny "
-             // TODO: Right now this query just looks up individual to candidate contributions. We
-             // should show individual to PAC contributions too.
-             //
              // TODO: Check the OpenData User's Guide to make certain this is a valid method for
              // computing individual to candidate contributions.
              + "inner join Committees on IndivsToAny.recipid = Committees.cmteid "
                  + "and IndivsToAny.cycle = Committees.cycle "
+             // TODO: Don't join against Categories unless necessary.
              + "inner join Categories on Categories.catcode = IndivsToAny.realcode "
              + "where contribid is not null and trim(contribid) != '') as InnerQuery "
          + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
@@ -447,7 +438,9 @@ function doQueryContributions(req, res, sqlQueries) {
     dbWrapper.fetchAll(sqlQuery, barrier.waitOn(handleQueryResult));
   });
   barrier.endWith(function(contributionsLists) {
-    var nullCount = contributionsLists.filter(function(list) { return list == null }).length;
+    var nonNullContributionsLists =
+        contributionsLists.filter(function(list) { return list != null });
+    var nullCount = contributionsLists.length - nonNullContributionsLists.length;
     if (nullCount == contributionsLists.length) {
       console.log("All " + contributionsLists.length + " queries failed!");
       // TODO: 500 might not be appropriate if the error is due to a malformed query.
@@ -458,10 +451,15 @@ function doQueryContributions(req, res, sqlQueries) {
     } else if (nullCount > 0) {
       console.log("Out of " + contributionsLists.length + " queries, " + nullCount + " failed. "
           + "Results of successful queries will be returned.");
+    } else {
+      console.log("Got all query results");
     }
-    var allContributions = _.flatten(contributionsLists, true /* shallow */);
+    var allContributions = _.flatten(nonNullContributionsLists, true /* shallow */);
     res.writeHead(200, {"Content-Type": "application/json"});
-    res.write(JSON.stringify(allContributions));
+    console.log("JSON stringifying results");
+    var stringified = JSON.stringify(allContributions);
+    console.log("Writing results");
+    res.write(stringified);
     res.end();
     dbWrapper.close();
   });
