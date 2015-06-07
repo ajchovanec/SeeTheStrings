@@ -286,7 +286,9 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
 // functionality that's shared with getPacContributions() out into a separate method.
 function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedIndivs,
     groupCandidatesBy) {
-  var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
+  var outerSelectSources = "mode() within group (order by contrib) as sourcename, "
+      + "contribid as sourceid, ";
+  var outerGroupBySources = "sourceid, ";
   var innerSelectSources = "contrib, contribid, ";
   // TODO: Verify that groupCandidatesBy is actually set.
   var outerSelectTargets = (groupCandidatesBy == "Selection")
@@ -353,7 +355,7 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
               + "inner join Categories on Categories.catcode = IndivsToAny.realcode "
               + "where contribid is not null and trim(contribid) != '') as InnerQuery "
           + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
-          + "group by sourcename, sourceid, " + outerGroupByTargets
+          + "group by sourceid, " + outerGroupByTargets
           + "directorindirect, isagainst "
           + "order by " + outerOrderBy + "amount desc ";
   return sqlQuery;
@@ -362,9 +364,10 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
 // TODO: In the interest of conciseness, remove degrees of freedom from this method, and factor
 // functionality that's shared with getPacContributions() out into a separate method.
 function getIndivToPacContributions(cycle, seedPacs, seedIndivs, groupContributionsBy) {
-  var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
+  var outerSelectSources = "mode() within group (order by contrib) as sourcename, "
+      + "contribid as sourceid, ";
+  var outerGroupBySources = "sourceid, ";
   var innerSelectSources = "contrib, contribid, ";
-  var outerGroupBySources = "sourcename, sourceid, ";
   var pacAttributesToSelect = getPacAttributesToSelect(groupContributionsBy, "target");
   var outerSelectTargets = pacAttributesToSelect.outer;
   var innerSelectTargets = pacAttributesToSelect.inner;
@@ -414,7 +417,7 @@ function getIndivToPacContributions(cycle, seedPacs, seedIndivs, groupContributi
              + "inner join Categories on Categories.catcode = IndivsToAny.realcode "
              + "where contribid is not null and trim(contribid) != '') as InnerQuery "
          + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
-         + "group by sourcename, sourceid, targetname, targetid, directorindirect, isagainst "
+         + "group by sourceid, targetname, targetid, directorindirect, isagainst "
          + "order by " + outerOrderBy + "amount desc ";
   return sqlQuery;
 }
