@@ -289,12 +289,13 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
     groupCandidatesBy) {
   var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
   var innerSelectSources = "mode() within group (order by contrib) as contrib, contribid, ";
-  var innerGroupBySources = "contribid, recipid";
+  var innerGroupBySources = "contribid, ";
   // TODO: Reimplement support for mode groupCandidatesBy=Selection.
   //
   // TODO: Verify that groupCandidatesBy is actually set.
   var outerSelectTargets = "firstlastp as targetname, recipid as targetid, party, ";
   var innerSelectTargets = "recipid, ";
+  var innerGroupByTargets = "recipid";  // FIXME
   var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";
   var innerAttributes = "";
   var seedTargetAttributes = [];
@@ -336,7 +337,7 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
               + "sum(amount) as amount from IndivsToAny "
               + "where contribid is not null and trim(contribid) != '' "
                   + "and cycle = '" + cycle + "' "
-              + "group by " + innerGroupBySources + ") as InnerQuery "
+              + "group by " + innerGroupBySources + innerGroupByTargets + ") as InnerQuery "
           + "inner join Candidates on InnerQuery.recipid = Candidates.cid "
           // TODO: Join against Categories to support grouping individuals by realcode.
           + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
