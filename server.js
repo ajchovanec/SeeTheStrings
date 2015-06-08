@@ -243,8 +243,9 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
     outerOrderBy += "seedsource desc, ";
   }
   if (seedRace != null) {
-    innerAttributes += "(Candidates.distidrunfor = " + seedRace
-        + " and Candidates.currCand = 'Y') as seedrace, ";
+    var raceQuery = "select cid from Candidates where distidrunfor = " + seedRace
+        + " and currcand = 'Y'";
+    innerAttributes += "(PACsToCandidates.cid in (" + raceQuery + ")) as seedrace, ";
     seedTargetAttributes.push("bool_or(seedrace) ");
     seedMatchingCriteria.push("seedrace ");
   }
@@ -310,8 +311,9 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
     outerOrderBy += "seedsource desc, ";
   }
   if (seedRace != null) {
-    innerAttributes += "(Candidates.distidrunfor = " + seedRace
-        + " and Candidates.currCand = 'Y') as seedrace, ";
+    var raceQuery = "select cid from Candidates where distidrunfor = " + seedRace
+        + " and currcand = 'Y'";
+    innerAttributes += "(recipid in (" + raceQuery + ")) as seedrace, ";
     seedTargetAttributes.push("bool_or(seedrace) ");
     seedMatchingCriteria.push("seedrace ");
   }
