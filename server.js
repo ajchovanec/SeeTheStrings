@@ -287,18 +287,14 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
 // functionality that's shared with getPacContributions() out into a separate method.
 function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedIndivs,
     groupCandidatesBy) {
-  var outerSelectSources = "mode() within group (order by contrib) as sourcename, "
-      + "contribid as sourceid, ";
-  var outerGroupBySources = "sourceid, ";
-  var innerSelectSources = "contrib, contribid, ";
+  var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
+  var innerSelectSources = "mode() within group (order by contrib) as contrib, contribid, ";
+  var innerGroupBySources = "contribid, recipid";
+  // TODO: Reimplement support for mode groupCandidatesBy=Selection.
+  //
   // TODO: Verify that groupCandidatesBy is actually set.
-  var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "'Misc candidates' as targetname, -1 as targetid, "
-      : "firstlastp as targetname, cid as targetid, party, ";
-  var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
-      : "targetname, targetid, party, "
-  var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
-      : "firstlastp, Candidates.cid, Candidates.party, ";
+  var outerSelectTargets = "firstlastp as targetname, recipid as targetid, party, ";
+  var innerSelectTargets = "recipid, ";
   var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";
   var innerAttributes = "";
   var seedTargetAttributes = [];
@@ -306,7 +302,7 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
   var outerOrderBy = "";
   if (seedIndivs.length > 0) {
     innerAttributes += "(contribid in (" + seedIndivs + ")) as seedindiv, ";
-    outerAttributes += "bool_or(seedindiv) as seedsource, ";
+    outerAttributes += "seedindiv as seedsource, ";
     seedMatchingCriteria.push("seedindiv ");
     outerOrderBy += "seedsource desc, ";
   }
@@ -314,12 +310,12 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
     var raceQuery = "select cid from Candidates where distidrunfor = " + seedRace
         + " and currcand = 'Y'";
     innerAttributes += "(recipid in (" + raceQuery + ")) as seedrace, ";
-    seedTargetAttributes.push("bool_or(seedrace) ");
+    seedTargetAttributes.push("seedrace ");
     seedMatchingCriteria.push("seedrace ");
   }
   if (seedCandidates.length > 0) {
-    innerAttributes += "(Candidates.cid in (" + seedCandidates + ")) as seedcandidate, ";
-    seedTargetAttributes.push("bool_or(seedcandidate) ");
+    innerAttributes += "(recipid in (" + seedCandidates + ")) as seedcandidate, ";
+    seedTargetAttributes.push("seedcandidate ");
     seedMatchingCriteria.push("seedcandidate ");
   }
   if (seedTargetAttributes.length > 0) {
@@ -335,20 +331,15 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
   // into a separate table.
   var sqlQuery =
       "select " + outerSelectSources + outerSelectTargets + outerAttributes
-          + "'D' as directorindirect, false as isagainst, sum(amount) as amount from "
-          + "(select distinct IndivsToAny.cycle as cycle, fectransid, "
-              + innerSelectSources + innerSelectTargets + innerAttributes
-              + "amount from IndivsToAny "
-              // TODO: Check the OpenData User's Guide to make certain this is a valid method for
-              // computing individual to candidate contributions.
-              + "inner join Candidates on IndivsToAny.recipid = Candidates.cid "
-                  + "and IndivsToAny.cycle = Candidates.cycle "
-              // TODO: Don't join against Categories unless necessary.
-              + "inner join Categories on Categories.catcode = IndivsToAny.realcode "
-              + "where contribid is not null and trim(contribid) != '') as InnerQuery "
+          + "'D' as directorindirect, false as isagainst, amount from "
+          + "(select distinct " + innerSelectSources + innerSelectTargets + innerAttributes
+              + "sum(amount) as amount from IndivsToAny "
+              + "where contribid is not null and trim(contribid) != '' "
+                  + "and cycle = '" + cycle + "' "
+              + "group by " + innerGroupBySources + ") as InnerQuery "
+          + "inner join Candidates on InnerQuery.recipid = Candidates.cid "
+          // TODO: Join against Categories to support grouping individuals by realcode.
           + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
-          + "group by sourceid, " + outerGroupByTargets
-          + "directorindirect, isagainst "
           + "order by " + outerOrderBy + "amount desc ";
   return sqlQuery;
 }
