@@ -143,7 +143,7 @@ function processRows(rows, seedIds) {
       newLink.count = newCount;
       newLink.directorindirect = firstLink.directorindirect;
       newLink.isagainst = isagainst;
-      newLink.isRefund = firstLink.amount < 0 ? true : false;  // FIXME
+      newLink.isRefund = firstLink.amount < 0;
       newLink[aggregateType + "aggregate"] = true;
       newLink.subLinks = [ firstLink ];
       newLink.seedsource = firstLink.seedsource;

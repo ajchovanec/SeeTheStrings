@@ -625,8 +625,8 @@ function showGraph(inputLinks) {
           // TODO: Once we have nodes that are both a source and a target at the same
           // time, it may be necessary to mark a node as a seed if *any* link that has it
           // as a source or a target has it marked as a seed.
-          seed: link["seed" + link.childType],  // FIXME
-          nodetype: (childType == "source" ? link.sourcetype : link.targettype),  // FIXME
+          seed: link["seed" + childType],  // FIXME
+          nodetype: link[childType + "type"],  // FIXME
           aggregate: link[childType + "aggregate"],  // FIXME
           incomingAmount: 0,
           outgoingAmount: 0
