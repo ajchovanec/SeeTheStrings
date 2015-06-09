@@ -336,7 +336,7 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
           + "(select distinct " + innerSelectSources + innerSelectTargets + innerAttributes
               + "sum(amount) as amount from IndivsToAny "
               + "where contribid is not null and trim(contribid) != '' "
-                  + "and cycle = '" + cycle + "' "
+                  + "and cycle = '" + cycle + "' and recipid like 'N%' "
               + "group by " + innerGroupBySources + innerGroupByTargets + ") as InnerQuery "
           + "inner join Candidates on InnerQuery.recipid = Candidates.cid "
           // TODO: Join against Categories to support grouping individuals by realcode.
