@@ -105,7 +105,7 @@ function getAdjectiveForParty(party) {
 
 function setDisplayPropertiesForPacNode(node, link) {
   if (node.name == null) {
-    if (link.subLinks != null) {
+    if (node.aggregate) {
       // TODO: Should we only be accessing queryParams from high level methods like handleResponse
       // and buildGraph?
       var groupContributionsBy = queryParams["groupContributionsBy"];
@@ -117,13 +117,15 @@ function setDisplayPropertiesForPacNode(node, link) {
       } else {
         node.name += "committees"
       }
-      node.name += ". Double click...";
+      if (link.subLinks != null) {
+        node.name += ". Double click...";
+      }
     }
   }
 }
 function setDisplayPropertiesForCandidateNode(node, link) {
   if (node.name == null) {
-    if (link.subLinks != null) {
+    if (node.aggregate) {
       node.name = Number(link.count).toLocaleString('en-US') + " ";
       if (link.party != null) {
         var adjective = getAdjectiveForParty(link.party);
@@ -131,7 +133,9 @@ function setDisplayPropertiesForCandidateNode(node, link) {
           node.name += adjective + " ";
         }
       }
-      node.name += "candidates. Double click...";
+      if (link.subLinks != null) {
+        node.name += ". Double click...";
+      }
     }
   }
   if (node.party == null || node.party == "U") {
@@ -145,8 +149,11 @@ function setDisplayPropertiesForCandidateNode(node, link) {
   }
 }
 function setDisplayPropertiesForIndivNode(node, link) {
-  if (node.name == null && link.subLinks != null) {
-    node.name = Number(link.count).toLocaleString('en-US') + " individuals. Double click...";
+  if (node.name == null && node.aggregate) {
+    node.name = Number(link.count).toLocaleString('en-US') + " individuals";
+    if (link.subLinks != null) {
+      node.name += ". Double click...";
+    }
   }
 }
 function setDisplayPropertiesForNode(node, link) {
@@ -215,6 +222,7 @@ var graph = {
                     // as a source or a target has it marked as a seed.
                     seed: link.seedsource,
                     nodetype: link.sourcetype,
+                    aggregate: link.sourceaggregate,
                     incomingAmount: 0,
                     outgoingAmount: 0
                   });
@@ -228,6 +236,7 @@ var graph = {
                     // as a source or a target has it marked as a seed.
                     seed: link.seedtarget,
                     nodetype: link.targettype,
+                    aggregate: link.targetaggregate,
                     incomingAmount: 0,
                     outgoingAmount: 0
                   });
@@ -407,6 +416,9 @@ function showGraph(inputLinks) {
   }
 
   function isAggregateNode(node) {
+    return node.aggregate;
+  }
+  function isExpandableNode(node) {
     return node.aggregateLinks.length > 0;
   }
   function getAmountMagnitudeForNode(node) {
@@ -433,13 +445,15 @@ function showGraph(inputLinks) {
   function getEffectiveNodeRadius(node) {
     // TODO: This logic is overly simplistic and will have to evolve. It assumes that PAC nodes will
     // always be sources, and it assumes that all non-PAC nodes will have the same pre-scaled size.
-    if (isAggregateNode(node)) {
-      return 12 * getScaleForNode(node);
-    } else if (node.sourcetype == "pac") {
-      return 10 * getScaleForNode(node);
+    var multiplier;
+    if (isExpandableNode(node)) {
+      multiplier = 12;
+    } else if (node.nodetype == "pac") {
+      multiplier = isAggregateNode(node) ? 5 : 10;
     } else {
-      return 8 * getScaleForNode(node);
+      multiplier = 8;
     }
+    return multiplier * getScaleForNode(node);
   }
 
   // These values are shared between the linkLine() and transformLinkText() methods.
@@ -613,6 +627,7 @@ function showGraph(inputLinks) {
           // as a source or a target has it marked as a seed.
           seed: link["seed" + link.childType],  // FIXME
           nodetype: (childType == "source" ? link.sourcetype : link.targettype),  // FIXME
+          aggregate: link[childType + "aggregate"],  // FIXME
           incomingAmount: 0,
           outgoingAmount: 0
         };
@@ -693,7 +708,7 @@ function showGraph(inputLinks) {
     // Global variables representing UI element selections are defined below.
 
     halo = svg.select(".gHalos").selectAll(".halo")
-        .data(graph.nodes().filter(isAggregateNode), getJoinFunc(nodeKeyFunc));
+        .data(graph.nodes().filter(isExpandableNode), getJoinFunc(nodeKeyFunc));
     halo.exit().remove();
     halo.enter().append("circle")
         .attr("r", 12)
@@ -729,7 +744,7 @@ function showGraph(inputLinks) {
     singlePac = svg.select(".gSinglePacs").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "pac" && d.aggregateLinks.length == 0;
+              return d.nodetype == "pac" && !d.aggregate;
             }),
             getJoinFunc(nodeKeyFunc));
     singlePac.exit().remove();
@@ -753,7 +768,7 @@ function showGraph(inputLinks) {
     aggregatePac = svg.select(".gAggregatePacs").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "pac" && d.aggregateLinks.length > 0;
+              return d.nodetype == "pac" && d.aggregate;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregatePac.exit().remove();
@@ -785,7 +800,7 @@ function showGraph(inputLinks) {
     singleIndiv = svg.select(".gSingleIndivs").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "indiv" && d.aggregateLinks.length == 0;
+              return d.nodetype == "indiv" && !d.aggregate;
             }),
         getJoinFunc(nodeKeyFunc));
     singleIndiv.exit().remove();
@@ -809,7 +824,7 @@ function showGraph(inputLinks) {
     aggregateIndiv = svg.select(".gAggregateIndivs").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "indiv" && d.aggregateLinks.length > 0;
+              return d.nodetype == "indiv" && d.aggregate;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregateIndiv.exit().remove();
@@ -840,7 +855,7 @@ function showGraph(inputLinks) {
     singleCandidate = svg.select(".gSingleCandidates").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "candidate" && d.aggregateLinks.length == 0;
+              return d.nodetype == "candidate" && !d.aggregate;
             }),
             getJoinFunc(nodeKeyFunc));
     singleCandidate.exit().remove();
@@ -864,7 +879,7 @@ function showGraph(inputLinks) {
     aggregateCandidate = svg.select(".gAggregateCandidates").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "candidate" && d.aggregateLinks.length > 0;
+              return d.nodetype == "candidate" && d.aggregate;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregateCandidate.exit().remove();

@@ -201,13 +201,15 @@ function getPacAttributesToSelect(groupContributionsBy, relativeType) {
       break;
     case "Industry":
       return {
-        outer: "catname as " + relativeType + "name, catcode as " + relativeType + "id, ",
+        outer: "catname as " + relativeType + "name, catcode as " + relativeType + "id, "
+            + "true as " + relativeType + "aggregate, ",
         inner: "catname, catcode, "
       };
       break;
     case "Sector":
       return {
-        outer: "sector as " + relativeType + "name, sector as " + relativeType + "id, ",
+        outer: "sector as " + relativeType + "name, sector as " + relativeType + "id, "
+            + "true as " + relativeType + "aggregate, ",
         inner: "sector, "
       };
       break;
@@ -223,7 +225,7 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
   var innerSelectSources = pacAttributesToSelect.inner;
   // TODO: Verify that groupCandidatesBy is actually set.
   var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "'Misc candidates' as targetname, -1 as targetid, "
+      ? "'Misc candidates' as targetname, -1 as targetid, true as targetaggregate, "
       : "firstlastp as targetname, cid as targetid, party, ";
   var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
       : "targetname, targetid, party, ";
@@ -294,7 +296,7 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
   //
   // TODO: Verify that groupCandidatesBy is actually set.
   var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "'Misc candidates' as targetname, -1 as targetid, "
+      ? "'Misc candidates' as targetname, -1 as targetid, true as targetaggregate, "
       : "firstlastp as targetname, recipid as targetid, party, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? "" : "recipid, ";
   var innerGroupByTargets = (groupCandidatesBy == "Selection") ? "" : ", recipid";  // FIXME
