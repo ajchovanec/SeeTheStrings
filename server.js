@@ -337,20 +337,22 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
   }
   seedMatchingCriteria = seedMatchingCriteria.join("or ");
 
+  var innerSqlQuery = "select distinct " + innerSelectSources + innerSelectTargets + innerAttributes
+      + "sum(amount) as amount from IndivsToAny "
+      + "where contribid is not null and trim(contribid) != '' "
+          + "and cycle = '" + cycle + "' and recipid like 'N%' "
+      + "group by " + innerGroupBySources + innerGroupByTargets;
+
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
   // into a separate table.
-  var sqlQuery =
+  var outerSqlQuery =
       "select " + outerSelectSources + outerSelectTargets + outerAttributes
           + "'D' as directorindirect, false as isagainst, amount from "
-          + "(select distinct " + innerSelectSources + innerSelectTargets + innerAttributes
-              + "sum(amount) as amount from IndivsToAny "
-              + "where contribid is not null and trim(contribid) != '' "
-                  + "and cycle = '" + cycle + "' and recipid like 'N%' "
-              + "group by " + innerGroupBySources + innerGroupByTargets + ") as InnerQuery "
+          + "(" + innerSqlQuery + ") as InnerQuery "
           // TODO: Also join against Categories to support grouping individuals by realcode.
           + joinClause + "where " + outerWhereConditions + "(" + seedMatchingCriteria + ") "
           + "order by " + outerOrderBy + "amount desc ";
-  return sqlQuery;
+  return outerSqlQuery;
 }
 
 // TODO: In the interest of conciseness, remove degrees of freedom from this method, and factor
