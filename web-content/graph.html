@@ -121,13 +121,14 @@ function setDisplayPropertiesForPacNode(node, link) {
       // TODO: Should we only be accessing queryParams from high level methods like handleResponse
       // and buildGraph?
       var groupContributionsBy = queryParams["groupContributionsBy"];
-      node.name = Number(link.count).toLocaleString('en-US') + " ";
+      node.name = Number(link.count).toLocaleString('en-US');
+      console.log()
       if (groupContributionsBy == "Sector") {
-        node.name += "sectors";
+        node.name += " sectors";
       } else if (groupContributionsBy == "Industry") {
-        node.name += "industries";
+        node.name += " industries";
       } else {
-        node.name += "committees"
+        node.name += " committees";
       }
       if (link.subLinks != null) {
         node.name += ". Double click...";
@@ -138,13 +139,14 @@ function setDisplayPropertiesForPacNode(node, link) {
 function setDisplayPropertiesForCandidateNode(node, link) {
   if (node.name == null) {
     if (node.aggregate) {
-      node.name = Number(link.count).toLocaleString('en-US') + " ";
+      node.name = Number(link.count).toLocaleString('en-US');
       if (link.party != null) {
         var adjective = getAdjectiveForParty(link.party);
         if (adjective != null) {
-          node.name += adjective + " ";
+          node.name += " " + adjective;
         }
       }
+      node.name += " candidates";
       if (link.subLinks != null) {
         node.name += ". Double click...";
       }
