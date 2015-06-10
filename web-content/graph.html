@@ -103,6 +103,18 @@ function getAdjectiveForParty(party) {
   }
 }
 
+function setDisplayPropertiesForLink(link) {
+  // A PAC node can be a source for a contribution to a candidate, or a target for a contribution
+  // from an individual. To make certain that all links that a PAC node participates in *appear* to
+  // have the same orientation, we actually need to *invert* the orientation (from clockwise to
+  // counter clockwise) in the case of an individual to PAC link.
+  if (link.sourcetype == "indiv" && link.targettype == "pac") {
+    link.orientation = 0;  // counterclockwise
+  } else {
+    link.orientation = 1;  // clockwise
+  }
+}
+
 function setDisplayPropertiesForPacNode(node, link) {
   if (node.name == null) {
     if (node.aggregate) {
@@ -242,9 +254,15 @@ var graph = {
                   });
               link.source.outgoingAmount += link.amount;
               link.target.incomingAmount += link.amount;
-              // Set the display properties for both nodes based on the properties of the link.
+              // Set the display properties for the link and its source and target nodes.
+              //
+              // TODO: Since a single node will usually participate in multiple links, we will
+              // usually end up setting its display properties multiple times. Make certain that the
+              // display properties that it ends up having in the end don't depend on the order in
+              // which the links are processed.
               //
               // TODO: Move these display-related calls out of this method.
+              setDisplayPropertiesForLink(link);
               setDisplayPropertiesForNode(link.source, link);
               setDisplayPropertiesForNode(link.target, link);
               if (link.subLinks != null) {
@@ -456,13 +474,15 @@ function showGraph(inputLinks) {
     return multiplier * getScaleForNode(node);
   }
 
-  // These values are shared between the linkLine() and transformLinkText() methods.
-  //
-  // TODO: Find a better place to put these.
-  var linkOrientation = 1;  // 1 for clockwise, 0 for counter clockwise
-  var linkOrientationMultiplier = linkOrientation ? -1 : 1;
+  // This helper function is shared between the linkLine() and transformLinkText() methods.
+  function getLinkOrientationMultiplier(orientation) {
+    return orientation ? -1 : 1;
+  }
 
   function linkLine(d) {
+    var linkOrientation = d.orientation;
+    var linkOrientationMultiplier = getLinkOrientationMultiplier(linkOrientation);
+
     var effectiveSourceRadius = getEffectiveNodeRadius(d.source);
     var effectiveTargetRadius = getEffectiveNodeRadius(d.target);
 
@@ -538,6 +558,9 @@ function showGraph(inputLinks) {
   }
 
   function transformLinkText(d) {
+    var linkOrientation = d.orientation;
+    var linkOrientationMultiplier = getLinkOrientationMultiplier(linkOrientation);
+
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
     var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
@@ -637,7 +660,8 @@ function showGraph(inputLinks) {
           nodeChild.incomingAmount += link.amount;
         }
         graph.addNode(nodeChild);
-        // Set the display properties for the new node based on the properties of the link.
+        // Set the display properties for the new link and node.
+        setDisplayPropertiesForLink(link);
         setDisplayPropertiesForNode(nodeChild, link);
         if (link.subLinks != null) {
           // Add a reference to the aggregate link to the aggregate node so that we can find the
