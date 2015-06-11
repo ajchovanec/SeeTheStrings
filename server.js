@@ -160,15 +160,15 @@ function queryContributions(req, res) {
 
   var queries = [];
   try {
-    var pacContributionsQuery = getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
+    var pacContributionsQuery = getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
         groupCandidatesBy, groupContributionsBy, contributionTypes);
     queries.push(pacContributionsQuery)
     if (seedIndivs.length > 0) {
-      var indivToCandidateContributionsQuery = getIndivToCandidateContributions(cycle,
-          seedRace, seedCandidates, seedIndivs, groupCandidatesBy);
+      var indivToCandidateContributionsQuery = getIndivToCandidateContributionsQuery(
+          cycle, seedIndivs, seedRace, seedCandidates, groupCandidatesBy);
       queries.push(indivToCandidateContributionsQuery);
-      var indivToPacContributionsQuery = getIndivToPacContributions(cycle,
-          seedPacs, seedIndivs, groupContributionsBy);
+      var indivToPacContributionsQuery = getIndivToPacContributionsQuery(
+          cycle, seedIndivs, seedPacs, groupContributionsBy);
       queries.push(indivToPacContributionsQuery);
     }
   } catch (e) {
@@ -218,7 +218,7 @@ function getPacAttributesToSelect(groupContributionsBy, relativeType) {
   }
 }
 
-function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
+function getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
     groupCandidatesBy, groupContributionsBy, contributionTypes) {
   var pacAttributesToSelect = getPacAttributesToSelect(groupContributionsBy, "source");
   var outerSelectSources = pacAttributesToSelect.outer;
@@ -285,23 +285,49 @@ function getPacContributions(cycle, seedRace, seedCandidates, seedPacs,
   return sqlQuery;
 }
 
-// TODO: In the interest of conciseness, remove degrees of freedom from this method, and factor
-// functionality that's shared with getPacContributions() out into a separate method.
-function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedIndivs,
+function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seedCandidates,
     groupCandidatesBy) {
-  var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
   var innerSelectSources = "mode() within group (order by contrib) as contrib, contribid, ";
   var innerGroupBySources = "contribid";
+  // TODO: Reimplement support for mode groupCandidatesBy=Selection.
+  //
+  // TODO: Verify that groupCandidatesBy is actually set.
+  var innerSelectTargets = (groupCandidatesBy == "Selection") ? "" : "recipid, ";
+  var innerGroupByTargets = (groupCandidatesBy == "Selection") ? "" : ", recipid";  // FIXME
+  var innerAttributes = "";
+  if (seedIndivs.length > 0) {
+    innerAttributes += "(contribid in (" + seedIndivs + ")) as seedindiv, ";
+  }
+  var seedAggregator = (groupCandidatesBy == "Selection") ? "bool_or" : "";
+  if (seedRace != null) {
+    var raceQuery = "select cid from Candidates where distidrunfor = " + seedRace
+        + " and currcand = 'Y'";
+    innerAttributes += seedAggregator + "(recipid in (" + raceQuery + ")) as seedrace, ";
+  }
+  if (seedCandidates.length > 0) {
+    innerAttributes += seedAggregator + "(recipid in (" + seedCandidates + ")) as seedcandidate, ";
+  }
+
+  var innerSqlQuery = "select distinct " + innerSelectSources + innerSelectTargets + innerAttributes
+      + "sum(amount) as amount from IndivsToAny "
+      + "where contribid is not null and trim(contribid) != '' "
+          + "and cycle = '" + cycle + "' and recipid like 'N%' "
+      + "group by " + innerGroupBySources + innerGroupByTargets;
+  return innerSqlQuery;
+}
+
+// TODO: In the interest of conciseness, remove degrees of freedom from this method, and factor
+// functionality that's shared with getPacContributions() out into a separate method.
+function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seedCandidates,
+    groupCandidatesBy) {
+  var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
   // TODO: Reimplement support for mode groupCandidatesBy=Selection.
   //
   // TODO: Verify that groupCandidatesBy is actually set.
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "'Misc candidates' as targetname, -1 as targetid, true as targetaggregate, "
       : "firstlastp as targetname, recipid as targetid, party, ";
-  var innerSelectTargets = (groupCandidatesBy == "Selection") ? "" : "recipid, ";
-  var innerGroupByTargets = (groupCandidatesBy == "Selection") ? "" : ", recipid";  // FIXME
   var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";
-  var innerAttributes = "";
   var joinClause = (groupCandidatesBy == "Selection") ? ""
       : "inner join Candidates on InnerQuery.recipid = Candidates.cid ";
   var outerWhereConditions = (groupCandidatesBy == "Selection") ? ""
@@ -310,7 +336,6 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
   var seedMatchingCriteria = [];
   var outerOrderBy = "";
   if (seedIndivs.length > 0) {
-    innerAttributes += "(contribid in (" + seedIndivs + ")) as seedindiv, ";
     outerAttributes += "seedindiv as seedsource, ";
     seedMatchingCriteria.push("seedindiv ");
     outerOrderBy += "seedsource desc, ";
@@ -319,12 +344,10 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
   if (seedRace != null) {
     var raceQuery = "select cid from Candidates where distidrunfor = " + seedRace
         + " and currcand = 'Y'";
-    innerAttributes += seedAggregator + "(recipid in (" + raceQuery + ")) as seedrace, ";
     seedTargetAttributes.push("seedrace ");
     seedMatchingCriteria.push("seedrace ");
   }
   if (seedCandidates.length > 0) {
-    innerAttributes += seedAggregator + "(recipid in (" + seedCandidates + ")) as seedcandidate, ";
     seedTargetAttributes.push("seedcandidate ");
     seedMatchingCriteria.push("seedcandidate ");
   }
@@ -337,11 +360,8 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
   }
   seedMatchingCriteria = seedMatchingCriteria.join("or ");
 
-  var innerSqlQuery = "select distinct " + innerSelectSources + innerSelectTargets + innerAttributes
-      + "sum(amount) as amount from IndivsToAny "
-      + "where contribid is not null and trim(contribid) != '' "
-          + "and cycle = '" + cycle + "' and recipid like 'N%' "
-      + "group by " + innerGroupBySources + innerGroupByTargets;
+  var innerSqlQuery = getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
+      seedCandidates, groupCandidatesBy)
 
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
   // into a separate table.
@@ -357,7 +377,7 @@ function getIndivToCandidateContributions(cycle, seedRace, seedCandidates, seedI
 
 // TODO: In the interest of conciseness, remove degrees of freedom from this method, and factor
 // functionality that's shared with getPacContributions() out into a separate method.
-function getIndivToPacContributions(cycle, seedPacs, seedIndivs, groupContributionsBy) {
+function getIndivToPacContributionsQuery(cycle, seedPacs, seedIndivs, groupContributionsBy) {
   var outerSelectSources = "mode() within group (order by contrib) as sourcename, "
       + "contribid as sourceid, ";
   var outerGroupBySources = "sourceid, ";
