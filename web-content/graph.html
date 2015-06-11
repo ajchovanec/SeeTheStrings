@@ -662,8 +662,7 @@ function showGraph(inputLinks) {
           nodeChild.incomingAmount += link.amount;
         }
         graph.addNode(nodeChild);
-        // Set the display properties for the new link and node.
-        setDisplayPropertiesForLink(link);
+        // Set the display properties for the new node.
         setDisplayPropertiesForNode(nodeChild, link);
         if (link.subLinks != null) {
           // Add a reference to the aggregate link to the aggregate node so that we can find the
@@ -685,6 +684,8 @@ function showGraph(inputLinks) {
       // changes might not take effect.
       console.log("Appending a new link");
       graph.addLink(link);
+      // Set the display properties for the new link.
+      setDisplayPropertiesForLink(link);
     }
   }
 
