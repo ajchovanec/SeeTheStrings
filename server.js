@@ -295,23 +295,39 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? "" : "recipid, ";
   var innerGroupByTargets = (groupCandidatesBy == "Selection") ? "" : ", recipid";  // FIXME
   var innerAttributes = "";
+  var seedMatchingCriteria = [];
+  var filterCriteria = {
+    contribidFilter: "contribid is not null and trim(contribid) != '' ",
+    recipidFilter: "recipid like 'N%' "
+  };
   if (seedIndivs.length > 0) {
-    innerAttributes += "(contribid in (" + seedIndivs + ")) as seedindiv, ";
+    var criterion = "contribid in (" + seedIndivs + ") ";
+    innerAttributes += "(" + criterion + ") as seedindiv, ";
+    seedMatchingCriteria.push(criterion);
   }
   var seedAggregator = (groupCandidatesBy == "Selection") ? "bool_or" : "";
   if (seedRace != null) {
     var raceQuery = "select cid from Candidates where distidrunfor = " + seedRace
         + " and currcand = 'Y'";
-    innerAttributes += seedAggregator + "(recipid in (" + raceQuery + ")) as seedrace, ";
+    var criterion = "recipid in (" + raceQuery + ") ";
+    innerAttributes += seedAggregator + "(" + criterion + ") as seedrace, ";
+    seedMatchingCriteria.push(criterion);
   }
   if (seedCandidates.length > 0) {
-    innerAttributes += seedAggregator + "(recipid in (" + seedCandidates + ")) as seedcandidate, ";
+    var criterion = "recipid in (" + seedCandidates + ") ";
+    innerAttributes += seedAggregator + "(" + criterion + ") as seedcandidate, ";
+    seedMatchingCriteria.push(criterion);
   }
+  seedMatchingCriteria = seedMatchingCriteria.length > 0
+      ? "(" + seedMatchingCriteria.join("or ") + ") and "
+      : "";
+  filterCriteria = Object.keys(filterCriteria).length > 0
+      ? "(" + _.values(filterCriteria).join("and ") + ") and "
+      : "";
 
   var innerSqlQuery = "select distinct " + innerSelectSources + innerSelectTargets + innerAttributes
       + "sum(amount) as amount from IndivsToAny "
-      + "where contribid is not null and trim(contribid) != '' "
-          + "and cycle = '" + cycle + "' and recipid like 'N%' "
+      + "where " + seedMatchingCriteria + filterCriteria + "cycle = '" + cycle + "' "
       + "group by " + innerGroupBySources + innerGroupByTargets;
   return innerSqlQuery;
 }
@@ -330,14 +346,12 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
   var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";
   var joinClause = (groupCandidatesBy == "Selection") ? ""
       : "inner join Candidates on InnerQuery.recipid = Candidates.cid ";
-  var outerWhereConditions = (groupCandidatesBy == "Selection") ? ""
-      : "cycle = '" + cycle + "' and ";
+  var whereClause = (groupCandidatesBy == "Selection") ? ""
+      : "where cycle = '" + cycle + "' ";
   var seedTargetAttributes = [];
-  var seedMatchingCriteria = [];
   var outerOrderBy = "";
   if (seedIndivs.length > 0) {
     outerAttributes += "seedindiv as seedsource, ";
-    seedMatchingCriteria.push("seedindiv ");
     outerOrderBy += "seedsource desc, ";
   }
   var seedAggregator = (groupCandidatesBy == "Selection") ? "bool_or" : "";
@@ -345,20 +359,14 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
     var raceQuery = "select cid from Candidates where distidrunfor = " + seedRace
         + " and currcand = 'Y'";
     seedTargetAttributes.push("seedrace ");
-    seedMatchingCriteria.push("seedrace ");
   }
   if (seedCandidates.length > 0) {
     seedTargetAttributes.push("seedcandidate ");
-    seedMatchingCriteria.push("seedcandidate ");
   }
   if (seedTargetAttributes.length > 0) {
     outerAttributes += "(" + seedTargetAttributes.join("or ") + ") as seedtarget, ";
     outerOrderBy += "seedtarget desc, ";
   }
-  if (seedMatchingCriteria.length == 0) {
-    throw new ClientError("No seed IDs were specified");
-  }
-  seedMatchingCriteria = seedMatchingCriteria.join("or ");
 
   var innerSqlQuery = getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
       seedCandidates, groupCandidatesBy)
@@ -370,7 +378,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
           + "'D' as directorindirect, false as isagainst, amount from "
           + "(" + innerSqlQuery + ") as InnerQuery "
           // TODO: Also join against Categories to support grouping individuals by realcode.
-          + joinClause + "where " + outerWhereConditions + "(" + seedMatchingCriteria + ") "
+          + joinClause + whereClause
           + "order by " + outerOrderBy + "amount desc ";
   return outerSqlQuery;
 }
