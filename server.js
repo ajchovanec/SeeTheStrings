@@ -277,6 +277,7 @@ function getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
               + "inner join Committees on PACsToCandidates.pacid = Committees.cmteid "
                   + "and PACsToCandidates.cycle = Committees.cycle "
               + "inner join Categories on Categories.catcode = Committees.primcode "
+              // TODO: We may also need to verify that Candidates.currcand = 'Y' here.
               + "where directorindirect in (" + contributionTypes + ")) as InnerQuery "
           + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
           + "group by sourcename, sourceid, " + outerGroupByTargets
@@ -347,7 +348,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
   var joinClause = (groupCandidatesBy == "Selection") ? ""
       : "inner join Candidates on InnerQuery.recipid = Candidates.cid ";
   var whereClause = (groupCandidatesBy == "Selection") ? ""
-      : "where cycle = '" + cycle + "' ";
+      : "where cycle = '" + cycle + "' and currcand = 'Y' ";
   var seedTargetAttributes = [];
   var outerOrderBy = "";
   if (seedIndivs.length > 0) {
