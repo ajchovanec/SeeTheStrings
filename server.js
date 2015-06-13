@@ -288,13 +288,13 @@ function getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
 
 function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seedCandidates,
     groupCandidatesBy) {
-  var innerSelectSources = "mode() within group (order by contrib) as contrib, contribid, ";
-  var innerGroupBySources = "contribid";
+  var innerSelectSources = (groupCandidatesBy == "Selection")
+      ? "mode() within group (order by contrib) as contrib, contribid, "
+      : "contrib, contribid, ";
   // TODO: Reimplement support for mode groupCandidatesBy=Selection.
   //
   // TODO: Verify that groupCandidatesBy is actually set.
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? "" : "recipid, ";
-  var innerGroupByTargets = (groupCandidatesBy == "Selection") ? "" : ", recipid";  // FIXME
   var innerAttributes = "";
   var seedMatchingCriteria = [];
   var filterCriteria = {
@@ -319,17 +319,21 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
     innerAttributes += seedAggregator + "(" + criterion + ") as seedcandidate, ";
     seedMatchingCriteria.push(criterion);
   }
+  innerAttributes += (groupCandidatesBy == "Selection") ? "sum(amount) as amount " : "amount ";
   seedMatchingCriteria = seedMatchingCriteria.length > 0
       ? "(" + seedMatchingCriteria.join("or ") + ") and "
       : "";
   filterCriteria = Object.keys(filterCriteria).length > 0
       ? "(" + _.values(filterCriteria).join("and ") + ") and "
       : "";
+  var groupByClause = (groupCandidatesBy == "Selection")
+      ? "group by contribid"
+      : "";
 
   var innerSqlQuery = "select distinct " + innerSelectSources + innerSelectTargets + innerAttributes
-      + "sum(amount) as amount from IndivsToAny "
+      + "from IndivsToCandidateTotals "
       + "where " + seedMatchingCriteria + filterCriteria + "cycle = '" + cycle + "' "
-      + "group by " + innerGroupBySources + innerGroupByTargets;
+      + groupByClause
   return innerSqlQuery;
 }
 
