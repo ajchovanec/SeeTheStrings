@@ -5,7 +5,7 @@ rm -f ./*.sanitized
 
 cp ../data/CRP_Categories.txt ./
 
-CYCLES="10 12 14"
+CYCLES="08 10 12 14"
 
 for CYCLE in $CYCLES; do
   ./PrepCampaignCSV.sh $CYCLE

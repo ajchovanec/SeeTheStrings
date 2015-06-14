@@ -8,6 +8,32 @@
 
 echo "\copy Categories from ./CRP_Categories.txt delimiter E'\t'"
 
+echo "CREATE TABLE TempIndivsToAny (\
+    cycle TEXT,\
+    fectransid TEXT,\
+    contribid TEXT,\
+    contrib TEXT,\
+    recipid TEXT,\
+    orgname TEXT,\
+    ultorg TEXT,\
+    realcode TEXT,\
+    date TEXT,\
+    amount INTEGER,\
+    street TEXT,\
+    city TEXT,\
+    state TEXT,\
+    zip TEXT,\
+    recipcode TEXT,\
+    type TEXT,\
+    cmteid TEXT,\
+    otherid TEXT,\
+    gender TEXT,\
+    microfilm TEXT,\
+    occupation TEXT,\
+    employer TEXT,\
+    source TEXT\
+);"
+
 CYCLES=$@
 for CYCLE in $CYCLES; do
   echo "\copy Candidates from ./cands$CYCLE.sanitized delimiter '|'"
@@ -15,8 +41,17 @@ for CYCLE in $CYCLES; do
   echo "\copy PACsToCandidates from ./pacs$CYCLE.sanitized delimiter '|'"
   echo "\copy PACsToPACs from ./pac_other$CYCLE.sanitized delimiter '|'"
   echo "\copy IndivsToAny from ./indivs$CYCLE.sanitized delimiter '|'"
+  echo "INSERT INTO IndivsToCandidateTotals\
+      SELECT DISTINCT\
+          CYCLE,\
+          MODE() WITHIN GROUP (ORDER BY contrib) AS contrib,\
+          contribid,\
+          recipid,\
+          CAST(SUM(amount) as INTEGER) AS amount\
+      FROM TempIndivsToAny\
+      WHERE contrib IS NOT NULL and TRIM(contrib) != '' and recipid IS NOT LIKE 'N%'\
+      GROUP BY cycle, contribid, recipid;"
+  echo "DELETE FROM TempIndivsToAny;"
 done
 
-echo "CREATE TABLE IndivsToAnyTotals (cycle, contrib, contribid, recipid, amount) AS\
-     SELECT DISTINCT CYCLE, MODE() WITHIN GROUP (ORDER BY contrib) AS contrib, contribid, recipid,\
-     CAST(SUM(amount) as INTEGER) AS amount FROM IndivsToAny GROUP BY cycle, contribid, recipid;"
+echo "DROP TABLE TempIndivsToAny;"

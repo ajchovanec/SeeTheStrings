@@ -17,7 +17,7 @@ DROP TABLE IF EXISTS Candidates;
 DROP TABLE IF EXISTS Committees;
 DROP TABLE IF EXISTS PACsToCandidates;
 DROP TABLE IF EXISTS PACsToPACs;
-DROP TABLE IF EXISTS IndivsToAny;
+DROP TABLE IF EXISTS IndivsToCandidateTotals;
 
 CREATE TABLE Categories (
     catcode TEXT,
@@ -99,28 +99,10 @@ CREATE TABLE PACsToPACs (
     source TEXT
 );
 
-CREATE TABLE IndivsToAny (
+CREATE TABLE IndivsToCandidateTotals (
     cycle TEXT,
-    fectransid TEXT,
-    contribid TEXT,
     contrib TEXT,
+    contribid TEXT,
     recipid TEXT,
-    orgname TEXT,
-    ultorg TEXT,
-    realcode TEXT,
-    date TEXT,
-    amount INTEGER,
-    street TEXT,
-    city TEXT,
-    state TEXT,
-    zip TEXT,
-    recipcode TEXT,
-    type TEXT,
-    cmteid TEXT,
-    otherid TEXT,
-    gender TEXT,
-    microfilm TEXT,
-    occupation TEXT,
-    employer TEXT,
-    source TEXT
+    amount INTEGER
 );
