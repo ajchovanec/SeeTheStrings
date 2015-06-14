@@ -302,7 +302,7 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
     } else if (seedType == "Race") {
       seedRaceSelectTarget = "true as seedrace, "
       seedMatchingCriteria = "recipid in (select cid from Candidates where distidrunfor = "
-          + seedRace + " and currcand = 'Y'))";
+          + seedRace + " and currcand = 'Y')";
       orderBySeed = "seedrace, ";
     } else if (seedType == "Candidate") {
       seedCandidateSelectTarget = "true as seedcandidate, ";
@@ -314,17 +314,19 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
       seedIndivSelectTarget = "contribid in (" + seedIndivs + ") as seedindiv, ";
     }
     if (seedRaceSelectTarget == "" && seedRace) {
-      seedRaceSelectTarget = "recipid in (select cid from Candidates where distidrunfor = "
+      seedRaceSelectTarget = "(recipid in (select cid from Candidates where distidrunfor = "
           + seedRace + " and currcand = 'Y')) as seedrace, "
     }
     if (seedCandidateSelectTarget == "" && seedCandidates.length > 0) {
       seedCandidateSelectTarget = "recipid in (" + seedCandidates + ") as seedcandidate, ";
     }
 
-    var seedSqlQuery = "select contrib, contribid, recipid, " + seedIndivSelectTarget
+    // TODO: The use of maxLinksPerSeed is broken for the case where seedType == 'Race'. It causes
+    // us to select that many contributors for all candidates combined, rather than per candidate.
+    var seedSqlQuery = "(select contrib, contribid, recipid, " + seedIndivSelectTarget
         + seedRaceSelectTarget + seedCandidateSelectTarget + " amount from IndivsToCandidateTotals "
         + "where " + seedMatchingCriteria + " and cycle = '" + cycle + "' order by " + orderBySeed
-        + "amount desc limit " + maxLinksPerSeed;
+        + "amount desc limit " + maxLinksPerSeed + ") ";
     return seedSqlQuery;
   }
   var subqueries = [];
@@ -338,6 +340,7 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
     subqueries.push(getOneSeedSubquery(cycle, "Candidate", seedIndivs, seedRace, [ candidate ]));
   });
   console.log("Proposed subqueries: " + subqueries);
+  var alternateInnerSqlQuery = subqueries.join("union ");
 
   var innerSelectSources = (groupCandidatesBy == "Selection")
       ? "mode() within group (order by contrib) as contrib, contribid, "
