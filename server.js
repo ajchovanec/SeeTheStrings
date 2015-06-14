@@ -285,6 +285,48 @@ function getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
 
 function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seedCandidates,
     groupCandidatesBy) {
+  var maxLinksPerSeed = 100;
+
+  function getOneSeedSubquery(cycle, seedType, seedIndivs, seedRace, seedCandidates) {
+    var seedIndivSelectTarget = "";
+    var seedRaceSelectTarget = "";
+    var seedCandidateSelectTarget = "";
+
+    var seedMatchingCriteria;
+    var orderBySeed;
+    if (seedType == "Individual") {
+      seedIndivSelectTarget = "true as seedindiv, ";
+      seedMatchingCriteria = "contribid = " + seedIndivs[0];
+      orderBySeed = "seedindiv, ";
+    } else if (seedType == "Race") {
+      seedRaceSelectTarget = "true as seedrace, "
+      seedMatchingCriteria = "recipid in (select cid from Candidates where distidrunfor = '"
+          + seedRace + "' and currcand = 'Y'))";
+      orderBySeed = "seedrace, ";
+    } else if (seedType == "Candidate") {
+      seedCandidateSelectTarget = "true as seedcandidate, ";
+      seedMatchingCriteria = "recipid = " + seedCandidates[0];
+      orderBySeed = "seedcandidate, ";
+    }
+
+    if (seedIndivSelectTarget == "" && seedIndivs.length > 0) {
+      seedIndivSelectTarget = "contribid in (" + seedIndivs + ") as seedindiv, ";
+    }
+    if (seedRaceSelectTarget == "" && seedRace) {
+      seedRaceSelectTarget = "recipid in (select cid from Candidates where distidrunfor = '"
+          + seedRace + "' and currcand = 'Y')) as seedrace, "
+    }
+    if (seedCandidateSelectTarget == "" && seedCandidates.length > 0) {
+      seedCandidateSelectTarget = "recipid in (" + seedCandidates + ") as seedcandidate, ";
+    }
+
+    var seedSqlQuery = "select contrib, contribid, recipid, " + seedIndivSelectTarget
+        + seedRaceSelectTarget + seedCandidateSelectTarget + " amount from IndivsToCandidateTotals "
+        + "where " + seedMatchingCriteria + " and cycle = '" + cycle + "' order by " + orderBySeed
+        + "amount desc limit " + maxLinksPerSeed;
+    return seedSqlQuery;
+  }
+
   var innerSelectSources = (groupCandidatesBy == "Selection")
       ? "mode() within group (order by contrib) as contrib, contribid, "
       : "contrib, contribid, ";
