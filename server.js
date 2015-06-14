@@ -301,8 +301,8 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
       orderBySeed = "seedindiv, ";
     } else if (seedType == "Race") {
       seedRaceSelectTarget = "true as seedrace, "
-      seedMatchingCriteria = "recipid in (select cid from Candidates where distidrunfor = '"
-          + seedRace + "' and currcand = 'Y'))";
+      seedMatchingCriteria = "recipid in (select cid from Candidates where distidrunfor = "
+          + seedRace + " and currcand = 'Y'))";
       orderBySeed = "seedrace, ";
     } else if (seedType == "Candidate") {
       seedCandidateSelectTarget = "true as seedcandidate, ";
@@ -314,8 +314,8 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
       seedIndivSelectTarget = "contribid in (" + seedIndivs + ") as seedindiv, ";
     }
     if (seedRaceSelectTarget == "" && seedRace) {
-      seedRaceSelectTarget = "recipid in (select cid from Candidates where distidrunfor = '"
-          + seedRace + "' and currcand = 'Y')) as seedrace, "
+      seedRaceSelectTarget = "recipid in (select cid from Candidates where distidrunfor = "
+          + seedRace + " and currcand = 'Y')) as seedrace, "
     }
     if (seedCandidateSelectTarget == "" && seedCandidates.length > 0) {
       seedCandidateSelectTarget = "recipid in (" + seedCandidates + ") as seedcandidate, ";
@@ -327,6 +327,17 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
         + "amount desc limit " + maxLinksPerSeed;
     return seedSqlQuery;
   }
+  var subqueries = [];
+  seedIndivs.forEach(function(indiv) {
+    subqueries.push(getOneSeedSubquery(cycle, "Individual", [ indiv ], seedRace, seedCandidates));
+  });
+  if (seedRace != null) {
+    subqueries.push(getOneSeedSubquery(cycle, "Race", seedIndivs, seedRace, seedCandidates));
+  }
+  seedCandidates.forEach(function(candidate) {
+    subqueries.push(getOneSeedSubquery(cycle, "Candidate", seedIndivs, seedRace, [ candidate ]));
+  });
+  console.log("Proposed subqueries: " + subqueries);
 
   var innerSelectSources = (groupCandidatesBy == "Selection")
       ? "mode() within group (order by contrib) as contrib, contribid, "
@@ -391,7 +402,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
   var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";
   var joinClause = (groupCandidatesBy == "Selection") ? ""
       : "inner join Candidates on InnerQuery.recipid = Candidates.cid ";
-  var whereClause = "amount > 0 ";
+  var whereClause = "where amount > 0 ";
   whereClause += (groupCandidatesBy == "Selection") ? ""
       : "and cycle = '" + cycle + "' and currcand = 'Y' ";
   var seedTargetAttributes = [];
