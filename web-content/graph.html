@@ -511,11 +511,13 @@ function showGraph(inputLinks) {
         d.source.x, d.source.y, effectiveSourceRadius, -linkOrientationMultiplier);
     var arcTargetIntersect = getCircleIntersection(arcCenterX, arcCenterY, arcRadius,
         d.target.x, d.target.y, effectiveTargetRadius, linkOrientationMultiplier);
+    if (!arcSourceIntersect || !arcTargetIntersect) {
+      return null;  // no path to draw
+    }
     var sourceX = arcSourceIntersect[0],
         sourceY = arcSourceIntersect[1];
     var targetX = arcTargetIntersect[0],
         targetY = arcTargetIntersect[1];
-
     return "M" + sourceX + "," + sourceY + "A" + arcRadius + "," + arcRadius
         + " 0 0," + linkOrientation + " " + targetX + "," + targetY;
   }
