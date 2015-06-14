@@ -278,7 +278,8 @@ function getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
               + "where directorindirect in (" + contributionTypes + ")) as InnerQuery "
           + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
           + "group by sourcename, sourceid, " + outerGroupByTargets
-          + "directorindirect, isagainst "
+              + "directorindirect, isagainst "
+          + "having sum(amount) > 0 "
           + "order by " + outerOrderBy + "amount desc ";
   return sqlQuery;
 }
@@ -390,8 +391,9 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
   var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";
   var joinClause = (groupCandidatesBy == "Selection") ? ""
       : "inner join Candidates on InnerQuery.recipid = Candidates.cid ";
-  var whereClause = (groupCandidatesBy == "Selection") ? ""
-      : "where cycle = '" + cycle + "' and currcand = 'Y' ";
+  var whereClause = "amount > 0 ";
+  whereClause += (groupCandidatesBy == "Selection") ? ""
+      : "and cycle = '" + cycle + "' and currcand = 'Y' ";
   var seedTargetAttributes = [];
   var outerOrderBy = "";
   if (seedIndivs.length > 0) {
