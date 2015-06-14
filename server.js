@@ -479,13 +479,14 @@ function doQueryContributions(req, res, sqlQueries) {
       console.log("Got all query results");
     }
     var allContributions = _.flatten(nonNullContributionsLists, true /* shallow */);
-    res.writeHead(200, {"Content-Type": "application/json"});
     console.log("JSON stringifying results");
     var stringified = JSON.stringify(allContributions);
     console.log("Writing results");
-    res.write(stringified);
-    res.end();
-    dbWrapper.close();
+    res.writeHead(200, {"Content-Type": "application/json"});
+    res.end(stringified, function() {
+      console.log("Done writing results");
+      dbWrapper.close();
+    });
   });
 }
 
@@ -542,9 +543,9 @@ function queryRaces(req, res) {
           }
         });
         res.writeHead(200, {"Content-Type": "application/json"});
-        res.write(JSON.stringify(races));
-        res.end();
-        dbWrapper.close();
+        res.end(JSON.stringify(races), function() {
+          dbWrapper.close();
+        });
       });
 }
 
@@ -569,9 +570,9 @@ function queryCandidates(req, res) {
         }
         console.log("Got a list of " + candidates.length + " candidates");
         res.writeHead(200, {"Content-Type": "application/json"});
-        res.write(JSON.stringify(candidates));
-        res.end();
-        dbWrapper.close();
+        res.end(JSON.stringify(candidates), function() {
+          dbWrapper.close();
+        });
       });
 }
 
@@ -597,9 +598,9 @@ function queryPacs(req, res) {
         }
         console.log("Got a list of " + pacs.length + " PACs");
         res.writeHead(200, {"Content-Type": "application/json"});
-        res.write(JSON.stringify(pacs));
-        res.end();
-        dbWrapper.close();
+        res.end(JSON.stringify(pacs), function() {
+          dbWrapper.close();
+        });
       });
 }
 
