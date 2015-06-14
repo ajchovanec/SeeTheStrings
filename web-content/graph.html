@@ -449,16 +449,10 @@ function showGraph(inputLinks) {
     return Math.pow(amountMagnitude, 0.08);
   }
   function getScaleForNode(node) {
-    if (!queryParams["useAmountScaling"]) {
-      return 1;
-    }
     var amountMagnitude = getAmountMagnitudeForNode(node);
     return Math.pow(amountMagnitude, 0.06);
   }
   function getScaleForText(amount) {
-    if (!queryParams["useAmountScaling"]) {
-      return 1;
-    }
     var amountMagnitude = Math.abs(amount);
     return Math.pow(amountMagnitude, 0.03);
   }
