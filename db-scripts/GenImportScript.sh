@@ -16,3 +16,7 @@ for CYCLE in $CYCLES; do
   echo "\copy PACsToPACs from ./pac_other$CYCLE.sanitized delimiter '|'"
   echo "\copy IndivsToAny from ./indivs$CYCLE.sanitized delimiter '|'"
 done
+
+echo "CREATE TABLE IndivsToAnyTotals (cycle, contrib, contribid, recipid, amount) AS\
+     SELECT DISTINCT CYCLE, MODE() WITHIN GROUP (ORDER BY contrib) AS contrib, contribid, recipid,\
+     CAST(SUM(amount) as INTEGER) AS amount FROM IndivsToAny GROUP BY cycle, contribid, recipid;"
