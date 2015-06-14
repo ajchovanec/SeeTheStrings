@@ -167,9 +167,6 @@ function queryContributions(req, res) {
       var indivToCandidateContributionsQuery = getIndivToCandidateContributionsQuery(
           cycle, seedIndivs, seedRace, seedCandidates, groupCandidatesBy);
       queries.push(indivToCandidateContributionsQuery);
-      var indivToPacContributionsQuery = getIndivToPacContributionsQuery(
-          cycle, seedIndivs, seedPacs, groupContributionsBy);
-      queries.push(indivToPacContributionsQuery);
     }
   } catch (e) {
     // TODO: Is this the right way to fast fail a request?
@@ -386,60 +383,6 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
           + joinClause + whereClause
           + "order by " + outerOrderBy + "amount desc ";
   return outerSqlQuery;
-}
-
-// TODO: In the interest of conciseness, remove degrees of freedom from this method, and factor
-// functionality that's shared with getPacContributions() out into a separate method.
-function getIndivToPacContributionsQuery(cycle, seedPacs, seedIndivs, groupContributionsBy) {
-  var outerSelectSources = "mode() within group (order by contrib) as sourcename, "
-      + "contribid as sourceid, ";
-  var outerGroupBySources = "sourceid, ";
-  var innerSelectSources = "contrib, contribid, ";
-  var pacAttributesToSelect = getPacAttributesToSelect(groupContributionsBy, "target");
-  var outerSelectTargets = pacAttributesToSelect.outer;
-  var innerSelectTargets = pacAttributesToSelect.inner;
-  var outerAttributes = "'indiv' as sourcetype, 'pac' as targettype, ";
-  var innerAttributes = "";
-  var seedMatchingCriteria = [];
-  var outerOrderBy = "";
-  if (seedIndivs.length > 0) {
-    innerAttributes += "(IndivsToAny.contribid in (" + seedIndivs + ")) as seedindiv, ";
-    outerAttributes += "bool_or(seedindiv) as seedsource, ";
-    seedMatchingCriteria.push("seedindiv ");
-    outerOrderBy += "seedsource desc, ";
-  }
-  if (seedPacs.length > 0) {
-    var lowerPacshortQuery =
-        "select lower(pacshort) from Committees where Committees.cmteid in (" + seedPacs + ")";
-    innerAttributes += "(lower(Committees.pacshort) in (" + lowerPacshortQuery + ")) as seedpac, ";
-    outerAttributes += "bool_or(seedpac) as seedtarget, ";
-    seedMatchingCriteria.push("seedpac ");
-    outerOrderBy += "seedtarget desc, ";
-  }
-  if (seedMatchingCriteria.length == 0) {
-   throw new ClientError("No seed IDs were specified");
-  }
-  seedMatchingCriteria = seedMatchingCriteria.join("or ");
-  
-  // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
-  // into a separate table.
-  var sqlQuery =
-     "select " + outerSelectSources + outerSelectTargets + outerAttributes
-         + "'D' as directorindirect, false as isagainst, sum(amount) as amount from "
-         + "(select distinct IndivsToAny.cycle as cycle, fectransid, "
-             + innerSelectSources + innerSelectTargets + innerAttributes
-             + "amount from IndivsToAny "
-             // TODO: Check the OpenData User's Guide to make certain this is a valid method for
-             // computing individual to candidate contributions.
-             + "inner join Committees on IndivsToAny.recipid = Committees.cmteid "
-                 + "and IndivsToAny.cycle = Committees.cycle "
-             // TODO: Don't join against Categories unless necessary.
-             + "inner join Categories on Categories.catcode = IndivsToAny.realcode "
-             + "where contribid is not null and trim(contribid) != '') as InnerQuery "
-         + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
-         + "group by sourceid, targetname, targetid, directorindirect, isagainst "
-         + "order by " + outerOrderBy + "amount desc ";
-  return sqlQuery;
 }
 
 function doQueryContributions(req, res, sqlQueries) {
