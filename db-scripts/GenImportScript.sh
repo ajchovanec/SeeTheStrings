@@ -40,7 +40,7 @@ for CYCLE in $CYCLES; do
   echo "\copy Committees from ./cmtes$CYCLE.sanitized delimiter '|'"
   echo "\copy PACsToCandidates from ./pacs$CYCLE.sanitized delimiter '|'"
   echo "\copy PACsToPACs from ./pac_other$CYCLE.sanitized delimiter '|'"
-  echo "\copy IndivsToAny from ./indivs$CYCLE.sanitized delimiter '|'"
+  echo "\copy TempIndivsToAny from ./indivs$CYCLE.sanitized delimiter '|'"
   echo "INSERT INTO IndivsToCandidateTotals\
       SELECT DISTINCT\
           CYCLE,\
@@ -49,7 +49,7 @@ for CYCLE in $CYCLES; do
           recipid,\
           CAST(SUM(amount) as INTEGER) AS amount\
       FROM TempIndivsToAny\
-      WHERE contrib IS NOT NULL and TRIM(contrib) != '' and recipid IS NOT LIKE 'N%'\
+      WHERE contrib IS NOT NULL and TRIM(contrib) != '' and recipid NOT LIKE 'N%'\
       GROUP BY cycle, contribid, recipid;"
   echo "DELETE FROM TempIndivsToAny;"
 done
