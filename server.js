@@ -494,9 +494,6 @@ function doQueryContributions(cycle, seedIndivs, seedPacs, seedRace, seedCandida
 }
 
 function queryRaces(req, res) {
-  var url = req.url;
-  var queryParams = Url.parse(url, true).query;
-
   var sqlQuery = "select distinct cycle, distidrunfor as raceid from Candidates "
       + "where currcand = 'Y' order by raceid asc ";
   console.log("SQL query for list of races: " + sqlQuery);
@@ -553,9 +550,6 @@ function queryRaces(req, res) {
 }
 
 function queryCandidates(req, res) {
-  var url = req.url;
-  var queryParams = Url.parse(url, true).query;
-
   var sqlQuery = "select distinct cycle, lower(firstlastp) as sortkey, cid, firstlastp "
       + "from Candidates where cyclecand = 'Y' order by cycle asc, sortkey asc ";
   console.log("SQL query for list of candidates: " + sqlQuery);
@@ -580,9 +574,6 @@ function queryCandidates(req, res) {
 }
 
 function queryPacs(req, res) {
-  var url = req.url;
-  var queryParams = Url.parse(url, true).query;
-
   var sqlQuery = "select distinct on (cycle, lower(pacshort)) "
       + "cycle, lower(pacshort) as sortkey, cmteid, pacshort "
       + "from Committees where pacshort != '' order by cycle asc, sortkey asc";
