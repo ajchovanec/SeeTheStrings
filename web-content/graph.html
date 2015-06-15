@@ -122,7 +122,6 @@ function setDisplayPropertiesForPacNode(node, link) {
       // and buildGraph?
       var groupContributionsBy = queryParams["groupContributionsBy"];
       node.name = Number(link.count).toLocaleString('en-US');
-      console.log()
       if (groupContributionsBy == "Sector") {
         node.name += " sectors";
       } else if (groupContributionsBy == "Industry") {
@@ -365,7 +364,7 @@ function showGraph(inputLinks) {
       .attr("y", 0)
       .attr("width", 450)
       .attr("height", 300)
-      .attr("xlink:href","images/legend.svg")
+      .attr("xlink:href","images/legend.svg");
 
   var force = d3.layout.force()
       .nodes(graph.nodes())
@@ -536,7 +535,7 @@ function showGraph(inputLinks) {
     // between the circle centers.
 
     // Determine the distance from point 0 to point 2.
-    a = ((radius0 * radius0) - (radius1 * radius1) + (d * d)) / (2.0 * d) ;
+    a = ((radius0 * radius0) - (radius1 * radius1) + (d * d)) / (2.0 * d);
 
     // Determine the coordinates of point 2.
     x2 = x0 + (dx * a / d);
@@ -562,7 +561,7 @@ function showGraph(inputLinks) {
     var deltaX = d.target.x - d.source.x,
         deltaY = d.target.y - d.source.y;
     var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    var effectiveTargetRadius = getEffectiveNodeRadius(d.target)
+    var effectiveTargetRadius = getEffectiveNodeRadius(d.target);
     if (distance < effectiveTargetRadius) {
       return null;  // no path to draw
     }
