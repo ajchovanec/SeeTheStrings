@@ -158,24 +158,8 @@ function queryContributions(req, res) {
     contributionTypes = _.map(rawContributionTypes, ensureQuoted);
   }
 
-  var queries = [];
-  try {
-    var pacContributionsQuery = getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
-        groupCandidatesBy, groupContributionsBy, contributionTypes);
-    queries.push(pacContributionsQuery)
-    if (seedIndivs.length > 0) {
-      var indivToCandidateContributionsQuery = getIndivToCandidateContributionsQuery(
-          cycle, seedIndivs, seedRace, seedCandidates, groupCandidatesBy);
-      queries.push(indivToCandidateContributionsQuery);
-    }
-  } catch (e) {
-    // TODO: Is this the right way to fast fail a request?
-    console.log("Error: " + e.message);
-    res.writeHead(400);
-    res.end();
-    return;
-  }
-  doQueryContributions(req, res, queries);
+  doQueryContributions(cycle, seedIndivs, seedPacs, seedRace, seedCandidates,
+      groupCandidatesBy, groupContributionsBy, contributionTypes, res);
 }
 
 function getPacAttributesToSelect(groupContributionsBy, relativeType) {
@@ -443,7 +427,26 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
   return outerSqlQuery;
 }
 
-function doQueryContributions(req, res, sqlQueries) {
+function doQueryContributions(cycle, seedIndivs, seedPacs, seedRace, seedCandidates,
+    groupCandidatesBy, groupContributionsBy, contributionTypes, res) {
+  var sqlQueries = [];
+  try {
+    var pacContributionsQuery = getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
+        groupCandidatesBy, groupContributionsBy, contributionTypes);
+    sqlQueries.push(pacContributionsQuery)
+    if (seedIndivs.length > 0) {
+      var indivToCandidateContributionsQuery = getIndivToCandidateContributionsQuery(
+          cycle, seedIndivs, seedRace, seedCandidates, groupCandidatesBy);
+      sqlQueries.push(indivToCandidateContributionsQuery);
+    }
+  } catch (e) {
+    // TODO: Is this the right way to fast fail a request?
+    console.log("Error: " + e.message);
+    res.writeHead(400);
+    res.end();
+    return;
+  }
+
   function handleQueryResult(err, contributions) {
     if (err != null) {
       console.log("queryContributions error: " + JSON.stringify(err));
