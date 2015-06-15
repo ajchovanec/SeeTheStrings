@@ -49,7 +49,7 @@ for CYCLE in $CYCLES; do
           recipid,\
           CAST(SUM(amount) as INTEGER) AS amount\
       FROM TempIndivsToAny\
-      WHERE contrib IS NOT NULL and TRIM(contrib) != '' and recipid NOT LIKE 'N%'\
+      WHERE contribid IS NOT NULL and TRIM(contribid) != '' and recipid LIKE 'N%'\
       GROUP BY cycle, contribid, recipid;"
   echo "DELETE FROM TempIndivsToAny;"
 done
