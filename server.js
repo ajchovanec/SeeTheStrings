@@ -448,6 +448,19 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
   return outerSqlQuery;
 }
 
+function insertCandidatesForRace(cycle, race, origCandidates, callback) {
+  var sqlQuery = "select cid from Candidates where distidrunfor = " + race
+      + " and cycle = " + cycle + " and currcand = 'Y'";
+  var dbWrapper = getDbWrapper();
+  dbWrapper.connect();
+  dbWrapper.fetchAll(sqlQuery,
+      function(err, candidatesForRace) {
+        var allCandidates = _.union(origCandidates, candidatesForRace);
+        callback(err, allCandidates);
+        dbWrapper.close();
+      });
+}
+
 function doSqlQueries(sqlQueries, res) {
   function handleOneQueryResult(err, results) {
     if (err != null) {
