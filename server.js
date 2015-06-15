@@ -159,25 +159,25 @@ function queryContributions(req, res) {
   if (seedRace) {
     prefetchCandidatesForRace(cycle, seedRace, seedCandidates,
         function(err, allCandidates) {
-          doQueryContributions(cycle, seedIndivs, seedPacs, null, allCandidates,
+          doQueryContributions(cycle, seedIndivs, seedPacs, allCandidates,
               groupCandidatesBy, groupContributionsBy, contributionTypes, res);
         });
   } else {
-    doQueryContributions(cycle, seedIndivs, seedPacs, seedRace, seedCandidates,
+    doQueryContributions(cycle, seedIndivs, seedPacs, seedCandidates,
         groupCandidatesBy, groupContributionsBy, contributionTypes, res);
   }
 }
 
-function doQueryContributions(cycle, seedIndivs, seedPacs, seedRace, seedCandidates,
+function doQueryContributions(cycle, seedIndivs, seedPacs, seedCandidates,
     groupCandidatesBy, groupContributionsBy, contributionTypes, res) {
   var sqlQueries = [];
   try {
-    var pacContributionsQuery = getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
+    var pacContributionsQuery = getPacContributionsQuery(cycle, seedPacs, seedCandidates,
         groupCandidatesBy, groupContributionsBy, contributionTypes);
     sqlQueries.push(pacContributionsQuery)
     if (seedIndivs.length > 0) {
       var indivToCandidateContributionsQuery = getIndivToCandidateContributionsQuery(
-          cycle, seedIndivs, seedRace, seedCandidates, groupCandidatesBy);
+          cycle, seedIndivs, seedCandidates, groupCandidatesBy);
       sqlQueries.push(indivToCandidateContributionsQuery);
     }
   } catch (e) {
@@ -228,7 +228,7 @@ function getPacAttributesToSelect(groupContributionsBy, relativeType) {
   }
 }
 
-function getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
+function getPacContributionsQuery(cycle, seedPacs, seedCandidates,
     groupCandidatesBy, groupContributionsBy, contributionTypes) {
   var pacAttributesToSelect = getPacAttributesToSelect(groupContributionsBy, "source");
   var outerSelectSources = pacAttributesToSelect.outer;
@@ -253,13 +253,6 @@ function getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
     outerAttributes += "bool_or(seedpac) as seedsource, ";
     seedMatchingCriteria.push("seedpac ");
     outerOrderBy += "seedsource desc, ";
-  }
-  if (seedRace != null) {
-    var raceQuery = "select cid from Candidates where distidrunfor = " + seedRace
-        + " and currcand = 'Y'";
-    innerAttributes += "(PACsToCandidates.cid in (" + raceQuery + ")) as seedrace, ";
-    seedTargetAttributes.push("bool_or(seedrace) ");
-    seedMatchingCriteria.push("seedrace ");
   }
   if (seedCandidates.length > 0) {
     innerAttributes += "(Candidates.cid in (" + seedCandidates + ")) as seedcandidate, ";
@@ -297,13 +290,12 @@ function getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
   return sqlQuery;
 }
 
-function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seedCandidates,
+function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
     groupCandidatesBy) {
   var maxLinksPerSeed = 100;
 
-  function getOneSeedSubquery(cycle, seedType, seedIndivs, seedRace, seedCandidates) {
+  function getOneSeedSubquery(cycle, seedType, seedIndivs, seedCandidates) {
     var seedIndivSelectTarget = "";
-    var seedRaceSelectTarget = "";
     var seedCandidateSelectTarget = "";
 
     var seedMatchingCriteria;
@@ -312,11 +304,6 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
       seedIndivSelectTarget = "true as seedindiv, ";
       seedMatchingCriteria = "contribid = " + seedIndivs[0];
       orderBySeed = "seedindiv, ";
-    } else if (seedType == "Race") {
-      seedRaceSelectTarget = "true as seedrace, "
-      seedMatchingCriteria = "recipid in (select cid from Candidates where distidrunfor = "
-          + seedRace + " and currcand = 'Y')";
-      orderBySeed = "seedrace, ";
     } else if (seedType == "Candidate") {
       seedCandidateSelectTarget = "true as seedcandidate, ";
       seedMatchingCriteria = "recipid = " + seedCandidates[0];
@@ -326,10 +313,6 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
     if (seedIndivSelectTarget == "" && seedIndivs.length > 0) {
       seedIndivSelectTarget = "contribid in (" + seedIndivs + ") as seedindiv, ";
     }
-    if (seedRaceSelectTarget == "" && seedRace) {
-      seedRaceSelectTarget = "(recipid in (select cid from Candidates where distidrunfor = "
-          + seedRace + " and currcand = 'Y')) as seedrace, "
-    }
     if (seedCandidateSelectTarget == "" && seedCandidates.length > 0) {
       seedCandidateSelectTarget = "recipid in (" + seedCandidates + ") as seedcandidate, ";
     }
@@ -337,20 +320,17 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
     // TODO: The use of maxLinksPerSeed is broken for the case where seedType == 'Race'. It causes
     // us to select that many contributors for all candidates combined, rather than per candidate.
     var seedSqlQuery = "(select contrib, contribid, recipid, " + seedIndivSelectTarget
-        + seedRaceSelectTarget + seedCandidateSelectTarget + " amount from IndivsToCandidateTotals "
+        + seedCandidateSelectTarget + " amount from IndivsToCandidateTotals "
         + "where " + seedMatchingCriteria + " and cycle = " + cycle + " order by " + orderBySeed
         + "amount desc limit " + maxLinksPerSeed + ") ";
     return seedSqlQuery;
   }
   var subqueries = [];
   seedIndivs.forEach(function(indiv) {
-    subqueries.push(getOneSeedSubquery(cycle, "Individual", [ indiv ], seedRace, seedCandidates));
+    subqueries.push(getOneSeedSubquery(cycle, "Individual", [ indiv ], seedCandidates));
   });
-  if (seedRace != null) {
-    subqueries.push(getOneSeedSubquery(cycle, "Race", seedIndivs, seedRace, seedCandidates));
-  }
   seedCandidates.forEach(function(candidate) {
-    subqueries.push(getOneSeedSubquery(cycle, "Candidate", seedIndivs, seedRace, [ candidate ]));
+    subqueries.push(getOneSeedSubquery(cycle, "Candidate", seedIndivs, [ candidate ]));
   });
   console.log("Proposed subqueries: " + subqueries);
   var alternateInnerSqlQuery = subqueries.join("union ");
@@ -374,13 +354,6 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
     seedMatchingCriteria.push(criterion);
   }
   var seedAggregator = (groupCandidatesBy == "Selection") ? "bool_or" : "";
-  if (seedRace != null) {
-    var raceQuery = "select cid from Candidates where distidrunfor = " + seedRace
-        + " and currcand = 'Y'";
-    var criterion = "recipid in (" + raceQuery + ") ";
-    innerAttributes += seedAggregator + "(" + criterion + ") as seedrace, ";
-    seedMatchingCriteria.push(criterion);
-  }
   if (seedCandidates.length > 0) {
     var criterion = "recipid in (" + seedCandidates + ") ";
     innerAttributes += seedAggregator + "(" + criterion + ") as seedcandidate, ";
@@ -406,7 +379,7 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
 
 // TODO: In the interest of conciseness, remove degrees of freedom from this method, and factor
 // functionality that's shared with getPacContributions() out into a separate method.
-function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seedCandidates,
+function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
     groupCandidatesBy) {
   var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
   // TODO: Reimplement support for mode groupCandidatesBy=Selection.
@@ -428,11 +401,6 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
     outerOrderBy += "seedsource desc, ";
   }
   var seedAggregator = (groupCandidatesBy == "Selection") ? "bool_or" : "";
-  if (seedRace != null) {
-    var raceQuery = "select cid from Candidates where distidrunfor = " + seedRace
-        + " and currcand = 'Y'";
-    seedTargetAttributes.push("seedrace ");
-  }
   if (seedCandidates.length > 0) {
     seedTargetAttributes.push("seedcandidate ");
   }
@@ -441,8 +409,8 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
     outerOrderBy += "seedtarget desc, ";
   }
 
-  var innerSqlQuery = getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
-      seedCandidates, groupCandidatesBy)
+  var innerSqlQuery = getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
+      groupCandidatesBy);
 
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
   // into a separate table.
