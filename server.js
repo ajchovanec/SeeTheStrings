@@ -317,8 +317,6 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandi
       seedCandidateSelectTarget = "recipid in (" + seedCandidates + ") as seedcandidate, ";
     }
 
-    // TODO: The use of maxLinksPerSeed is broken for the case where seedType == 'Race'. It causes
-    // us to select that many contributors for all candidates combined, rather than per candidate.
     var seedSqlQuery = "(select contrib, contribid, recipid, " + seedIndivSelectTarget
         + seedCandidateSelectTarget + " amount from IndivsToCandidateTotals "
         + "where " + seedMatchingCriteria + " and cycle = " + cycle + " order by " + orderBySeed
