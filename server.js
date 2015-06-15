@@ -412,10 +412,9 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
 
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
   // into a separate table.
-  var outerSqlQuery =
-      "select " + outerSelectSources + outerSelectTargets + outerAttributes
-          + "'D' as directorindirect, false as isagainst, amount from "
-          + "(" + innerSqlQuery + ") as InnerQuery "
+  var outerSqlQuery = "with InnerQuery as (" + innerSqlQuery + ") " 
+      + "select " + outerSelectSources + outerSelectTargets + outerAttributes
+          + "'D' as directorindirect, false as isagainst, amount from InnerQuery "
           // TODO: Also join against Categories to support grouping individuals by realcode.
           + joinClause + whereClause
           + "order by " + outerOrderBy + "amount desc ";
