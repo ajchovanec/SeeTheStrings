@@ -6,7 +6,7 @@ var ServeStatic = require('serve-static');
 var DBWrapper = require('node-dbi').DBWrapper;
 var PGTypes = require('pg').types
 var CacheManager = require('cache-manager');
-var SimpleBarrier = require('simple-barrier')
+var SimpleBarrier = require('simple-barrier');
 var _ = require('underscore');
 
 var port = process.env.PORT || 3000;
@@ -371,7 +371,7 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandi
   var innerSqlQuery = "select distinct " + innerSelectSources + innerSelectTargets + innerAttributes
       + "from IndivsToCandidateTotals "
       + "where " + seedMatchingCriteria + filterCriteria + "cycle = " + cycle + " "
-      + groupByClause
+      + groupByClause;
   return innerSqlQuery;
 }
 
