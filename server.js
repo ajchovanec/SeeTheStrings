@@ -162,6 +162,29 @@ function queryContributions(req, res) {
       groupCandidatesBy, groupContributionsBy, contributionTypes, res);
 }
 
+function doQueryContributions(cycle, seedIndivs, seedPacs, seedRace, seedCandidates,
+    groupCandidatesBy, groupContributionsBy, contributionTypes, res) {
+  var sqlQueries = [];
+  try {
+    var pacContributionsQuery = getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
+        groupCandidatesBy, groupContributionsBy, contributionTypes);
+    sqlQueries.push(pacContributionsQuery)
+    if (seedIndivs.length > 0) {
+      var indivToCandidateContributionsQuery = getIndivToCandidateContributionsQuery(
+          cycle, seedIndivs, seedRace, seedCandidates, groupCandidatesBy);
+      sqlQueries.push(indivToCandidateContributionsQuery);
+    }
+  } catch (e) {
+    // TODO: Is this the right way to fast fail a request?
+    console.log("Error: " + e.message);
+    res.writeHead(400);
+    res.end();
+    return;
+  }
+
+  doSqlQueries(sqlQueries, res);
+}
+
 function getPacAttributesToSelect(groupContributionsBy, relativeType) {
   switch (groupContributionsBy) {
     case "PAC":
@@ -427,32 +450,13 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
   return outerSqlQuery;
 }
 
-function doQueryContributions(cycle, seedIndivs, seedPacs, seedRace, seedCandidates,
-    groupCandidatesBy, groupContributionsBy, contributionTypes, res) {
-  var sqlQueries = [];
-  try {
-    var pacContributionsQuery = getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
-        groupCandidatesBy, groupContributionsBy, contributionTypes);
-    sqlQueries.push(pacContributionsQuery)
-    if (seedIndivs.length > 0) {
-      var indivToCandidateContributionsQuery = getIndivToCandidateContributionsQuery(
-          cycle, seedIndivs, seedRace, seedCandidates, groupCandidatesBy);
-      sqlQueries.push(indivToCandidateContributionsQuery);
-    }
-  } catch (e) {
-    // TODO: Is this the right way to fast fail a request?
-    console.log("Error: " + e.message);
-    res.writeHead(400);
-    res.end();
-    return;
-  }
-
-  function handleQueryResult(err, contributions) {
+function doSqlQueries(sqlQueries, res) {
+  function handleOneQueryResult(err, results) {
     if (err != null) {
-      console.log("queryContributions error: " + JSON.stringify(err));
+      console.log("Query error: " + JSON.stringify(err));
       return null;
     }
-    return contributions;
+    return results;
   }
   var barrier = SimpleBarrier();
   var dbWrapper = getDbWrapper();
@@ -460,37 +464,40 @@ function doQueryContributions(cycle, seedIndivs, seedPacs, seedRace, seedCandida
   // TODO: Postgres breaks with "ERROR: connect: Error: write EPIPE" when we try to do two queries
   // on the same connection at the same time. Find out why. It may be necessary to perform the
   // queries serially.
-  sqlQueries.forEach(function(sqlQuery) {
-    console.log("SQL query: " + sqlQuery);
-    dbWrapper.fetchAll(sqlQuery, barrier.waitOn(handleQueryResult));
-  });
-  barrier.endWith(function(contributionsLists) {
-    var nonNullContributionsLists =
-        contributionsLists.filter(function(list) { return list != null });
-    var nullCount = contributionsLists.length - nonNullContributionsLists.length;
-    if (nullCount == contributionsLists.length) {
-      console.log("All " + contributionsLists.length + " queries failed!");
-      // TODO: 500 might not be appropriate if the error is due to a malformed query.
-      res.writeHead(500);
-      res.end();
-      dbWrapper.close();
-      return;
-    } else if (nullCount > 0) {
-      console.log("Out of " + contributionsLists.length + " queries, " + nullCount + " failed. "
-          + "Results of successful queries will be returned.");
-    } else {
-      console.log("Got all query results");
-    }
-    var allContributions = _.flatten(nonNullContributionsLists, true /* shallow */);
-    console.log("JSON stringifying results");
-    var stringified = JSON.stringify(allContributions);
-    console.log("Writing results");
-    res.writeHead(200, {"Content-Type": "application/json"});
-    res.end(stringified, function() {
-      console.log("Done writing results");
-      dbWrapper.close();
-    });
-  });
+  sqlQueries.forEach(
+      function(sqlQuery) {
+        console.log("SQL query: " + sqlQuery);
+        dbWrapper.fetchAll(sqlQuery, barrier.waitOn(handleOneQueryResult));
+      });
+  barrier.endWith(
+      function(resultLists) {
+        var nonNullResultLists =
+            resultLists.filter(function(list) { return list != null });
+        var nullCount = resultLists.length - nonNullResultLists.length;
+        if (nullCount == resultLists.length) {
+          console.log("All " + resultLists.length + " queries failed!");
+          // TODO: 500 might not be appropriate if the error is due to a malformed query.
+          res.writeHead(500);
+          res.end();
+          dbWrapper.close();
+          return;
+        } else if (nullCount > 0) {
+          console.log("Out of " + resultLists.length + " queries, " + nullCount + " failed. "
+              + "Results of successful queries will be returned.");
+        } else {
+          console.log("Got all query results");
+        }
+        var allResults = _.flatten(nonNullResultLists, true /* shallow */);
+        console.log("JSON stringifying results");
+        var stringified = JSON.stringify(allResults);
+        console.log("Writing results");
+        res.writeHead(200, {"Content-Type": "application/json"});
+        res.end(stringified,
+            function() {
+              console.log("Done writing results");
+              dbWrapper.close();
+            });
+      });
 }
 
 function queryRaces(req, res) {
