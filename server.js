@@ -110,12 +110,13 @@ function ClientError(message) {
 
 // TODO: Ensure that the cycle query param is always sent, so that we will no longer need to
 // choose a default value here.
-var defaultCycle = 2014;
+var defaultCycle = "2014";
 
 function queryContributions(req, res) {
   var url = req.url;
   var queryParams = Url.parse(url, true).query;
 
+  var rawCycle = queryParams["cycle"];
   var rawSeedRace = queryParams["race"];
   var rawSeedCandidates = queryParams["candidates"];
   var rawSeedPacs = queryParams["pacs"];
@@ -124,15 +125,12 @@ function queryContributions(req, res) {
   var groupCandidatesBy = queryParams["groupCandidatesBy"];
   var groupContributionsBy = queryParams["groupContributionsBy"];
 
-  var cycle = queryParams["cycle"] || defaultCycle;
-  var seedRace = null;
+  var cycle = ensureQuoted(rawCycle || defaultCycle);
+  var seedRace = rawSeedRace ? ensureQuoted(rawSeedRace) : null;
   var seedCandidates = [];
   var seedPacs = [];
   var seedIndivs = [];
   var contributionTypes = [];
-  if (rawSeedRace) {
-    seedRace = ensureQuoted(rawSeedRace);
-  }
   if (rawSeedCandidates) {
     if (!(rawSeedCandidates instanceof Array)) {
       rawSeedCandidates = [ rawSeedCandidates ];
@@ -283,7 +281,7 @@ function getPacContributionsQuery(cycle, seedPacs, seedRace, seedCandidates,
               + "inner join Categories on Categories.catcode = Committees.primcode "
               // TODO: We may also need to verify that Candidates.currcand = 'Y' here.
               + "where directorindirect in (" + contributionTypes + ")) as InnerQuery "
-          + "where cycle = '" + cycle + "' and (" + seedMatchingCriteria + ") "
+          + "where cycle = " + cycle + " and (" + seedMatchingCriteria + ") "
           + "group by sourcename, sourceid, " + outerGroupByTargets
               + "directorindirect, isagainst "
           + "having sum(amount) > 0 "
@@ -332,7 +330,7 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
     // us to select that many contributors for all candidates combined, rather than per candidate.
     var seedSqlQuery = "(select contrib, contribid, recipid, " + seedIndivSelectTarget
         + seedRaceSelectTarget + seedCandidateSelectTarget + " amount from IndivsToCandidateTotals "
-        + "where " + seedMatchingCriteria + " and cycle = '" + cycle + "' order by " + orderBySeed
+        + "where " + seedMatchingCriteria + " and cycle = " + cycle + " order by " + orderBySeed
         + "amount desc limit " + maxLinksPerSeed + ") ";
     return seedSqlQuery;
   }
@@ -393,7 +391,7 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace,
 
   var innerSqlQuery = "select distinct " + innerSelectSources + innerSelectTargets + innerAttributes
       + "from IndivsToCandidateTotals "
-      + "where " + seedMatchingCriteria + filterCriteria + "cycle = '" + cycle + "' "
+      + "where " + seedMatchingCriteria + filterCriteria + "cycle = " + cycle + " "
       + groupByClause
   return innerSqlQuery;
 }
@@ -414,7 +412,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
       : "inner join Candidates on InnerQuery.recipid = Candidates.cid ";
   var whereClause = "where amount > 0 ";
   whereClause += (groupCandidatesBy == "Selection") ? ""
-      : "and cycle = '" + cycle + "' and currcand = 'Y' ";
+      : "and cycle = " + cycle + " and currcand = 'Y' ";
   var seedTargetAttributes = [];
   var outerOrderBy = "";
   if (seedIndivs.length > 0) {
