@@ -156,8 +156,16 @@ function queryContributions(req, res) {
     contributionTypes = _.map(rawContributionTypes, ensureQuoted);
   }
 
-  doQueryContributions(cycle, seedIndivs, seedPacs, seedRace, seedCandidates,
-      groupCandidatesBy, groupContributionsBy, contributionTypes, res);
+  if (seedRace) {
+    prefetchCandidatesForRace(cycle, seedRace, seedCandidates,
+        function(err, allCandidates) {
+          doQueryContributions(cycle, seedIndivs, seedPacs, null, allCandidates,
+              groupCandidatesBy, groupContributionsBy, contributionTypes, res);
+        });
+  } else {
+    doQueryContributions(cycle, seedIndivs, seedPacs, seedRace, seedCandidates,
+        groupCandidatesBy, groupContributionsBy, contributionTypes, res);
+  }
 }
 
 function doQueryContributions(cycle, seedIndivs, seedPacs, seedRace, seedCandidates,
@@ -448,14 +456,20 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedRace, seed
   return outerSqlQuery;
 }
 
-function insertCandidatesForRace(cycle, race, origCandidates, callback) {
+function prefetchCandidatesForRace(cycle, race, origCandidates, callback) {
   var sqlQuery = "select cid from Candidates where distidrunfor = " + race
       + " and cycle = " + cycle + " and currcand = 'Y'";
+  console.log("Prefetching candidates for race " + race + ", cycle " + cycle);
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
   dbWrapper.fetchAll(sqlQuery,
-      function(err, candidatesForRace) {
+      function(err, candidatesForRaceResults) {
         dbWrapper.close();
+        var candidatesForRace = _.map(candidatesForRaceResults,
+            function(result) {
+              return ensureQuoted(result.cid);
+            });
+        console.log("Candidates successfully prefetched");
         var allCandidates = _.union(origCandidates, candidatesForRace);
         callback(err, allCandidates);
       });
