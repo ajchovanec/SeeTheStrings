@@ -446,11 +446,11 @@ function showGraph(inputLinks) {
   }
   function getWidthForLink(link) {
     var amountMagnitude = Math.abs(link.amount);
-    return Math.pow(amountMagnitude, 0.08);
+    return Math.pow(amountMagnitude, 0.10);
   }
   function getScaleForNode(node) {
     var amountMagnitude = getAmountMagnitudeForNode(node);
-    return Math.pow(amountMagnitude, 0.06);
+    return 0.8 * Math.pow(amountMagnitude, 0.1);
   }
   function getScaleForText(amount) {
     var amountMagnitude = Math.abs(amount);
