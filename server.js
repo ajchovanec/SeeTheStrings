@@ -455,9 +455,9 @@ function insertCandidatesForRace(cycle, race, origCandidates, callback) {
   dbWrapper.connect();
   dbWrapper.fetchAll(sqlQuery,
       function(err, candidatesForRace) {
+        dbWrapper.close();
         var allCandidates = _.union(origCandidates, candidatesForRace);
         callback(err, allCandidates);
-        dbWrapper.close();
       });
 }
 
@@ -482,6 +482,7 @@ function doSqlQueries(sqlQueries, res) {
       });
   barrier.endWith(
       function(resultLists) {
+        dbWrapper.close();
         var nonNullResultLists =
             resultLists.filter(function(list) { return list != null });
         var nullCount = resultLists.length - nonNullResultLists.length;
@@ -490,7 +491,6 @@ function doSqlQueries(sqlQueries, res) {
           // TODO: 500 might not be appropriate if the error is due to a malformed query.
           res.writeHead(500);
           res.end();
-          dbWrapper.close();
           return;
         } else if (nullCount > 0) {
           console.log("Out of " + resultLists.length + " queries, " + nullCount + " failed. "
@@ -500,13 +500,12 @@ function doSqlQueries(sqlQueries, res) {
         }
         var allResults = _.flatten(nonNullResultLists, true /* shallow */);
         console.log("JSON stringifying results");
-        var stringified = JSON.stringify(allResults);
+        var allResultsString = JSON.stringify(allResults);
         console.log("Writing results");
         res.writeHead(200, {"Content-Type": "application/json"});
-        res.end(stringified,
+        res.end(allResultsString,
             function() {
               console.log("Done writing results");
-              dbWrapper.close();
             });
       });
 }
@@ -520,12 +519,12 @@ function queryRaces(req, res) {
   dbWrapper.connect();
   dbWrapper.fetchAll(sqlQuery,
       function(err, result) {
+        dbWrapper.close();
         if (err != null) {
           console.log("queryRaces error: " + JSON.stringify(err));
           // TODO: 500 might not be appropriate if the error is due to a malformed query.
           res.writeHead(500);
           res.end();
-          dbWrapper.close();
           return;
         }
         console.log("Got a list of " + result.length + " races");
@@ -561,9 +560,7 @@ function queryRaces(req, res) {
           }
         });
         res.writeHead(200, {"Content-Type": "application/json"});
-        res.end(JSON.stringify(races), function() {
-          dbWrapper.close();
-        });
+        res.end(JSON.stringify(races));
       });
 }
 
@@ -575,19 +572,17 @@ function queryCandidates(req, res) {
   dbWrapper.connect();
   dbWrapper.fetchAll(sqlQuery,
       function(err, candidates) {
+        dbWrapper.close();
         if (err != null) {
           console.log("queryCandidates error: " + JSON.stringify(err));
           // TODO: 500 might not be appropriate if the error is due to a malformed query.
           res.writeHead(500);
           res.end();
-          dbWrapper.close();
           return;
         }
         console.log("Got a list of " + candidates.length + " candidates");
         res.writeHead(200, {"Content-Type": "application/json"});
-        res.end(JSON.stringify(candidates), function() {
-          dbWrapper.close();
-        });
+        res.end(JSON.stringify(candidates));
       });
 }
 
@@ -600,19 +595,17 @@ function queryPacs(req, res) {
   dbWrapper.connect();
   dbWrapper.fetchAll(sqlQuery,
       function(err, pacs) {
+        dbWrapper.close();
         if (err != null) {
           console.log("queryPacs error: " + JSON.stringify(err));
           // TODO: 500 might not be appropriate if the error is due to a malformed query.
           res.writeHead(500);
           res.end();
-          dbWrapper.close();
           return;
         }
         console.log("Got a list of " + pacs.length + " PACs");
         res.writeHead(200, {"Content-Type": "application/json"});
-        res.end(JSON.stringify(pacs), function() {
-          dbWrapper.close();
-        });
+        res.end(JSON.stringify(pacs));
       });
 }
 
