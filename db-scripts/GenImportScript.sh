@@ -8,6 +8,8 @@
 
 echo "\copy Categories from ./CRP_Categories.txt delimiter E'\t'"
 
+echo "DROP TABLE IF EXISTS TempIndivsToAny;"
+
 echo "CREATE TABLE TempIndivsToAny (\
     cycle TEXT,\
     fectransid TEXT,\
