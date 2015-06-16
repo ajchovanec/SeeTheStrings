@@ -239,9 +239,15 @@ function getPacContributionsQuery(cycle, seedPacs, seedCandidates,
       : "firstlastp as targetname, cid as targetid, party, ";
   var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
       : "targetname, targetid, party, ";
-  var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
+  var innerSelectTargets = (groupCandidatesBy == "Selection") ? "Candidates.cid, "
       : "firstlastp, Candidates.cid, Candidates.party, ";
   var outerAttributes = "'pac' as sourcetype, 'candidate' as targettype, ";
+  outerAttributes += (groupCandidatesBy == "Selection")
+      // TODO: Ideally targetcount should be the number of candidates for which links are actually
+      // found, and not simply the number of specified seed candidates. Unfortunately, it's hard to
+      // compute that within this particular SQL query.
+      ? seedCandidates.length + " as targetcount, "
+      : "1 as targetcount, ";
   var innerAttributes = "";
   var seedTargetAttributes = [];
   var seedMatchingCriteria = [];
@@ -270,7 +276,8 @@ function getPacContributionsQuery(cycle, seedPacs, seedCandidates,
 
   var sqlQuery =
       "select " + outerSelectSources + outerSelectTargets + outerAttributes
-          + "directorindirect, isagainst, sum(amount) as amount from "
+          + "1 as sourcecount, directorindirect, isagainst, "
+          + "sum(amount) as amount from "
           + "(select distinct PACsToCandidates.cycle as cycle, fecrecno, "
               + innerSelectSources + innerSelectTargets + innerAttributes
               + "directorindirect, type in ('24A', '24N') as isagainst, "
