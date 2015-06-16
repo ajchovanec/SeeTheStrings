@@ -10,11 +10,4 @@ cat ../data/CampaignFin$CYCLE/cands$CYCLE.txt | csed -e 's/"//g' -e 's/|/"/g' | 
 cat ../data/CampaignFin$CYCLE/cmtes$CYCLE.txt | csed -e 's/|/"/g' | ./SanitizeCSV.py | utf8conv > ./cmtes$CYCLE.sanitized
 cat ../data/CampaignFin$CYCLE/pacs$CYCLE.txt | csed -e 's/|/"/g' | ./SanitizeCSV.py  | utf8conv > ./pacs$CYCLE.sanitized
 cat ../data/CampaignFin$CYCLE/pac_other$CYCLE.txt | csed -e 's/|/"/g' | ./SanitizeCSV.py | utf8conv > ./pac_other$CYCLE.sanitized
-cat ../data/CampaignFin$CYCLE/indivs$CYCLE.txt | csed -e 's/\,\|\|\([a-zA-Z]\)/,|\1/g' -e 's/ \|\|/ /g' -e 's/\\\\|/|/g' -e 's/\\|/|/g' -e 's/|/"/g' | ./SanitizeCSV.py | utf8conv > ./indivs$CYCLE.sanitized.tmp
-
-if [ $CYCLE -gt 10 ]; then
-  mv ./indivs$CYCLE.sanitized.tmp ./indivs$CYCLE.sanitized
-else
-  cat ./indivs$CYCLE.sanitized.tmp | cut -f 1-21,23-24 -d\| > ./indivs$CYCLE.sanitized
-  rm ./indivs$CYCLE.sanitized.tmp
-fi
+cat ../data/CampaignFin$CYCLE/indivs$CYCLE.txt | csed -e 's/\,\|\|\([a-zA-Z]\)/,|\1/g' -e 's/ \|\|/ /g' -e 's/\\\\|/|/g' -e 's/\\|/|/g' -e 's/|/"/g' | ./SanitizeCSV.py | utf8conv > ./indivs$CYCLE.sanitized
