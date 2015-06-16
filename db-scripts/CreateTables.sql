@@ -3,7 +3,7 @@
 -- associated role in psql as follows:
 -- 
 -- DROP DATABASE IF EXISTS [database];
--- CREATE DATABASE seethestrings_local;
+-- CREATE DATABASE [database];
 -- DROP USER IF EXISTS [user];
 -- CREATE USER [user] WITH PASSWORD '[password]';
 -- GRANT ALL PRIVILEGES ON DATABASE [database] TO [user];
