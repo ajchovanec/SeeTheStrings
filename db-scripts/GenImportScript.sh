@@ -57,3 +57,12 @@ for CYCLE in $CYCLES; do
 done
 
 echo "DROP TABLE TempIndivsToAny;"
+
+echo "CREATE INDEX IndivsToCandidateTotals_cycle_contribid ON IndivsToCandidateTotals\
+    (cycle, contribid);"
+echo "CREATE INDEX IndivsToCandidateTotals_cycle_recipid ON IndivsToCandidateTotals\
+    (cycle, recipid);"
+echo "CREATE INDEX IndivsToCandidateTotals_cycle_contribid_amount ON IndivsToCandidateTotals\
+    (cycle, contribid, amount desc);"
+echo "CREATE INDEX IndivsToCandidateTotals_cycle_recipid_amount ON IndivsToCandidateTotals\
+    (cycle, recipid, amount desc);"
