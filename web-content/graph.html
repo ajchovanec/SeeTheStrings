@@ -121,7 +121,7 @@ function setDisplayPropertiesForPacNode(node, link) {
       // TODO: Should we only be accessing queryParams from high level methods like handleResponse
       // and buildGraph?
       var groupContributionsBy = queryParams["groupContributionsBy"];
-      node.name = Number(link.count).toLocaleString('en-US');
+      node.name = Number(node.count).toLocaleString('en-US');
       if (groupContributionsBy == "Sector") {
         node.name += " sectors";
       } else if (groupContributionsBy == "Industry") {
@@ -138,7 +138,7 @@ function setDisplayPropertiesForPacNode(node, link) {
 function setDisplayPropertiesForCandidateNode(node, link) {
   if (node.name == null) {
     if (node.aggregate) {
-      node.name = Number(link.count).toLocaleString('en-US');
+      node.name = Number(node.count).toLocaleString('en-US');
       if (link.party != null) {
         var adjective = getAdjectiveForParty(link.party);
         if (adjective != null) {
@@ -163,7 +163,7 @@ function setDisplayPropertiesForCandidateNode(node, link) {
 }
 function setDisplayPropertiesForIndivNode(node, link) {
   if (node.name == null && node.aggregate) {
-    node.name = Number(link.count).toLocaleString('en-US') + " individuals";
+    node.name = Number(node.count).toLocaleString('en-US') + " individuals";
     if (link.subLinks != null) {
       node.name += ". Double click...";
     }
@@ -236,6 +236,7 @@ var graph = {
                     seed: link.seedsource,
                     nodetype: link.sourcetype,
                     aggregate: link.sourceaggregate,
+                    count: link.sourcecount,
                     incomingAmount: 0,
                     outgoingAmount: 0
                   });
@@ -250,6 +251,7 @@ var graph = {
                     seed: link.seedtarget,
                     nodetype: link.targettype,
                     aggregate: link.targetaggregate,
+                    count: link.targetcount,
                     incomingAmount: 0,
                     outgoingAmount: 0
                   });
@@ -648,6 +650,7 @@ function showGraph(inputLinks) {
           seed: link["seed" + childType],  // FIXME
           nodetype: link[childType + "type"],  // FIXME
           aggregate: link[childType + "aggregate"],  // FIXME
+          count: link[childType + "count"],  // FIXME
           incomingAmount: 0,
           outgoingAmount: 0
         };

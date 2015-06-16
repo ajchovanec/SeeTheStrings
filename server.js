@@ -235,13 +235,19 @@ function getPacContributionsQuery(cycle, seedPacs, seedCandidates,
   var innerSelectSources = pacAttributesToSelect.inner;
   // TODO: Verify that groupCandidatesBy is actually set.
   var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "'Misc candidates' as targetname, -1 as targetid, true as targetaggregate, "
+      ? "null as targetname, -1 as targetid, true as targetaggregate, "
       : "firstlastp as targetname, cid as targetid, party, ";
   var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
       : "targetname, targetid, party, ";
-  var innerSelectTargets = (groupCandidatesBy == "Selection") ? ""
+  var innerSelectTargets = (groupCandidatesBy == "Selection") ? "Candidates.cid, "
       : "firstlastp, Candidates.cid, Candidates.party, ";
-  var outerAttributes = "'pac' as sourcetype, 'candidate' as targettype, ";
+  var outerAttributes = "'pac' as sourcetype, 'candidate' as targettype, 1 as sourcecount, ";
+  outerAttributes += (groupCandidatesBy == "Selection")
+      // TODO: Ideally targetcount should be the number of candidates for which links are actually
+      // found, and not simply the number of specified seed candidates. Unfortunately, it's hard to
+      // compute that within this particular SQL query.
+      ? seedCandidates.length + " as targetcount, "
+      : "1 as targetcount, ";
   var innerAttributes = "";
   var seedTargetAttributes = [];
   var seedMatchingCriteria = [];
@@ -384,6 +390,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   //
   // TODO: Verify that groupCandidatesBy is actually set.
   var outerSelectTargets = (groupCandidatesBy == "Selection")
+      // TODO: Display the number of candidates instead of just "Misc".
       ? "'Misc candidates' as targetname, -1 as targetid, true as targetaggregate, "
       : "firstlastp as targetname, recipid as targetid, party, ";
   var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";

@@ -110,18 +110,18 @@ function processRows(rows, seedIds) {
     var existingAggregateLink = aggregateLinks[aggreagateNodeId];
     if (existingAggregateLink) {
       var newAmount = existingAggregateLink.amount + row.amount;
-      var newCount = existingAggregateLink.count + 1;
+      var newCount = existingAggregateLink[aggregateType + "count"] + 1;
       if (existingAggregateLink.subLinks.length > newLinksPerExpansion) {
         aggregateLinks[aggreagateNodeId] =
             newAggregateLink(aggreagateNodeId, aggregateType, existingAggregateLink, row.isagainst);
       }
       var aggregateLink = aggregateLinks[aggreagateNodeId];
       aggregateLink.subLinks.push(row);
-      aggregateLink.count = newCount;
       aggregateLink.amount = newAmount;
       aggregateLink.isRefund = (newAmount < 0);
       aggregateLink.seedsource |= row.seedsource;
       aggregateLink.seedtarget |= row.seedtarget;
+      aggregateLink[aggregateType + "count"] = newCount;
       // TODO: Verify that sourcetype is the same.
       //
       // TODO: In the future some links may not have a party field. Consider finding a way to
@@ -135,21 +135,21 @@ function processRows(rows, seedIds) {
     }
 
     function newAggregateLink(aggregateLinkId, aggregateType, firstLink, isagainst) {
-      var newCount = firstLink.count || 1;
+      var newCount = firstLink[aggregateType + "count"] || 1;
 
       var newLink = getSelfProperties(aggregateType);
       newLink.id = aggregateLinkId;
       newLink.amount = firstLink.amount;
-      newLink.count = newCount;
       newLink.directorindirect = firstLink.directorindirect;
       newLink.isagainst = isagainst;
       newLink.isRefund = firstLink.amount < 0;
-      newLink[aggregateType + "aggregate"] = true;
       newLink.subLinks = [ firstLink ];
       newLink.seedsource = firstLink.seedsource;
       newLink.seedtarget = firstLink.seedtarget;
       newLink.sourcetype = firstLink.sourcetype;
       newLink.targettype = firstLink.targettype;
+      newLink[aggregateType + "aggregate"] = true;
+      newLink[aggregateType + "count"] = newCount;
 
       // It's up to the caller to set newLink[newLink.childNameType], since that's a pretty-printed
       // string whose format depends on the application-specific rendering of aggregate nodes.
