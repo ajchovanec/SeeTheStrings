@@ -36,7 +36,7 @@ var memoryCache = CacheManager.caching(
     {
       store: 'memory',
       max: 10,
-      ttl: 604800 /* 1 week */,
+      ttl: 600 /* 10 minutes */,
     });
 
 // TODO: Move this and other helper methods into a utilities module.
