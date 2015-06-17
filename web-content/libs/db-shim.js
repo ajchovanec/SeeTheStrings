@@ -47,10 +47,10 @@ function processRows(rows, seedIds) {
         // TODO: There may be a bug here where the same link can be both displayed by itself and as
         // part of an aggregate.
         if (row.seedtarget) {
-          handleRowSelfType(row, "source", !row.seedsource);
+          handleRowSelfType(row, "source");
         }
         if (row.seedsource) {
-          handleRowSelfType(row, "target", !row.seedtarget);
+          handleRowSelfType(row, "target");
         }
       });
 
@@ -74,8 +74,10 @@ function processRows(rows, seedIds) {
 
   // TODO: Consider merging the logic above that calls this method 0, 1, or 2 times into the method
   // itself.
-  function handleRowSelfType(row, selfType, isAggregable) {
+  function handleRowSelfType(row, selfType) {
     var properties = getSelfProperties(selfType);
+
+    var isAggregable = !row["seed" + selfType];  // FIXME
 
     var relativeAndLinkTypeId = getNodeAndLinkTypeId(row, row[properties.relativeIdType]);
     var numLinks = linkCounts[relativeAndLinkTypeId] || (linkCounts[relativeAndLinkTypeId] = 0);
