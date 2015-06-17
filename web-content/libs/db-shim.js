@@ -43,6 +43,9 @@ function processRows(rows, seedIds) {
         // problem for now by enforcing that links between seed nodes can never be aggregated;
         // however, this problem may rear its ugly head again as the graphs become more complex and
         // dynamic over time.
+        //
+        // TODO: There may be a bug here where the same link can be both displayed by itself and as
+        // part of an aggregate.
         if (row.seedtarget) {
           handleRowSelfType(row, "source", !row.seedsource);
         }
