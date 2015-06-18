@@ -449,9 +449,6 @@ function doSqlQueries(sqlQueries, res) {
   var barrier = SimpleBarrier();
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
-  // TODO: Postgres breaks with "ERROR: connect: Error: write EPIPE" when we try to do two queries
-  // on the same connection at the same time. Find out why. It may be necessary to perform the
-  // queries serially.
   sqlQueries.forEach(
       function(sqlQuery) {
         console.log("SQL query: " + sqlQuery);
