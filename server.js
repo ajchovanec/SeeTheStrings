@@ -588,8 +588,7 @@ router.get('/contributions', queryContributions);
 router.get('/races', queryRaces);
 router.get('/candidates', queryCandidates);
 router.get('/pacs', queryPacs);
-// TODO: Remove files from web-content that we don't need to serve directly to users.
-// Also, Make sure we return the right Content-Type for each file.
+// TODO: Make sure we return the right Content-Type for each file.
 router.use('/', ServeStatic('web-content', {'index': ['form.html']}));
 
 function onRequestError(err) {
