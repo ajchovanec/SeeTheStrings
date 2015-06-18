@@ -81,7 +81,7 @@ function getDbWrapper() {
                   doFetchAll();
                 }
               },
-              604800 /* 1 week */,
+              600 /* 10 minutes */,
               callback);
         }
   };
