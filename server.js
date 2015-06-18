@@ -211,15 +211,13 @@ function getPacAttributesToSelect(groupContributionsBy, relativeType) {
       break;
     case "Industry":
       return {
-        outer: "catname as " + relativeType + "name, catcode as " + relativeType + "id, "
-            + "true as " + relativeType + "aggregate, ",
+        outer: "catname as " + relativeType + "name, catcode as " + relativeType + "id, ",
         inner: "catname, catcode, "
       };
       break;
     case "Sector":
       return {
-        outer: "sector as " + relativeType + "name, sector as " + relativeType + "id, "
-            + "true as " + relativeType + "aggregate, ",
+        outer: "sector as " + relativeType + "name, sector as " + relativeType + "id, ",
         inner: "sector, "
       };
       break;
