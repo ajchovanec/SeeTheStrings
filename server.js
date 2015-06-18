@@ -382,7 +382,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   //
   // TODO: Verify that groupCandidatesBy is actually set.
   var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "'Misc candidates', -1 as targetid, true as targetaggregate, "
+      ? "'Misc candidates' as targetname, -1 as targetid, true as targetaggregate, "
       : "firstlastp as targetname, recipid as targetid, party, ";
   var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, 1 as sourcecount, ";
   var joinClause = (groupCandidatesBy == "Selection") ? ""
