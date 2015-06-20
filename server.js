@@ -317,10 +317,12 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandi
       seedCandidateSelectTarget = "recipid in (" + seedCandidates + ") as seedcandidate, ";
     }
 
-    var seedSqlQuery = "(select contrib, contribid, recipid, " + seedIndivSelectTarget
-        + seedCandidateSelectTarget + " amount from IndivsToCandidateTotals "
-        + "where " + seedMatchingCriteria + " and cycle = " + cycle + " order by " + orderBySeed
-        + "amount desc limit " + maxLinksPerSeed + ") ";
+    var seedSqlQuery = "(select contrib, contribid, false as indivaggregate, recipid, "
+        + seedIndivSelectTarget + seedCandidateSelectTarget + "1 as indivcount, "
+        + "amount from IndivsToCandidateTotals "
+        + "where " + seedMatchingCriteria + " and cycle = " + cycle + " and amount > 0 "
+        + "order by " + orderBySeed + "amount desc "
+        + "limit " + maxLinksPerSeed + ") ";
     return seedSqlQuery;
   }
   var subqueries = [];
@@ -331,47 +333,8 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandi
     subqueries.push(getOneSeedSubquery(cycle, "Candidate", seedIndivs, [ candidate ]));
   });
   console.log("Proposed subqueries: " + subqueries);
-  var alternateInnerSqlQuery = subqueries.join("union ");
 
-  var innerSelectSources = (groupCandidatesBy == "Selection")
-      ? "mode() within group (order by contrib) as contrib, contribid, "
-      : "contrib, contribid, ";
-  // TODO: Reimplement support for mode groupCandidatesBy=Selection.
-  //
-  // TODO: Verify that groupCandidatesBy is actually set.
-  var innerSelectTargets = (groupCandidatesBy == "Selection") ? "" : "recipid, ";
-  var innerAttributes = "";
-  var seedMatchingCriteria = [];
-  var filterCriteria = {
-    contribidFilter: "contribid is not null and trim(contribid) != '' ",
-    recipidFilter: "recipid like 'N%' "
-  };
-  if (seedIndivs.length > 0) {
-    var criterion = "contribid in (" + seedIndivs + ") ";
-    innerAttributes += "(" + criterion + ") as seedindiv, ";
-    seedMatchingCriteria.push(criterion);
-  }
-  var seedAggregator = (groupCandidatesBy == "Selection") ? "bool_or" : "";
-  if (seedCandidates.length > 0) {
-    var criterion = "recipid in (" + seedCandidates + ") ";
-    innerAttributes += seedAggregator + "(" + criterion + ") as seedcandidate, ";
-    seedMatchingCriteria.push(criterion);
-  }
-  innerAttributes += (groupCandidatesBy == "Selection") ? "sum(amount) as amount " : "amount ";
-  seedMatchingCriteria = seedMatchingCriteria.length > 0
-      ? "(" + seedMatchingCriteria.join("or ") + ") and "
-      : "";
-  filterCriteria = Object.keys(filterCriteria).length > 0
-      ? "(" + _.values(filterCriteria).join("and ") + ") and "
-      : "";
-  var groupByClause = (groupCandidatesBy == "Selection")
-      ? "group by contribid"
-      : "";
-
-  var innerSqlQuery = "select distinct " + innerSelectSources + innerSelectTargets + innerAttributes
-      + "from IndivsToCandidateTotals "
-      + "where " + seedMatchingCriteria + filterCriteria + "cycle = " + cycle + " "
-      + groupByClause;
+  var innerSqlQuery = subqueries.join("union ");
   return innerSqlQuery;
 }
 
@@ -379,26 +342,25 @@ function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandi
 // functionality that's shared with getPacContributions() out into a separate method.
 function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
     groupCandidatesBy) {
-  var outerSelectSources = "contrib as sourcename, contribid as sourceid, ";
   // TODO: Reimplement support for mode groupCandidatesBy=Selection.
   //
   // TODO: Verify that groupCandidatesBy is actually set.
-  var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "'Misc candidates', -1 as targetid, true as targetaggregate, "
-      : "firstlastp as targetname, recipid as targetid, party, ";
-  var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, 1 as sourcecount, ";
-  var joinClause = (groupCandidatesBy == "Selection") ? ""
-      : "inner join Candidates on InnerQuery.recipid = Candidates.cid ";
+
+  var outerSelectSources = "contrib as sourcename, contribid as sourceid, "
+      + "indivaggregate as sourceaggregate, ";
+  var outerSelectTargets = "firstlastp as targetname, recipid as targetid, party, ";
+  var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, "
+      + "indivcount as sourcecount, 1 as targetcount, ";
+  var joinClause = "inner join Candidates on UnionQuery.recipid = Candidates.cid ";
   var whereClause = "where amount > 0 ";
-  whereClause += (groupCandidatesBy == "Selection") ? ""
-      : "and cycle = " + cycle + " and currcand = 'Y' ";
+  whereClause += "and cycle = " + cycle + " and currcand = 'Y' ";
   var seedTargetAttributes = [];
   var outerOrderBy = "";
   if (seedIndivs.length > 0) {
     outerAttributes += "seedindiv as seedsource, ";
     outerOrderBy += "seedsource desc, ";
   }
-  var seedAggregator = (groupCandidatesBy == "Selection") ? "bool_or" : "";
+  var seedAggregator = "";
   if (seedCandidates.length > 0) {
     seedTargetAttributes.push("seedcandidate ");
   }
@@ -410,14 +372,29 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   var innerSqlQuery = getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
       groupCandidatesBy);
 
+  var remainderSqlQuery = "select null as contrib, concat('indivs_to_', recipid) as contribid, "
+      + "true as indivaggregate, recipid, false as seedindiv, true as seedcandidate, "
+      + "cast(indivcount as integer) as indivcount, cast(amount as integer) as amount from "
+      + "(select recipid, sum(indivcount) as indivcount, sum(amount) as amount from ("
+          + "(select recipid, -count(distinct contribid) as indivcount, -sum(amount) as amount "
+              + "from TopResultsQuery group by recipid) "
+          + "union (select recipid, count(distinct contribid) as indivcount, "
+              + "sum(amount) as amount from "
+              + "IndivsToCandidateTotals where recipid in (select recipid from TopResultsQuery) "
+              + "and cycle = " + cycle + " and amount > 0 "
+              + "group by recipid) "
+          + ") as RowsToSum group by recipid) "
+      + "as SummedRows ";
+
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
   // into a separate table.
-  var outerSqlQuery = "with InnerQuery as (" + innerSqlQuery + ") " 
+  var outerSqlQuery = "with TopResultsQuery as (" + innerSqlQuery + ") " 
       + "select " + outerSelectSources + outerSelectTargets + outerAttributes
-          + "'D' as directorindirect, false as isagainst, amount from InnerQuery "
+          + "'D' as directorindirect, false as isagainst, amount from "
+          + "((select * from TopResultsQuery) union (" + remainderSqlQuery + ")) as UnionQuery " 
           // TODO: Also join against Categories to support grouping individuals by realcode.
           + joinClause + whereClause
-          + "order by " + outerOrderBy + "amount desc ";
+          + "order by indivaggregate asc, " + outerOrderBy + "amount desc ";
   return outerSqlQuery;
 }
 
