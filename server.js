@@ -81,7 +81,7 @@ function getDbWrapper() {
                   doFetchAll();
                 }
               },
-              604800 /* 1 week */,
+              600 /* 10 minutes */,
               callback);
         }
   };
@@ -211,15 +211,13 @@ function getPacAttributesToSelect(groupContributionsBy, relativeType) {
       break;
     case "Industry":
       return {
-        outer: "catname as " + relativeType + "name, catcode as " + relativeType + "id, "
-            + "true as " + relativeType + "aggregate, ",
+        outer: "catname as " + relativeType + "name, catcode as " + relativeType + "id, ",
         inner: "catname, catcode, "
       };
       break;
     case "Sector":
       return {
-        outer: "sector as " + relativeType + "name, sector as " + relativeType + "id, "
-            + "true as " + relativeType + "aggregate, ",
+        outer: "sector as " + relativeType + "name, sector as " + relativeType + "id, ",
         inner: "sector, "
       };
       break;
@@ -428,9 +426,6 @@ function doSqlQueries(sqlQueries, res) {
   var barrier = SimpleBarrier();
   var dbWrapper = getDbWrapper();
   dbWrapper.connect();
-  // TODO: Postgres breaks with "ERROR: connect: Error: write EPIPE" when we try to do two queries
-  // on the same connection at the same time. Find out why. It may be necessary to perform the
-  // queries serially.
   sqlQueries.forEach(
       function(sqlQuery) {
         console.log("SQL query: " + sqlQuery);
@@ -570,8 +565,7 @@ router.get('/contributions', queryContributions);
 router.get('/races', queryRaces);
 router.get('/candidates', queryCandidates);
 router.get('/pacs', queryPacs);
-// TODO: Remove files from web-content that we don't need to serve directly to users.
-// Also, Make sure we return the right Content-Type for each file.
+// TODO: Make sure we return the right Content-Type for each file.
 router.use('/', ServeStatic('web-content', {'index': ['form.html']}));
 
 function onRequestError(err) {
