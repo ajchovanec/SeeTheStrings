@@ -288,7 +288,7 @@ function getPacContributionsQuery(cycle, seedPacs, seedCandidates,
   return sqlQuery;
 }
 
-function getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
+function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
     groupCandidatesBy) {
   var maxLinksPerSeed = 100;
 
@@ -367,7 +367,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
     outerOrderBy += "seedtarget desc, ";
   }
 
-  var innerSqlQuery = getInnerIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
+  var topResultsQuery = getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
       groupCandidatesBy);
 
   var remainderSqlQuery = "select null as contrib, concat('indivs_to_', recipid) as contribid, "
@@ -386,7 +386,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
 
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
   // into a separate table.
-  var outerSqlQuery = "with TopResultsQuery as (" + innerSqlQuery + ") " 
+  var outerSqlQuery = "with TopResultsQuery as (" + topResultsQuery + ") " 
       + "select " + outerSelectSources + outerSelectTargets + outerAttributes
           + "'D' as directorindirect, false as isagainst, amount from "
           + "((select * from TopResultsQuery) union (" + remainderSqlQuery + ")) as UnionQuery " 
