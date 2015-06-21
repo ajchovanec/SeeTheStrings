@@ -112,6 +112,8 @@ function processRows(rows, seedIds) {
     var properties = getSelfProperties(aggregateType);
     var aggreagateNodeId = getNodeAndLinkTypeId(row, row[properties.relativeIdType]);
 
+    // TODO: Update this logic so that an expandable aggregate link will never contain more than one
+    // unexpandable aggregate link within it.
     var existingAggregateLink = aggregateLinks[aggreagateNodeId];
     if (existingAggregateLink) {
       var newAmount = existingAggregateLink.amount + row.amount;
