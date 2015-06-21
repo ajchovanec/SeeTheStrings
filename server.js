@@ -388,8 +388,11 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   // into a separate table.
   var outerSqlQuery = "with TopResultsQuery as (" + topResultsQuery + ") " 
       + "select " + outerSelectSources + outerSelectTargets + outerAttributes
-          + "'D' as directorindirect, false as isagainst, amount from "
-          + "((select * from TopResultsQuery) union (" + remainderSqlQuery + ")) as UnionQuery " 
+          + "'D' as directorindirect, false as isagainst, amount from ("
+              + "(select contrib, contribid, indivaggregate, recipid, seedindiv, seedcandidate, "
+                  + "indivcount, amount from TopResultsQuery) "
+              + "union (" + remainderSqlQuery + ")"
+          + ") as UnionQuery " 
           // TODO: Also join against Categories to support grouping individuals by realcode.
           + joinClause + whereClause
           + "order by indivaggregate asc, " + outerOrderBy + "amount desc ";
