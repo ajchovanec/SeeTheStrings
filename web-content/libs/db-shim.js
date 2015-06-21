@@ -124,7 +124,12 @@ function processRows(rows, seedIds) {
             newAggregateLink(aggreagateNodeId, aggregateType, existingAggregateLink, row.isagainst);
       }
       var aggregateLink = aggregateLinks[aggreagateNodeId];
-      aggregateLink.subLinks.push(row);
+      if (row[aggregateType + "aggregate"]) {
+        // Always list aggregate links first so we know where to find them.
+        aggregateLink.subLinks.splice(0, 0, row);
+      } else {
+        aggregateLink.subLinks.push(row);
+      }
       aggregateLink.amount = newAmount;
       aggregateLink.isRefund = (newAmount < 0);
       aggregateLink.seedsource |= row.seedsource;
