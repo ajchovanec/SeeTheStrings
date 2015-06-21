@@ -342,28 +342,15 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
     groupCandidatesBy) {
   // TODO: Verify that groupCandidatesBy is actually set.
 
-  // TODO: It should be possible to support mode groupCandidatesBy=Selection without the use of
-  // aggregate functions or group by clauses.
-  var outerSelectSources = (groupCandidatesBy == "Selection")
-      ? "mode() within group (order by contrib) as sourcename, " 
-      : "contrib as sourcename, "
-  var groupByClause = (groupCandidatesBy == "Selection")
-      ? "group by sourceid, targetname, targetid, sourceaggregate, seedsource, seedtarget "
-      : "";
+  var outerSelectSources = "contrib as sourcename, ";
   outerSelectSources += "contribid as sourceid, indivaggregate as sourceaggregate, ";
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "(case when seedcandidate then 'Selected candidates' else firstlastp end) as targetname, "
           + "(case when seedcandidate then '-1' else recipid end) as targetid, "
           + "true as targetaggregate, "
       : "firstlastp as targetname, recipid as targetid, party, ";
-  var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";
-      + "indivcount as sourcecount, ";
-  // TODO: Under mode groupCandidatesBy=Selection,this summed sourcecount may be incorrect, since
-  // some individuals may have contributed to more than one of the selected candidates.
-  outerAttributes += (groupCandidatesBy == "Selection")
-      ? "sum(indivcount) as sourcecount, count(distinct recipid) as targetcount, "
-          + "sum(amount) as amount, "
-      : "indivcount as sourcecount, 1 as targetcount, amount, ";
+  var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, "
+      + "indivcount as sourcecount, 1 as targetcount, ";
   var joinClause = "inner join Candidates on UnionQuery.recipid = Candidates.cid ";
   var whereClause = "where amount > 0 ";
   whereClause += "and cycle = " + cycle + " and currcand = 'Y' ";
@@ -383,6 +370,8 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   var remainderSqlQuery = "select null as contrib, concat('indivs_to_', recipid) as contribid, "
       + "true as indivaggregate, recipid, false as seedindiv, true as seedcandidate, "
       + "cast(indivcount as integer) as indivcount, cast(amount as integer) as amount from "
+      // TODO: Under mode groupCandidatesBy=Selection,this summed sourcecount may be incorrect,
+      // since some individuals may have contributed to more than one of the selected candidates.
       + "(select recipid, sum(indivcount) as indivcount, sum(amount) as amount from ("
           + "(select recipid, -count(distinct contribid) as indivcount, -sum(amount) as amount "
               + "from TopResultsQuery group by recipid) "
@@ -398,13 +387,13 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   // into a separate table.
   var outerSqlQuery = "with TopResultsQuery as (" + topResultsQuery + ") " 
       + "select " + outerSelectSources + outerSelectTargets + outerAttributes
-          + "'D' as directorindirect, false as isagainst from ("
+          + "'D' as directorindirect, false as isagainst, amount from ("
               + "(select contrib, contribid, indivaggregate, recipid, seedindiv, seedcandidate, "
                   + "indivcount, amount from TopResultsQuery) "
               + "union (" + remainderSqlQuery + ")"
           + ") as UnionQuery " 
           // TODO: Also join against Categories to support grouping individuals by realcode.
-          + joinClause + whereClause + groupByClause
+          + joinClause + whereClause
           + "order by indivaggregate asc, " + outerOrderBy + "amount desc ";
   return outerSqlQuery;
 }
