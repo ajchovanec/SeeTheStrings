@@ -115,7 +115,8 @@ function processRows(rows, seedIds) {
     var existingAggregateLink = aggregateLinks[aggreagateNodeId];
     if (existingAggregateLink) {
       var newAmount = existingAggregateLink.amount + row.amount;
-      var newCount = existingAggregateLink[aggregateType + "count"] + 1;
+      var newCount = existingAggregateLink[aggregateType + "count"]
+          + (row[aggregateType + "count"] || 1);
       if (existingAggregateLink.subLinks.length > newLinksPerExpansion) {
         aggregateLinks[aggreagateNodeId] =
             newAggregateLink(aggreagateNodeId, aggregateType, existingAggregateLink, row.isagainst);
