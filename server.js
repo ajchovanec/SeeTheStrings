@@ -290,7 +290,7 @@ function getPacContributionsQuery(cycle, seedPacs, seedCandidates,
 
 function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
     groupCandidatesBy) {
-  var maxLinksPerSeed = 2;
+  var maxLinksPerSeed = 100;
 
   function getOneSeedSubquery(cycle, seedType, seedIndivs, seedCandidates) {
     var seedIndivSelectTarget = "";
@@ -315,6 +315,9 @@ function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandida
       seedCandidateSelectTarget = "recipid in (" + seedCandidates + ") as seedcandidate, ";
     }
 
+    // TODO: This query may return contributions to inactive candidates, which may then be filtered
+    // out when we join against the Candidates table. But that shouldn't really matter as long as
+    // maxLinksPerSeed is high enough to ensure that enough links are returned.
     var seedSqlQuery = "(select contrib, contribid, false as indivaggregate, recipid, "
         + seedIndivSelectTarget + seedCandidateSelectTarget + "1 as indivcount, "
         + "amount from IndivsToCandidateTotals "
@@ -380,7 +383,9 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   var topResultsQuery = getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
       groupCandidatesBy);
 
-  var remainderSqlQuery = "select null as contrib, concat('indivs_to_', recipid) as contribid, "
+  // TODO: We need to compute and return the remainining contributions for the seed individuals too.
+  var remainderCandidateSqlQuery =
+      + "select null as contrib, concat('indivs_to_', recipid) as contribid, "
       + "true as indivaggregate, recipid, seedindiv, seedcandidate, "
       + "cast(indivcount as integer) as indivcount, cast(amount as integer) as amount from ("
       // TODO: Under mode groupCandidatesBy=Selection, this summed sourcecount may be incorrect,
@@ -404,7 +409,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
           + "'D' as directorindirect, false as isagainst from ("
               + "(select contrib, contribid, indivaggregate, recipid, seedindiv, seedcandidate, "
                   + "indivcount, amount from TopResultsQuery) "
-              + "union (" + remainderSqlQuery + ")"
+              + "union (" + remainderCandidateSqlQuery + ")"
           + ") as UnionQuery " 
           // TODO: Also join against Categories to support grouping individuals by realcode.
           + joinClause + whereClause + groupByClause
