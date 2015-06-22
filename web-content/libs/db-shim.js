@@ -140,6 +140,9 @@ function processRows(rows, seedIds) {
           // If the new row is an aggregate, and if the existing aggregate link already contains a
           // nested aggregate link, then merge the new row into that aggregate instead of adding it
           // as its own link.
+          //
+          // TODO: Make sure we don't end up with an aggregate link which just contains another
+          // aggregate link.
           mergeRowPropertiesIntoLink(row, aggregateLink.subLinks[0], aggregateType);
         } else {
           // Always list aggregate links first so we know where to find them.
