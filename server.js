@@ -381,7 +381,6 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   var topResultsQuery = getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
       groupCandidatesBy);
 
-  // TODO: We need to compute and return the remainining contributions for the seed individuals too.
   var unionCandidateRemainderClause = "";
   if (seedCandidates.length > 0) {
     unionCandidateRemainderClause = "union ("
@@ -402,7 +401,14 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
                     + "group by recipid) "
                 + ") as RowsToSum group by recipid "
             + ") as SummedRows "
-        + ")";
+        + ") ";
+  }
+
+  var unionIndividualRemainderClause = "";
+  if (seedIndivs.length > 0) {
+    unionIndividualRemainderClause = "union ("
+    // TODO: Populate unionIndividualRemainderClause here.
+        + ") ";
   }
 
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
@@ -413,6 +419,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
               + "(select contrib, contribid, indivaggregate, recipid, seedindiv, seedcandidate, "
                   + "indivcount, amount from TopResultsQuery) "
               + unionCandidateRemainderClause
+              + unionIndividualRemainderClause
           + ") as UnionQuery " 
           // TODO: Also join against Categories to support grouping individuals by realcode.
           + joinClause + whereClause + groupByClause
