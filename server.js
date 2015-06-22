@@ -341,13 +341,21 @@ function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandida
 function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
     groupCandidatesBy) {
   // TODO: Verify that groupCandidatesBy is actually set.
+  //
+  // TODO: Under mode groupCandidatesBy=Selection, all of the logic in this method may be completely
+  // broken in the case where some individuals contributed to more than one of the selected
+  // candidates.
 
   var outerSelectSources = "contrib as sourcename, ";
   outerSelectSources += "contribid as sourceid, indivaggregate as sourceaggregate, ";
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "(case when seedcandidate then 'Selected candidates' else firstlastp end) as targetname, "
           + "(case when seedcandidate then '-1' else recipid end) as targetid, "
-          + "true as targetaggregate, "
+          // Under mode groupCandidatesBy=Selection we only set the party field for non-seed
+          // candidates, since it is likely that the candidates in the selection will not all have
+          // the same party.
+          + "(case when seedcandidate then null else party end) as party, "
+          + "seedcandidate as targetaggregate, "
       : "firstlastp as targetname, recipid as targetid, party, ";
   var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, "
       + "indivcount as sourcecount, 1 as targetcount, ";
@@ -370,7 +378,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   var remainderSqlQuery = "select null as contrib, concat('indivs_to_', recipid) as contribid, "
       + "true as indivaggregate, recipid, false as seedindiv, true as seedcandidate, "
       + "cast(indivcount as integer) as indivcount, cast(amount as integer) as amount from "
-      // TODO: Under mode groupCandidatesBy=Selection,this summed sourcecount may be incorrect,
+      // TODO: Under mode groupCandidatesBy=Selection, this summed sourcecount may be incorrect,
       // since some individuals may have contributed to more than one of the selected candidates.
       + "(select recipid, sum(indivcount) as indivcount, sum(amount) as amount from ("
           + "(select recipid, -count(distinct contribid) as indivcount, -sum(amount) as amount "
