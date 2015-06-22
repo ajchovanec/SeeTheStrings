@@ -115,10 +115,10 @@ function processRows(rows, seedIds) {
     intoLink[aggregateType + "count"] += (fromRow[aggregateType + "count"] || 1);
     // TODO: Verify that sourcetype is the same.
     //
-    // TODO: In the future some links may not have a party field. Consider finding a way to
-    // generalize this.
-    if (fromRow.party != intoLink.party) {
-      intoLink.party = null;
+    // TODO: In the future some links may not have a targetparty field, and some links may have a
+    // sourceparty field. Consider finding a way to generalize this.
+    if (fromRow.targetparty != intoLink.targetparty) {
+      intoLink.targetparty = null;
     }
   }
 
@@ -177,9 +177,9 @@ function processRows(rows, seedIds) {
       newLink[newLink.relativeIdType] = firstLink[newLink.relativeIdType];
       newLink[newLink.relativeNameType] = firstLink[newLink.relativeNameType];
 
-      // TODO: In the future some links may not have a party field. Consider finding a way to
-      // generalize this.
-      newLink.party = firstLink.party;
+      // TODO: In the future some links may not have a targetparty field, and some links may have a
+      // sourceparty field. Consider finding a way to generalize this.
+      newLink.targetparty = firstLink.targetparty;
 
       return newLink;
     }

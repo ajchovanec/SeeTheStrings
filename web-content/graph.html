@@ -139,8 +139,8 @@ function setDisplayPropertiesForCandidateNode(node, link) {
   if (node.name == null) {
     if (node.aggregate) {
       node.name = Number(node.count).toLocaleString('en-US');
-      if (link.party != null) {
-        var adjective = getAdjectiveForParty(link.party);
+      if (link.targetparty != null) {
+        var adjective = getAdjectiveForParty(link.targetparty);
         if (adjective != null) {
           node.name += " " + adjective;
         }
@@ -152,8 +152,8 @@ function setDisplayPropertiesForCandidateNode(node, link) {
     }
   }
   if (node.party == null || node.party == "U") {
-    if (link.party != null) {
-      node.party = link.party;
+    if (link.targetparty != null) {
+      node.party = link.targetparty;
       console.log("Getting party " + node.party + " from link");
     } else {
       console.log("Party unknown");

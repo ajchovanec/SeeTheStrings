@@ -234,9 +234,9 @@ function getPacContributionsQuery(cycle, seedPacs, seedCandidates,
   // TODO: Verify that groupCandidatesBy is actually set.
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "'Selected candidates' as targetname, -1 as targetid, true as targetaggregate, "
-      : "firstlastp as targetname, cid as targetid, party, ";
+      : "firstlastp as targetname, cid as targetid, party as targetparty, ";
   var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
-      : "targetname, targetid, party, ";
+      : "targetname, targetid, targetparty, ";
   var innerSelectTargets = (groupCandidatesBy == "Selection") ? "Candidates.cid, "
       : "firstlastp, Candidates.cid, Candidates.party, ";
   var outerAttributes = "'pac' as sourcetype, 'candidate' as targettype, 1 as sourcecount, ";
@@ -346,18 +346,19 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
       ? "mode() within group (order by contrib) as sourcename, "
       : "contrib as sourcename, "
   var groupByClause = (groupCandidatesBy == "Selection")
-      ? "group by sourceid, targetname, targetid, party, sourceaggregate, seedsource, seedtarget "
+      ? "group by sourceid, targetname, targetid, targetparty, sourceaggregate, "
+          + "seedsource, seedtarget "
       : "";
   outerSelectSources += "contribid as sourceid, indivaggregate as sourceaggregate, ";
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "(case when seedcandidate then 'Selected candidates' else firstlastp end) as targetname, "
           + "(case when seedcandidate then '-1' else recipid end) as targetid, "
-          // Under mode groupCandidatesBy=Selection we only set the party field for non-seed
+          // Under mode groupCandidatesBy=Selection we only set the targetparty field for non-seed
           // candidates, since it is likely that the candidates in the selection will not all have
           // the same party.
-          + "(case when seedcandidate then null else party end) as party, "
+          + "(case when seedcandidate then null else party end) as targetparty, "
           + "seedcandidate as targetaggregate, "
-      : "firstlastp as targetname, recipid as targetid, party, ";
+      : "firstlastp as targetname, recipid as targetid, party as targetparty, ";
   var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";
   outerAttributes += (groupCandidatesBy == "Selection")
       ? "sum(indivcount) as sourcecount, count(distinct recipid) as targetcount, "
