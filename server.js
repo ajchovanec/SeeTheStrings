@@ -366,45 +366,44 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
           + "(case when seedcandidate then null else party end) as targetparty, "
           + "seedcandidate as targetaggregate, "
       : "firstlastp as targetname, recipid as targetid, party as targetparty, ";
-  var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, ";
+  var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, "
+      + "seedindiv as seedsource, seedcandidate as seedtarget, ";
   outerAttributes += (groupCandidatesBy == "Selection")
       ? "sum(indivcount) as sourcecount, count(distinct recipid) as targetcount, "
           + "sum(amount) as amount, "
       : "indivcount as sourcecount, 1 as targetcount, amount, ";
-  var joinClause = "inner join Candidates on UnionQuery.recipid = Candidates.cid ";
   var whereClause = "where amount > 0 ";
   whereClause += "and cycle = " + cycle + " and currcand = 'Y' ";
-  var outerOrderBy = "";
-  if (seedIndivs.length > 0) {
-    outerAttributes += "seedindiv as seedsource, ";
-    outerOrderBy += "seedsource desc, ";
-  }
-  if (seedCandidates.length > 0) {
-    outerAttributes += "seedcandidate as seedtarget, ";
-    outerOrderBy += "seedtarget desc, ";
-  }
+  // TODO: Maybe these don't need to be variables.
+  var joinClause = "inner join Candidates on UnionQuery.recipid = Candidates.cid ";
+  var outerOrderBy = "seedsource desc, seedtarget desc, ";
 
   var topResultsQuery = getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
       groupCandidatesBy);
 
   // TODO: We need to compute and return the remainining contributions for the seed individuals too.
-  var remainderCandidateSqlQuery =
-      + "select null as contrib, concat('indivs_to_', recipid) as contribid, "
-      + "true as indivaggregate, recipid, seedindiv, seedcandidate, "
-      + "cast(indivcount as integer) as indivcount, cast(amount as integer) as amount from ("
-      // TODO: Under mode groupCandidatesBy=Selection, this summed sourcecount may be incorrect,
-      // since some individuals may have contributed to more than one of the selected candidates.
-      + "select recipid, false as seedindiv, true as seedcandidate, sum(indivcount) as indivcount,"
-          + "sum(amount) as amount from ("
-          + "(select recipid, -count(distinct contribid) as indivcount, -sum(amount) as amount "
-              + "from TopResultsQuery group by recipid) "
-          + "union (select recipid, count(distinct contribid) as indivcount, sum(amount) as amount "
-              + "from IndivsToCandidateTotals "
-              + "where recipid in (" + seedCandidates + ") "
-                  + "and cycle = " + cycle + " and amount > 0 "
-              + "group by recipid) "
-          + ") as RowsToSum group by recipid "
-      + ") as SummedRows ";
+  var unionRemainderClause = "";
+  if (seedCandidates.length > 0) {
+    unionRemainderClause = "union ("
+        + "select null as contrib, concat('indivs_to_', recipid) as contribid, "
+            + "true as indivaggregate, recipid, seedindiv, seedcandidate, "
+            + "cast(indivcount as integer) as indivcount, cast(amount as integer) as amount from ("
+            // TODO: Under mode groupCandidatesBy=Selection, this summed sourcecount may be
+            // incorrect, since some individuals may have contributed to more than one of the
+            // selected candidates.
+            + "select recipid, false as seedindiv, true as seedcandidate, "
+                + "sum(indivcount) as indivcount, sum(amount) as amount from ("
+                + "(select recipid, -count(distinct contribid) as indivcount, "
+                    + "-sum(amount) as amount from TopResultsQuery group by recipid) "
+                + "union (select recipid, count(distinct contribid) as indivcount, "
+                    + "sum(amount) as amount from IndivsToCandidateTotals "
+                    + "where recipid in (" + seedCandidates + ") "
+                        + "and cycle = " + cycle + " and amount > 0 "
+                    + "group by recipid) "
+                + ") as RowsToSum group by recipid "
+            + ") as SummedRows "
+        + ")";
+  }
 
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
   // into a separate table.
@@ -413,7 +412,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
           + "'D' as directorindirect, false as isagainst from ("
               + "(select contrib, contribid, indivaggregate, recipid, seedindiv, seedcandidate, "
                   + "indivcount, amount from TopResultsQuery) "
-              + "union (" + remainderCandidateSqlQuery + ")"
+              + unionRemainderClause
           + ") as UnionQuery " 
           // TODO: Also join against Categories to support grouping individuals by realcode.
           + joinClause + whereClause + groupByClause
