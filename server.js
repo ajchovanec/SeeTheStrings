@@ -307,12 +307,16 @@ function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandida
       seedMatchingCriteria = "recipid = " + seedCandidates[0];
       orderBySeed = "seedcandidate, ";
     }
-
-    if (seedIndivSelectTarget == "" && seedIndivs.length > 0) {
-      seedIndivSelectTarget = "contribid in (" + seedIndivs + ") as seedindiv, ";
+  
+    if (seedIndivSelectTarget == "") {
+      seedIndivSelectTarget = (seedIndivs.length > 0)
+          ? "contribid in (" + seedIndivs + ") as seedindiv, "
+          : "false as seedindiv, ";
     }
-    if (seedCandidateSelectTarget == "" && seedCandidates.length > 0) {
-      seedCandidateSelectTarget = "recipid in (" + seedCandidates + ") as seedcandidate, ";
+    if (seedCandidateSelectTarget == "") {
+      seedCandidateSelectTarget = (seedCandidates.length > 0)
+          ? "recipid in (" + seedCandidates + ") as seedcandidate, "
+          : "false as seedcandidate, ";
     }
 
     // TODO: This query may return contributions to inactive candidates, which may then be filtered
