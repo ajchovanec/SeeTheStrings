@@ -290,7 +290,7 @@ function getPacContributionsQuery(cycle, seedPacs, seedCandidates,
 
 function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
     groupCandidatesBy) {
-  var maxLinksPerSeed = 100;
+  var maxLinksPerSeed = 2;
 
   function getOneSeedSubquery(cycle, seedType, seedIndivs, seedCandidates) {
     var seedIndivSelectTarget = "";
@@ -381,11 +381,12 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
       groupCandidatesBy);
 
   var remainderSqlQuery = "select null as contrib, concat('indivs_to_', recipid) as contribid, "
-      + "true as indivaggregate, recipid, false as seedindiv, true as seedcandidate, "
-      + "cast(indivcount as integer) as indivcount, cast(amount as integer) as amount from "
+      + "true as indivaggregate, recipid, seedindiv, seedcandidate, "
+      + "cast(indivcount as integer) as indivcount, cast(amount as integer) as amount from ("
       // TODO: Under mode groupCandidatesBy=Selection, this summed sourcecount may be incorrect,
       // since some individuals may have contributed to more than one of the selected candidates.
-      + "(select recipid, sum(indivcount) as indivcount, sum(amount) as amount from ("
+      + "select recipid, false as seedindiv, true as seedcandidate, sum(indivcount) as indivcount,"
+          + "sum(amount) as amount from ("
           + "(select recipid, -count(distinct contribid) as indivcount, -sum(amount) as amount "
               + "from TopResultsQuery group by recipid) "
           + "union (select recipid, count(distinct contribid) as indivcount, sum(amount) as amount "
@@ -393,8 +394,8 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
               + "where recipid in (" + seedCandidates + ") "
                   + "and cycle = " + cycle + " and amount > 0 "
               + "group by recipid) "
-          + ") as RowsToSum group by recipid) "
-      + "as SummedRows ";
+          + ") as RowsToSum group by recipid "
+      + ") as SummedRows ";
 
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
   // into a separate table.
