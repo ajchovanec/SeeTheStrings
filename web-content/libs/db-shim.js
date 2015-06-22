@@ -118,7 +118,7 @@ function processRows(rows, seedIds) {
     // TODO: In the future some links may not have a party field. Consider finding a way to
     // generalize this.
     if (fromRow.party != intoLink.party) {
-      fromLink.party = null;
+      intoLink.party = null;
     }
   }
 
