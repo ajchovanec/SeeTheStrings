@@ -382,9 +382,9 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
       groupCandidatesBy);
 
   // TODO: We need to compute and return the remainining contributions for the seed individuals too.
-  var unionRemainderClause = "";
+  var unionCandidateRemainderClause = "";
   if (seedCandidates.length > 0) {
-    unionRemainderClause = "union ("
+    unionCandidateRemainderClause = "union ("
         + "select null as contrib, concat('indivs_to_', recipid) as contribid, "
             + "true as indivaggregate, recipid, seedindiv, seedcandidate, "
             + "cast(indivcount as integer) as indivcount, cast(amount as integer) as amount from ("
@@ -412,7 +412,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
           + "'D' as directorindirect, false as isagainst from ("
               + "(select contrib, contribid, indivaggregate, recipid, seedindiv, seedcandidate, "
                   + "indivcount, amount from TopResultsQuery) "
-              + unionRemainderClause
+              + unionCandidateRemainderClause
           + ") as UnionQuery " 
           // TODO: Also join against Categories to support grouping individuals by realcode.
           + joinClause + whereClause + groupByClause
