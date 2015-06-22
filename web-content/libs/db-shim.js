@@ -107,41 +107,48 @@ function processRows(rows, seedIds) {
     }
   }
 
+  function mergeRowPropertiesIntoLink(fromRow, intoLink, aggregateType) {
+    intoLink.amount += fromRow.amount;
+    intoLink.isRefund = (intoLink.amount < 0);
+    intoLink.seedsource |= fromRow.seedsource;
+    intoLink.seedtarget |= fromRow.seedtarget;
+    intoLink[aggregateType + "count"] += (fromRow[aggregateType + "count"] || 1);
+    // TODO: Verify that sourcetype is the same.
+    //
+    // TODO: In the future some links may not have a party field. Consider finding a way to
+    // generalize this.
+    if (fromRow.party != intoLink.party) {
+      fromLink.party = null;
+    }
+  }
+
   function aggregateRow(row, aggregateType) {
     // TODO: Try to avoid calculating all properties here, since we only need relativeIdType.
     var properties = getSelfProperties(aggregateType);
     var aggreagateNodeId = getNodeAndLinkTypeId(row, row[properties.relativeIdType]);
 
-    // TODO: Update this logic so that an expandable aggregate link will never contain more than one
-    // unexpandable aggregate link within it.
     var existingAggregateLink = aggregateLinks[aggreagateNodeId];
     if (existingAggregateLink) {
-      var newAmount = existingAggregateLink.amount + row.amount;
-      var newCount = existingAggregateLink[aggregateType + "count"]
-          + (row[aggregateType + "count"] || 1);
       if (existingAggregateLink.subLinks.length > newLinksPerExpansion) {
         aggregateLinks[aggreagateNodeId] =
             newAggregateLink(aggreagateNodeId, aggregateType, existingAggregateLink, row.isagainst);
       }
       var aggregateLink = aggregateLinks[aggreagateNodeId];
       if (row[aggregateType + "aggregate"]) {
-        // Always list aggregate links first so we know where to find them.
-        aggregateLink.subLinks.splice(0, 0, row);
+        if (aggregateLink.subLinks.length > 0
+            && aggregateLink.subLinks[0][aggregateType + "aggregate"]) {
+          // If the new row is an aggregate, and if the existing aggregate link already contains a
+          // nested aggregate link, then merge the new row into that aggregate instead of adding it
+          // as its own link.
+          mergeRowPropertiesIntoLink(row, aggregateLink.subLinks[0], aggregateType);
+        } else {
+          // Always list aggregate links first so we know where to find them.
+          aggregateLink.subLinks.splice(0, 0, row);
+        }
       } else {
         aggregateLink.subLinks.push(row);
       }
-      aggregateLink.amount = newAmount;
-      aggregateLink.isRefund = (newAmount < 0);
-      aggregateLink.seedsource |= row.seedsource;
-      aggregateLink.seedtarget |= row.seedtarget;
-      aggregateLink[aggregateType + "count"] = newCount;
-      // TODO: Verify that sourcetype is the same.
-      //
-      // TODO: In the future some links may not have a party field. Consider finding a way to
-      // generalize this.
-      if (row.party != aggregateLink.party) {
-        aggregateLink.party = null;
-      }
+      mergeRowPropertiesIntoLink(row, aggregateLink, aggregateType);
     } else {
       aggregateLinks[aggreagateNodeId] =
           newAggregateLink(aggreagateNodeId, aggregateType, row, row.isagainst);
