@@ -406,9 +406,9 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
 
   var unionIndividualRemainderClause = "";
   if (seedIndivs.length > 0) {
-    unionIndividualRemainderClause = "union ("
-    // TODO: Populate unionIndividualRemainderClause here.
-        + ") ";
+    // TODO: Uncomment the code below and fully populate unionIndividualRemainderClause.
+    //unionIndividualRemainderClause = "union ("
+        //+ ") ";
   }
 
   // TODO: Find a way to reliably normalize this data, possibly by extracting the contrib field out
