@@ -323,7 +323,7 @@ function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandida
     // out when we join against the Candidates table. But that shouldn't really matter as long as
     // maxLinksPerSeed is high enough to ensure that enough links are returned.
     var seedSqlQuery = "(select contrib, contribid, false as indivaggregate, recipid, "
-        + seedIndivSelectTarget + seedCandidateSelectTarget + "1 as indivcount, "
+        + "false as candidateaggregate, " + seedIndivSelectTarget + seedCandidateSelectTarget
         + "amount from IndivsToCandidateTotals "
         + "where " + seedMatchingCriteria + " and cycle = " + cycle + " and amount > 0 "
         + "order by " + orderBySeed + "amount desc "
@@ -384,14 +384,18 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   var unionCandidateRemainderClause = "";
   if (seedCandidates.length > 0) {
     unionCandidateRemainderClause = "union ("
-        + "select null as contrib, concat('indivs_to_', recipid) as contribid, "
-            + "true as indivaggregate, recipid, seedindiv, seedcandidate, "
-            + "cast(indivcount as integer) as indivcount, cast(amount as integer) as amount from ("
+        + "select null as contrib, "
+            + "concat('indivs_to_', recipid) as contribid, true as indivaggregate, "
+            + "recipid, false as candidateaggregate, "
+            + "seedindiv, seedcandidate, "
+            + "cast(indivcount as integer) as indivcount, "
+            + "cast(candidatecount as integer) as candidatecount, "
+            + "cast(amount as integer) as amount from ("
             // TODO: Under mode groupCandidatesBy=Selection, this summed sourcecount may be
             // incorrect, since some individuals may have contributed to more than one of the
             // selected candidates.
             + "select recipid, false as seedindiv, true as seedcandidate, "
-                + "sum(indivcount) as indivcount, sum(amount) as amount from ("
+                + "sum(indivcount) as indivcount, 1 as candidatecount, sum(amount) as amount from ("
                 + "(select recipid, -count(distinct contribid) as indivcount, "
                     + "-sum(amount) as amount from TopResultsQuery group by recipid) "
                 + "union (select recipid, count(distinct contribid) as indivcount, "
@@ -416,8 +420,9 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   var outerSqlQuery = "with TopResultsQuery as (" + topResultsQuery + ") " 
       + "select " + outerSelectSources + outerSelectTargets + outerAttributes
           + "'D' as directorindirect, false as isagainst from ("
-              + "(select contrib, contribid, indivaggregate, recipid, seedindiv, seedcandidate, "
-                  + "indivcount, amount from TopResultsQuery) "
+              + "(select contrib, contribid, indivaggregate, recipid, candidateaggregate, "
+              + "seedindiv, seedcandidate, 1 as indivcount, 1 as candidatecount, amount "
+              + "from TopResultsQuery) "
               + unionCandidateRemainderClause
               + unionIndividualRemainderClause
           + ") as UnionQuery " 
