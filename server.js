@@ -373,7 +373,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
           + "sum(amount) as amount, "
       : "indivcount as sourcecount, 1 as targetcount, amount, ";
   var whereClause = "where amount > 0 ";
-  whereClause += "and cycle = " + cycle + " and currcand = 'Y' ";
+  whereClause += "and Candidates.cycle = " + cycle + " and Candidates.currcand = 'Y' ";
   // TODO: Maybe these don't need to be variables.
   var joinClause = "inner join Candidates on UnionQuery.recipid = Candidates.cid ";
   var outerOrderBy = "seedsource desc, seedtarget desc, ";
