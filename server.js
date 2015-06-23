@@ -452,6 +452,11 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
               + "(select contrib, contribid, indivaggregate, recipid, candidateaggregate, "
               + "seedindiv, seedcandidate, 1 as indivcount, 1 as candidatecount, amount "
               + "from TopResultsQuery) "
+              // TODO: The candidate and individual remainder values may be too high, because they
+              // may include contributions to inactive candidates that would have been filtered out
+              // by the 'join' and 'where' clause below if they were not aggregated. To fix this,
+              // join with the Candidates table here, and filter out inactive candidates before
+              // aggregating.
               + unionCandidateRemainderClause
               + unionIndividualRemainderClause
           + ") as UnionQuery " 
