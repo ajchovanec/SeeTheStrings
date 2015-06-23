@@ -233,7 +233,7 @@ function getPacContributionsQuery(cycle, seedPacs, seedCandidates,
   var innerSelectSources = pacAttributesToSelect.inner;
   // TODO: Verify that groupCandidatesBy is actually set.
   var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "'Selected candidates' as targetname, 'pacs_to_seedcandidates' as targetid, "
+      ? "'Selected candidates' as targetname, 'seedcandidates' as targetid, "
           + "true as targetaggregate, "
       : "firstlastp as targetname, cid as targetid, party as targetparty, ";
   var outerGroupByTargets = (groupCandidatesBy == "Selection") ? ""
@@ -360,7 +360,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   outerSelectSources += "contribid as sourceid, indivaggregate as sourceaggregate, ";
   var outerSelectTargets = (groupCandidatesBy == "Selection")
       ? "(case when seedcandidate then 'Selected candidates' else firstlastp end) as targetname, "
-          + "(case when seedcandidate then 'indivs_to_seedcandidates' else recipid end) as targetid, "
+          + "(case when seedcandidate then 'seedcandidates' else recipid end) as targetid, "
           // Under mode groupCandidatesBy=Selection we only set the targetparty field for non-seed
           // candidates, since it is likely that the candidates in the selection will not all have
           // the same party.
