@@ -300,35 +300,37 @@ function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandida
     var seedMatchingCriteria;
     var orderBySeed;
     if (seedType == "Individual") {
-      seedIndivSelectTarget = "true as seedindiv, ";
+      seedIndivSelectTarget = "true as seedsource, ";
       seedMatchingCriteria = "contribid = " + seedIndivs[0];
-      orderBySeed = "seedindiv, ";
+      orderBySeed = "seedsource, ";
     } else if (seedType == "Candidate") {
-      seedCandidateSelectTarget = "true as seedcandidate, ";
+      seedCandidateSelectTarget = "true as seedtarget, ";
       seedMatchingCriteria = "recipid = " + seedCandidates[0];
-      orderBySeed = "seedcandidate, ";
+      orderBySeed = "seedtarget, ";
     }
   
     if (seedIndivSelectTarget == "") {
       seedIndivSelectTarget = (seedIndivs.length > 0)
-          ? "contribid in (" + seedIndivs + ") as seedindiv, "
-          : "false as seedindiv, ";
+          ? "contribid in (" + seedIndivs + ") as seedsource, "
+          : "false as seedsource, ";
     }
     if (seedCandidateSelectTarget == "") {
       seedCandidateSelectTarget = (seedCandidates.length > 0)
-          ? "recipid in (" + seedCandidates + ") as seedcandidate, "
-          : "false as seedcandidate, ";
+          ? "recipid in (" + seedCandidates + ") as seedtarget, "
+          : "false as seedtarget, ";
     }
 
     // TODO: This query may return contributions to inactive candidates, which may then be filtered
     // out when we join against the Candidates table. But that shouldn't really matter as long as
     // maxLinksPerSeed is high enough to ensure that enough links are returned.
-    var seedSqlQuery = "(select contrib, contribid, false as indivaggregate, recipid, "
-        + "false as candidateaggregate, " + seedIndivSelectTarget + seedCandidateSelectTarget
-        + "amount from IndivsToCandidateTotals "
-        + "where " + seedMatchingCriteria + " and cycle = " + cycle + " and amount > 0 "
-        + "order by " + orderBySeed + "amount desc "
-        + "limit " + maxLinksPerSeed + ") ";
+    var seedSqlQuery =
+        "(select contrib as sourcename, contribid as sourceid, false as sourceaggregate, "
+            + "recipid as targetid, false as targetaggregate, "
+            + seedIndivSelectTarget + seedCandidateSelectTarget
+            + "amount from IndivsToCandidateTotals "
+            + "where " + seedMatchingCriteria + " and cycle = " + cycle + " and amount > 0 "
+            + "order by " + orderBySeed + "amount desc "
+            + "limit " + maxLinksPerSeed + ") ";
     return seedSqlQuery;
   }
   var subqueries = [];
@@ -351,35 +353,32 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   // TODO: Verify that groupCandidatesBy is actually set.
 
   var outerSelectSources = (groupCandidatesBy == "Selection")
-      ? "mode() within group (order by contrib) as sourcename, "
-      : "contrib as sourcename, "
+      ? "mode() within group (order by sourcename) as sourcename, "
+      : "sourcename, "
   var groupByClause = (groupCandidatesBy == "Selection")
-      ? "group by sourceid, targetname, targetid, targetparty, indivaggregate, candidateaggregate, "
+      ? "group by sourceid, targetname, targetid, targetparty, sourceaggregate, targetaggregate, "
           + "seedsource, seedtarget "
       : "";
-  outerSelectSources += "contribid as sourceid, indivaggregate as sourceaggregate, ";
+  outerSelectSources += "sourceid, sourceaggregate, ";
   var outerSelectTargets = (groupCandidatesBy == "Selection")
-      ? "(case when seedcandidate then 'Selected candidates' else firstlastp end) as targetname, "
-          + "(case when seedcandidate then 'seedcandidates' else recipid end) as targetid, "
+      ? "(case when seedtarget then 'Selected candidates' else firstlastp end) as targetname, "
+          + "(case when seedtarget then 'seedcandidates' else targetid end) as targetid, "
           // Under mode groupCandidatesBy=Selection we only set the targetparty field for non-seed
           // candidates, since it is likely that the candidates in the selection will not all have
           // the same party.
-          + "(case when seedcandidate then null else party end) as targetparty, "
-          + "(candidateaggregate or seedcandidate) as targetaggregate, "
-      : "firstlastp as targetname, recipid as targetid, party as targetparty, "
-          + "candidateaggregate as targetaggregate, ";
-  var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, "
-      + "seedindiv as seedsource, seedcandidate as seedtarget, "
-      + "(indivaggregate or candidateaggregate) as anyaggregate, ";
+          + "(case when seedtarget then null else party end) as targetparty, "
+          + "(targetaggregate or seedtarget) as targetaggregate, "
+      : "firstlastp as targetname, targetid, party as targetparty, targetaggregate, ";
+  var outerAttributes = "'indiv' as sourcetype, 'candidate' as targettype, seedsource, seedtarget, "
+      + "(sourceaggregate or targetaggregate) as anyaggregate, ";
   outerAttributes += (groupCandidatesBy == "Selection")
-      ? "sum(indivcount) as sourcecount, sum(candidatecount) as targetcount, "
-          + "sum(amount) as amount, "
-      : "indivcount as sourcecount, candidatecount as targetcount, amount, ";
+      ? "sum(sourcecount) as sourcecount, sum(targetcount) as targetcount, sum(amount) as amount, "
+      : "sourcecount, targetcount, amount, ";
   var whereClause = "where amount > 0 ";
   whereClause += "and (Candidates.cycle = " + cycle + " and Candidates.currcand = 'Y') or "
-      + "(Candidates.cycle is null and candidateaggregate = true) ";
+      + "(Candidates.cycle is null and targetaggregate = true) ";
   // TODO: Maybe these don't need to be variables.
-  var joinClause = "left outer join Candidates on UnionQuery.recipid = Candidates.cid ";
+  var joinClause = "left outer join Candidates on UnionQuery.targetid = Candidates.cid ";
   var outerOrderBy = "seedsource desc, seedtarget desc, ";
 
   var topResultsQuery = getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
@@ -388,28 +387,28 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   var unionCandidateRemainderClause = "";
   if (seedCandidates.length > 0) {
     unionCandidateRemainderClause = "union ("
-        + "select null as contrib, "
-            + "concat('indivs_to_', recipid) as contribid, true as indivaggregate, "
-            + "recipid, false as candidateaggregate, "
-            + "seedindiv, seedcandidate, "
-            + "cast(indivcount as integer) as indivcount, "
-            + "cast(candidatecount as integer) as candidatecount, "
+        + "select null as sourcename, "
+            + "concat('indivs_to_', targetid) as sourceid, true as sourceaggregate, "
+            + "targetid, false as targetaggregate, "
+            + "seedsource, seedtarget, "
+            + "cast(sourcecount as integer) as sourcecount, "
+            + "cast(targetcount as integer) as targetcount, "
             + "cast(amount as integer) as amount from ("
-            + "select recipid, false as seedindiv, true as seedcandidate, "
-                // TODO: Under mode groupCandidatesBy=Selection, these summed indivcount and
-                // candidatecount values may be incorrect, since some individuals may have
+            + "select targetid, false as seedsource, true as seedtarget, "
+                // TODO: Under mode groupCandidatesBy=Selection, these summed individual and
+                // candidate counts may be incorrect, since some individuals may have
                 // contributed to more than one of the selected candidates.
-                + "sum(indivcount) as indivcount, 1 as candidatecount, "
+                + "sum(sourcecount) as sourcecount, 1 as targetcount, "
                 + "sum(amount) as amount from ("
-                + "(select recipid, -count(distinct contribid) as indivcount, "
+                + "(select targetid, -count(distinct sourceid) as sourcecount, "
                     + "-sum(amount) as amount from TopResultsQuery "
-                    + "where seedcandidate group by recipid) "
-                + "union (select recipid, count(distinct contribid) as indivcount, "
+                    + "where seedtarget group by targetid) "
+                + "union (select recipid as targetid, count(distinct contribid) as sourcecount, "
                     + "sum(amount) as amount from IndivsToCandidateTotals "
                     + "where recipid in (" + seedCandidates + ") "
                         + "and cycle = " + cycle + " and amount > 0 "
-                    + "group by recipid) "
-                + ") as RowsToSum group by recipid "
+                    + "group by targetid) "
+                + ") as RowsToSum group by targetid "
             + ") as SummedRows "
         + ") ";
   }
@@ -418,28 +417,28 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   if (seedIndivs.length > 0) {
     // TODO: Uncomment the code below and fully populate unionIndividualRemainderClause.
     unionIndividualRemainderClause = "union ("
-        + "select null as contrib, "
-            + "contribid, false as indivaggregate, "
-            + "concat(contribid, '_to_candidates') as recipid, true as candidateaggregate, "
-            + "seedindiv, seedcandidate, "
-            + "cast(indivcount as integer) as indivcount, "
-            + "cast(candidatecount as integer) as candidatecount, "
+        + "select null as sourcename, "
+            + "sourceid, false as sourceaggregate, "
+            + "concat(sourceid, '_to_candidates') as targetid, true as targetaggregate, "
+            + "seedsource, seedtarget, "
+            + "cast(sourcecount as integer) as sourcecount, "
+            + "cast(targetcount as integer) as targetcount, "
             + "cast(amount as integer) as amount from ("
-            + "select contribid, true as seedindiv, false as seedcandidate, "
-                // TODO: Under mode groupCandidatesBy=Selection, these summed indivcount and
-                // candidatecount values may be incorrect, since some individuals may have
+            + "select sourceid, true as seedsource, false as seedtarget, "
+                // TODO: Under mode groupCandidatesBy=Selection, these summed individual and
+                // candidate counts may be incorrect, since some individuals may have
                 // contributed to more than one of the selected candidates.
-                + "1 as indivcount, sum(candidatecount) as candidatecount, "
+                + "1 as sourcecount, sum(targetcount) as targetcount, "
                 + "sum(amount) as amount from ("
-                + "(select contribid, -count(distinct recipid) as candidatecount, "
+                + "(select sourceid, -count(distinct targetid) as targetcount, "
                     + "-sum(amount) as amount from TopResultsQuery "
-                    + "where seedindiv group by contribid) "
-                + "union (select contribid, count(distinct recipid) as candidatecount, "
+                    + "where seedsource group by sourceid) "
+                + "union (select contribid as sourceid, count(distinct recipid) as targetcount, "
                     + "sum(amount) as amount from IndivsToCandidateTotals "
                     + "where contribid in (" + seedIndivs + ") "
                         + "and cycle = " + cycle + " and amount > 0 "
-                    + "group by contribid) "
-                + ") as RowsToSum group by contribid "
+                    + "group by sourceid) "
+                + ") as RowsToSum group by sourceid "
             + ") as SummedRows where amount > 0 "
         + ") ";
   }
@@ -449,8 +448,8 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   var outerSqlQuery = "with TopResultsQuery as (" + topResultsQuery + ") " 
       + "select " + outerSelectSources + outerSelectTargets + outerAttributes
           + "'D' as directorindirect, false as isagainst from ("
-              + "(select contrib, contribid, indivaggregate, recipid, candidateaggregate, "
-              + "seedindiv, seedcandidate, 1 as indivcount, 1 as candidatecount, amount "
+              + "(select sourcename, sourceid, sourceaggregate, targetid, targetaggregate, "
+              + "seedsource, seedtarget, 1 as sourcecount, 1 as targetcount, amount "
               + "from TopResultsQuery) "
               // TODO: The candidate and individual remainder values may be too high, because they
               // may include contributions to inactive candidates that would have been filtered out
