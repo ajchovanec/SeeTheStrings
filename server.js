@@ -289,13 +289,13 @@ function getPacContributionsQuery(cycle, seedPacs, seedCandidates,
   return sqlQuery;
 }
 
-function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
+function getTopIndivContributionsQuery(cycle, seedIndivs, seedPacs, seedCandidates,
     groupCandidatesBy) {
   var maxLinksPerSeed = 100;
 
-  function getOneSeedSubquery(cycle, seedType, seedIndivs, seedCandidates) {
+  function getOneSeedSubquery(cycle, seedType, seedIndivs, seedRecips, table) {
     var seedIndivSelectTarget = "";
-    var seedCandidateSelectTarget = "";
+    var seedRecipSelectTarget = "";
 
     var seedMatchingCriteria;
     var orderBySeed;
@@ -303,9 +303,9 @@ function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandida
       seedIndivSelectTarget = "true as seedsource, ";
       seedMatchingCriteria = "contribid = " + seedIndivs[0];
       orderBySeed = "seedsource, ";
-    } else if (seedType == "Candidate") {
-      seedCandidateSelectTarget = "true as seedtarget, ";
-      seedMatchingCriteria = "recipid = " + seedCandidates[0];
+    } else if (seedType == "PAC" || seedType == "Candidate") {
+      seedRecipSelectTarget = "true as seedtarget, ";
+      seedMatchingCriteria = "recipid = " + seedRecips[0];
       orderBySeed = "seedtarget, ";
     }
   
@@ -314,20 +314,20 @@ function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandida
           ? "contribid in (" + seedIndivs + ") as seedsource, "
           : "false as seedsource, ";
     }
-    if (seedCandidateSelectTarget == "") {
-      seedCandidateSelectTarget = (seedCandidates.length > 0)
-          ? "recipid in (" + seedCandidates + ") as seedtarget, "
-          : "false as seedtarget, ";
+    if (seedRecipSelectTarget == "") {
+      seedRecipSelectTarget = (seedRecips.length > 0)
+          ? "contribid in (" + seedRecips + ") as seedsource, "
+          : "false as seedsource, ";
     }
 
-    // TODO: This query may return contributions to inactive candidates, which may then be filtered
-    // out when we join against the Candidates table. But that shouldn't really matter as long as
-    // maxLinksPerSeed is high enough to ensure that enough links are returned.
+    // TODO: This query may return contributions to inactive PACs and candidates, which may then be
+    // filtered out when we join against the Committees or Candidates table. The way to prevent this
+    // is to do the joining and filtering here.
     var seedSqlQuery =
         "(select contrib as sourcename, contribid as sourceid, false as sourceaggregate, "
             + "recipid as targetid, false as targetaggregate, "
-            + seedIndivSelectTarget + seedCandidateSelectTarget
-            + "amount from IndivsToCandidateTotals "
+            + seedIndivSelectTarget + seedRecipSelectTarget
+            + "amount from " + table + " "
             + "where " + seedMatchingCriteria + " and cycle = " + cycle + " and amount > 0 "
             + "order by " + orderBySeed + "amount desc "
             + "limit " + maxLinksPerSeed + ") ";
@@ -335,10 +335,14 @@ function getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandida
   }
   var subqueries = [];
   seedIndivs.forEach(function(indiv) {
-    subqueries.push(getOneSeedSubquery(cycle, "Individual", [ indiv ], seedCandidates));
+    subqueries.push(getOneSeedSubquery(cycle, "Individual", [ indiv ], seedCandidates,
+        "IndivsToCandidateTotals"));
   });
+  // TODO: Loop over seedPacs and add a subquery for each of those too. We can't do this until we
+  // have a table with individual to PAC contributions.
   seedCandidates.forEach(function(candidate) {
-    subqueries.push(getOneSeedSubquery(cycle, "Candidate", seedIndivs, [ candidate ]));
+    subqueries.push(getOneSeedSubquery(cycle, "Candidate", seedIndivs, [ candidate ],
+        "IndivsToCandidateTotals"));
   });
   console.log("Proposed subqueries: " + subqueries);
 
@@ -381,7 +385,7 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
   var joinClause = "left outer join Candidates on UnionQuery.targetid = Candidates.cid ";
   var outerOrderBy = "seedsource desc, seedtarget desc, ";
 
-  var topResultsQuery = getTopIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates,
+  var topResultsQuery = getTopIndivContributionsQuery(cycle, seedIndivs, [], seedCandidates,
       groupCandidatesBy);
 
   var unionCandidateRemainderClause = "";
