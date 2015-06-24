@@ -316,8 +316,8 @@ function getTopIndivContributionsQuery(cycle, seedIndivs, seedPacs, seedCandidat
     }
     if (seedRecipSelectTarget == "") {
       seedRecipSelectTarget = (seedRecips.length > 0)
-          ? "contribid in (" + seedRecips + ") as seedsource, "
-          : "false as seedsource, ";
+          ? "recipid in (" + seedRecips + ") as seedtarget, "
+          : "false as seedtarget, ";
     }
 
     // TODO: This query may return contributions to inactive PACs and candidates, which may then be
