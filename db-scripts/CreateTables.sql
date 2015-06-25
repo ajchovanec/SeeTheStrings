@@ -106,3 +106,11 @@ CREATE TABLE IndivsToCandidateTotals (
     recipid TEXT,
     amount INTEGER
 );
+
+CREATE TABLE IndivsToCommitteeTotals (
+    cycle TEXT,
+    contrib TEXT,
+    contribid TEXT,
+    recipid TEXT,
+    amount INTEGER
+);
