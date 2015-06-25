@@ -458,8 +458,13 @@ function getIndivToCandidateContributionsQuery(cycle, seedIndivs, seedCandidates
               // TODO: The candidate and individual remainder values may be too high, because they
               // may include contributions to inactive candidates that would have been filtered out
               // by the 'join' and 'where' clause below if they were not aggregated. To fix this,
-              // join with the Candidates table here, and filter out inactive candidates before
-              // aggregating.
+              // join with the Candidates table in the remainder subqueries, and filter out inactive
+              // candidates before aggregating.
+              //
+              // TODO: We may be able to infer if all candidates in the remainder are of the same
+              // party, and if so, to color the remainder node appropriately. To do this, we'd need
+              // to include a recipcode field in IndivsToCandidateTotals and count the number of
+              // distinct values in the remainder.
               + unionCandidateRemainderClause
               + unionIndividualRemainderClause
           + ") as UnionQuery " 
