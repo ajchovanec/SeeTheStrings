@@ -27,32 +27,33 @@ function processRows(rows, seedIds) {
   var aggregateLinks = {};
   var linkCounts = {};
 
-  rows.forEach(
-      function(row) {
-        row.isRefund = row.amount < 0;
+  rows.forEach(handleRow);
 
-        row.id = row.sourceid + "; " + row.targetid + "; "
-            + row.directorindirect + "; " + row.isagainst;
+  function handleRow(row) {
+    row.isRefund = row.amount < 0;
 
-        // TODO: The use of both source and target aggregation in the same graph is problematic.
-        // Aggregate expansion becomes more complicated when expanding a source aggregate link could
-        // invalidate an existing target aggregate link's displayed amount and sub link count.
-        // I.e., if the expansion reveals a link between the two nodes that was there all along but
-        // that was hidden under both aggregate links, then both aggregate links will need to be
-        // updated (not just the one that the user chose to expand). We can skirt around this
-        // problem for now by enforcing that links between seed nodes can never be aggregated;
-        // however, this problem may rear its ugly head again as the graphs become more complex and
-        // dynamic over time.
-        //
-        // TODO: There may be a bug here where the same link can be both displayed by itself and as
-        // part of an aggregate.
-        if (row.seedtarget) {
-          handleRowSelfType(row, "source");
-        }
-        if (row.seedsource) {
-          handleRowSelfType(row, "target");
-        }
-      });
+    row.id = row.sourceid + "; " + row.targetid + "; "
+        + row.directorindirect + "; " + row.isagainst;
+
+    // TODO: The use of both source and target aggregation in the same graph is problematic.
+    // Aggregate expansion becomes more complicated when expanding a source aggregate link could
+    // invalidate an existing target aggregate link's displayed amount and sub link count.
+    // I.e., if the expansion reveals a link between the two nodes that was there all along but
+    // that was hidden under both aggregate links, then both aggregate links will need to be
+    // updated (not just the one that the user chose to expand). We can skirt around this
+    // problem for now by enforcing that links between seed nodes can never be aggregated;
+    // however, this problem may rear its ugly head again as the graphs become more complex and
+    // dynamic over time.
+    //
+    // TODO: There may be a bug here where the same link can be both displayed by itself and as
+    // part of an aggregate.
+    if (row.seedtarget) {
+      handleRowSelfType(row, "source");
+    }
+    if (row.seedsource) {
+      handleRowSelfType(row, "target");
+    }
+  }
 
   // Aggregate the outstanding links in reverse order, to ensure that the ones with the highest
   // amounts will be displayed first if the user chooses to expand them.
