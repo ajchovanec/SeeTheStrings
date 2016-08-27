@@ -85,3 +85,12 @@ echo "CREATE INDEX IndivsToCommitteeTotals_cycle_contribid_amount ON IndivsToCom
     (cycle, contribid, amount desc);"
 echo "CREATE INDEX IndivsToCommitteeTotals_cycle_recipid_amount ON IndivsToCommitteeTotals
     (cycle, recipid, amount desc);"
+
+echo "ANALYZE Categories;"
+echo "ANALYZE Candidates;"
+echo "ANALYZE Committees;"
+echo "ANALYZE PACsToCandidates;"
+echo "ANALYZE PACsToPACs;"
+echo "ANALYZE IndivsToCandidateTotals;"
+echo "ANALYZE IndivsToCommitteeTotals;"
+
