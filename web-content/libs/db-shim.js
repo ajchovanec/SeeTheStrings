@@ -95,11 +95,11 @@ function processRows(rows, seedIds) {
         row.isAddedToLinks = true;
       }
       linkCounts[relativeAndLinkTypeId] = numLinks + 1;  // TODO: Use ++ operator?
-      // TODO: Uncomment this now that there's a better way to render multiple links between the
-      // same two nodes.
-      //
-      //linkExistenceMap[row[properties.childIdType] + ", " + row[properties.relativeIdType]] =
-      //    true;
+      // TODO: By setting the value in the link existence map to true, we may cause additional links
+      // between the same two nodes that would otherwise be aggregated to be displayed, but whether
+      // or not that happens depends on the order in which the links are processed. I.e., once a
+      // link has been aggregated, that decision will not be changed.
+      linkExistenceMap[row[properties.childIdType] + ", " + row[properties.relativeIdType]] = true;
     } else {
       // We have enough links for the relative node to display already. We'll aggregate the
       // remaining links later.
