@@ -127,7 +127,6 @@ function processRows(rows, seedIds, setRowLinkProperties) {
   }
 
   function mergeRowPropertiesIntoLink(fromRow, intoLink, aggregateType) {
-    intoLink.amount += fromRow.amount;
     intoLink.seedsource |= fromRow.seedsource;
     intoLink.seedtarget |= fromRow.seedtarget;
     intoLink[aggregateType + "count"] += (fromRow[aggregateType + "count"] || 1);
@@ -138,6 +137,20 @@ function processRows(rows, seedIds, setRowLinkProperties) {
     // level.
     //
     // TODO: Try to find a way to do this more concisely.
+    for (var propertyKey in fromRow.linkClassProperties) {
+      if (intoLink.linkClassProperties[propertyKey] != undefined
+          && intoLink.linkClassProperties[propertyKey]
+              != fromRow.linkClassProperties[propertyKey]) {
+        if (propertyKey == "amount") {
+          // TODO: Get rid of this special handling for merging amounts, possibly by having the
+          // caller of processRows pass in a function with application specific logic for merging
+          // amounts.
+          intoLink.linkClassProperties.amount += fromRow.amount;
+        } else {
+          intoLink.linkClassProperties[propertyKey] = undefined;
+        }
+      }
+    }
     for (var propertyKey in fromRow.sourceClassProperties) {
       if (intoLink.sourceClassProperties[propertyKey] != undefined
           && intoLink.sourceClassProperties[propertyKey]
@@ -194,9 +207,6 @@ function processRows(rows, seedIds, setRowLinkProperties) {
 
       var newLink = getSelfProperties(aggregateType);
       newLink.id = aggregateLinkId;
-      newLink.amount = firstLink.amount;
-      newLink.directorindirect = firstLink.directorindirect;
-      newLink.isagainst = isagainst;
       newLink.subLinks = [ firstLink ];
       newLink.seedsource = firstLink.seedsource;
       newLink.seedtarget = firstLink.seedtarget;
@@ -214,8 +224,12 @@ function processRows(rows, seedIds, setRowLinkProperties) {
       // Copy the source and target node properties over to the new aggregate link.
       //
       // TODO: Try to do this more concisely, possibly by using _.clone().
+      newLink.linkClassProperties = {};
       newLink.sourceClassProperties = {};
       newLink.targetClassProperties = {};
+      for (var propertyKey in firstLink.linkClassProperties) {
+        newLink.linkClassProperties[propertyKey] = firstLink.linkClassProperties[propertyKey];
+      }
       for (var propertyKey in firstLink.sourceClassProperties) {
         newLink.sourceClassProperties[propertyKey] = firstLink.sourceClassProperties[propertyKey];
       }
@@ -223,7 +237,7 @@ function processRows(rows, seedIds, setRowLinkProperties) {
         newLink.targetClassProperties[propertyKey] = firstLink.targetClassProperties[propertyKey];
       }
 
-      console.log("New aggregate link has amount " + newLink.amount);
+      console.log("New aggregate link has amount " + newLink.linkClassProperties.amount);
 
       return newLink;
     }
