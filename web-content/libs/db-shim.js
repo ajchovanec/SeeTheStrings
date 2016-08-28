@@ -50,7 +50,6 @@ function processRows(rows, seedIds, setRowLinkProperties) {
 
   function handleRow(rejectedRowsByType, row) {
     // TODO: Move these assignments into setRowLinkProperties().
-    row.isRefund = row.amount < 0;
     row.id = row.sourceid + "; " + row.targetid + "; "
         + row.directorindirect + "; " + row.isagainst;
 
@@ -129,7 +128,6 @@ function processRows(rows, seedIds, setRowLinkProperties) {
 
   function mergeRowPropertiesIntoLink(fromRow, intoLink, aggregateType) {
     intoLink.amount += fromRow.amount;
-    intoLink.isRefund = (intoLink.amount < 0);
     intoLink.seedsource |= fromRow.seedsource;
     intoLink.seedtarget |= fromRow.seedtarget;
     intoLink[aggregateType + "count"] += (fromRow[aggregateType + "count"] || 1);
@@ -199,7 +197,6 @@ function processRows(rows, seedIds, setRowLinkProperties) {
       newLink.amount = firstLink.amount;
       newLink.directorindirect = firstLink.directorindirect;
       newLink.isagainst = isagainst;
-      newLink.isRefund = firstLink.amount < 0;
       newLink.subLinks = [ firstLink ];
       newLink.seedsource = firstLink.seedsource;
       newLink.seedtarget = firstLink.seedtarget;
