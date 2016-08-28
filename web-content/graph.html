@@ -170,11 +170,11 @@ function setDisplayPropertiesForIndivNode(node, link) {
   }
 }
 function setDisplayPropertiesForNode(node, link) {
-  if (node.nodetype == "pac") {
+  if (node.nodeClass == "pac") {
     setDisplayPropertiesForPacNode(node, link);
-  } else if (node.nodetype == "candidate") {
+  } else if (node.nodeClass == "candidate") {
     setDisplayPropertiesForCandidateNode(node, link);
-  } else if (node.nodetype == "indiv") {
+  } else if (node.nodeClass == "indiv") {
     setDisplayPropertiesForIndivNode(node, link);
   } else {
     console.log("Error: node and link passed in are not related to each other");
@@ -234,7 +234,7 @@ var graph = {
                     // time, it may be necessary to mark a node as a seed if *any* link that has it
                     // as a source or a target has it marked as a seed.
                     seed: link.seedsource,
-                    nodetype: link.sourcetype,
+                    nodeClass: link.sourcetype,
                     aggregate: link.sourceaggregate,
                     count: link.sourcecount,
                     incomingAmount: 0,
@@ -249,7 +249,7 @@ var graph = {
                     // time, it may be necessary to mark a node as a seed if *any* link that has it
                     // as a source or a target has it marked as a seed.
                     seed: link.seedtarget,
-                    nodetype: link.targettype,
+                    nodeClass: link.targettype,
                     aggregate: link.targetaggregate,
                     count: link.targetcount,
                     incomingAmount: 0,
@@ -463,7 +463,7 @@ function showGraph(inputLinks) {
     var multiplier;
     if (isExpandableNode(node)) {
       multiplier = 12;
-    } else if (node.nodetype == "pac") {
+    } else if (node.nodeClass == "pac") {
       multiplier = isAggregateNode(node) ? 5 : 10;
     } else {
       multiplier = 8;
@@ -648,7 +648,7 @@ function showGraph(inputLinks) {
           // time, it may be necessary to mark a node as a seed if *any* link that has it
           // as a source or a target has it marked as a seed.
           seed: link["seed" + childType],  // FIXME
-          nodetype: link[childType + "type"],  // FIXME
+          nodeClass: link[childType + "type"],  // FIXME
           aggregate: link[childType + "aggregate"],  // FIXME
           count: link[childType + "count"],  // FIXME
           incomingAmount: 0,
@@ -769,7 +769,7 @@ function showGraph(inputLinks) {
     singlePac = svg.select(".gSinglePacs").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "pac" && !d.aggregate;
+              return d.nodeClass == "pac" && !d.aggregate;
             }),
             getJoinFunc(nodeKeyFunc));
     singlePac.exit().remove();
@@ -793,7 +793,7 @@ function showGraph(inputLinks) {
     aggregatePac = svg.select(".gAggregatePacs").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "pac" && d.aggregate;
+              return d.nodeClass == "pac" && d.aggregate;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregatePac.exit().remove();
@@ -825,7 +825,7 @@ function showGraph(inputLinks) {
     singleIndiv = svg.select(".gSingleIndivs").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "indiv" && !d.aggregate;
+              return d.nodeClass == "indiv" && !d.aggregate;
             }),
         getJoinFunc(nodeKeyFunc));
     singleIndiv.exit().remove();
@@ -849,7 +849,7 @@ function showGraph(inputLinks) {
     aggregateIndiv = svg.select(".gAggregateIndivs").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "indiv" && d.aggregate;
+              return d.nodeClass == "indiv" && d.aggregate;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregateIndiv.exit().remove();
@@ -880,7 +880,7 @@ function showGraph(inputLinks) {
     singleCandidate = svg.select(".gSingleCandidates").selectAll("image")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "candidate" && !d.aggregate;
+              return d.nodeClass == "candidate" && !d.aggregate;
             }),
             getJoinFunc(nodeKeyFunc));
     singleCandidate.exit().remove();
@@ -904,7 +904,7 @@ function showGraph(inputLinks) {
     aggregateCandidate = svg.select(".gAggregateCandidates").selectAll("g")
         .data(graph.nodes().filter(
             function(d) {
-              return d.nodetype == "candidate" && d.aggregate;
+              return d.nodeClass == "candidate" && d.aggregate;
             }),
             getJoinFunc(nodeKeyFunc));
     aggregateCandidate.exit().remove();
