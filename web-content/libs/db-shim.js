@@ -1,4 +1,3 @@
-
 var initLinksPerRelative = 3;
 var newLinksPerExpansion = 5;
 
