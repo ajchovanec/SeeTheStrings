@@ -18,7 +18,7 @@ function getSelfProperties(selfType) {
   };
 }
 
-function processRows(rows, seedIds) {
+function processRows(rows, seedIds, setRowLinkProperties) {
   console.log("Got " + rows.length + " raw links ");
 
   var links = [];
@@ -50,10 +50,12 @@ function processRows(rows, seedIds) {
           undefined, "target", rowsToAggregateBySelfType["target"]));
 
   function handleRow(rejectedRowsByType, row) {
+    // TODO: Move these assignments into setRowLinkProperties().
     row.isRefund = row.amount < 0;
-
     row.id = row.sourceid + "; " + row.targetid + "; "
         + row.directorindirect + "; " + row.isagainst;
+
+    setRowLinkProperties(row);
 
     // TODO: The use of both source and target aggregation in the same graph is problematic.
     // Aggregate expansion becomes more complicated when expanding a source aggregate link could
@@ -133,11 +135,25 @@ function processRows(rows, seedIds) {
     intoLink.seedtarget |= fromRow.seedtarget;
     intoLink[aggregateType + "count"] += (fromRow[aggregateType + "count"] || 1);
     // TODO: Verify that sourcetype is the same.
+
+    // If the properties in the existing aggregate link that we are merging into no longer apply
+    // to the transitive closure of its sub links after the merge, then unset them at the aggregate
+    // level.
     //
-    // TODO: In the future some links may not have a targetparty field, and some links may have a
-    // sourceparty field. Consider finding a way to generalize this.
-    if (fromRow.targetparty != intoLink.targetparty) {
-      intoLink.targetparty = null;
+    // TODO: Try to find a way to do this more concisely.
+    for (var propertyKey in fromRow.sourceClassProperties) {
+      if (intoLink.sourceClassProperties[propertyKey] != undefined
+          && intoLink.sourceClassProperties[propertyKey]
+              != fromRow.sourceClassProperties[propertyKey]) {
+        intoLink.sourceClassProperties[propertyKey] = undefined;
+      }
+    }
+    for (var propertyKey in fromRow.targetClassProperties) {
+      if (intoLink.targetClassProperties[propertyKey] != undefined
+          && intoLink.targetClassProperties[propertyKey]
+              != fromRow.targetClassProperties[propertyKey]) {
+        intoLink.targetClassProperties[propertyKey] = undefined;
+      }
     }
   }
 
@@ -199,9 +215,19 @@ function processRows(rows, seedIds) {
       newLink[newLink.relativeIdType] = firstLink[newLink.relativeIdType];
       newLink[newLink.relativeNameType] = firstLink[newLink.relativeNameType];
 
-      // TODO: In the future some links may not have a targetparty field, and some links may have a
-      // sourceparty field. Consider finding a way to generalize this.
-      newLink.targetparty = firstLink.targetparty;
+      // Copy the source and target node properties over to the new aggregate link.
+      //
+      // TODO: Try to do this more concisely, possibly by using _.clone().
+      newLink.sourceClassProperties = {};
+      newLink.targetClassProperties = {};
+      for (var propertyKey in firstLink.sourceClassProperties) {
+        newLink.sourceClassProperties[propertyKey] = firstLink.sourceClassProperties[propertyKey];
+      }
+      for (var propertyKey in firstLink.targetClassProperties) {
+        newLink.targetClassProperties[propertyKey] = firstLink.targetClassProperties[propertyKey];
+      }
+
+      console.log("New aggregate link has amount " + newLink.amount);
 
       return newLink;
     }

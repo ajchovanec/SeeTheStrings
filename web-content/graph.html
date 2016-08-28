@@ -103,6 +103,14 @@ function getAdjectiveForParty(party) {
   }
 }
 
+function setRowLinkProperties(link) {
+  // TODO: Maybe clear out sourcetype, targettype, and targetparty.
+  link.sourceClass = link.sourcetype;
+  link.targetClass = link.targettype;
+  link.sourceClassProperties = {};
+  link.targetClassProperties = { "party": link.targetparty }
+}
+
 function setDisplayPropertiesForLink(link) {
   // A PAC node can be a source for a contribution to a candidate, or a target for a contribution
   // from an individual. To make certain that all links that a PAC node participates in *appear* to
@@ -139,8 +147,8 @@ function setDisplayPropertiesForCandidateNode(node, link) {
   if (node.name == null) {
     if (node.aggregate) {
       node.name = Number(node.count).toLocaleString('en-US');
-      if (link.targetparty != null) {
-        var adjective = getAdjectiveForParty(link.targetparty);
+      if (link.targetClassProperties.party != null) {
+        var adjective = getAdjectiveForParty(link.targetClassProperties.party);
         if (adjective != null) {
           node.name += " " + adjective;
         }
@@ -152,8 +160,8 @@ function setDisplayPropertiesForCandidateNode(node, link) {
     }
   }
   if (node.nodeClassProperties.party == null || node.nodeClassProperties.party == "U") {
-    if (link.targetparty != null) {
-      node.nodeClassProperties.party = link.targetparty;
+    if (link.targetClassProperties.party != null) {
+      node.nodeClassProperties.party = link.targetClassProperties.party;
       console.log("Getting party " + node.nodeClassProperties.party + " from link");
     } else {
       console.log("Party unknown");
@@ -207,7 +215,7 @@ function handleResponse(err, rows) {
   Array.prototype.push.apply(seedIds, pacs);
   Array.prototype.push.apply(seedIds, candidates);
 
-  var links = processRows(rows, seedIds);
+  var links = processRows(rows, seedIds, setRowLinkProperties);
 
   showGraph(links);
 }
@@ -237,7 +245,7 @@ var graph = {
                     nodeClass: link.sourcetype,
                     aggregate: link.sourceaggregate,
                     count: link.sourcecount,
-                    nodeClassProperties: [],
+                    nodeClassProperties: {},
                     incomingAmount: 0,
                     outgoingAmount: 0
                   });
@@ -253,7 +261,7 @@ var graph = {
                     nodeClass: link.targettype,
                     aggregate: link.targetaggregate,
                     count: link.targetcount,
-                    nodeClassProperties: [],
+                    nodeClassProperties: {},
                     incomingAmount: 0,
                     outgoingAmount: 0
                   });
@@ -653,7 +661,7 @@ function showGraph(inputLinks) {
           nodeClass: link[childType + "type"],  // FIXME
           aggregate: link[childType + "aggregate"],  // FIXME
           count: link[childType + "count"],  // FIXME
-          nodeClassProperties: [],
+          nodeClassProperties: {},
           incomingAmount: 0,
           outgoingAmount: 0
         };
