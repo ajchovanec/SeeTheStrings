@@ -255,9 +255,10 @@ var graph = {
                     nodeClass: link.sourcetype,
                     aggregate: link.sourceaggregate,
                     count: link.sourcecount,
-                    nodeClassProperties: {},
-                    incomingAmount: 0,
-                    outgoingAmount: 0
+                    nodeClassProperties: {
+                      incomingAmount: 0,
+                      outgoingAmount: 0
+                    },
                   });
               link.target = nodesMap[link.targetid] ||
                   (nodesMap[link.targetid] = {
@@ -271,12 +272,13 @@ var graph = {
                     nodeClass: link.targettype,
                     aggregate: link.targetaggregate,
                     count: link.targetcount,
-                    nodeClassProperties: {},
-                    incomingAmount: 0,
-                    outgoingAmount: 0
+                    nodeClassProperties: {
+                      incomingAmount: 0,
+                      outgoingAmount: 0
+                    },
                   });
-              link.source.outgoingAmount += link.linkClassProperties.amount;
-              link.target.incomingAmount += link.linkClassProperties.amount;
+              link.source.nodeClassProperties.outgoingAmount += link.linkClassProperties.amount;
+              link.target.nodeClassProperties.incomingAmount += link.linkClassProperties.amount;
               // Set the display properties for the link and its source and target nodes.
               //
               // TODO: Since a single node will usually participate in multiple links, we will
@@ -464,7 +466,9 @@ function showGraph(inputLinks) {
     return node.aggregateLinks.length > 0;
   }
   function getAmountMagnitudeForNode(node) {
-    return Math.max(Math.abs(node.incomingAmount), Math.abs(node.outgoingAmount));
+    return Math.max(
+        Math.abs(node.nodeClassProperties.incomingAmount),
+        Math.abs(node.nodeClassProperties.outgoingAmount));
   }
   function getWidthForLink(link) {
     var amountMagnitude = Math.abs(link.linkClassProperties.amount);
@@ -645,6 +649,7 @@ function showGraph(inputLinks) {
     restart();
   }
 
+  // TODO: Try to remove business logic from this code and move it into db-shim.js.
   function expandAggregateLink(aggregateLink) {
     var subLinks = aggregateLink.subLinks;
     var childType = aggregateLink.childType,
@@ -672,14 +677,15 @@ function showGraph(inputLinks) {
           nodeClass: link[childType + "type"],  // FIXME
           aggregate: link[childType + "aggregate"],  // FIXME
           count: link[childType + "count"],  // FIXME
-          nodeClassProperties: {},
-          incomingAmount: 0,
-          outgoingAmount: 0
+          nodeClassProperties: {
+            incomingAmount: 0,
+            outgoingAmount: 0
+          },
         };
         if (childType == "source") {  // FIXME
-          nodeChild.outgoingAmount += link.linkClassProperties.amount;
+          nodeChild.nodeClassProperties.outgoingAmount += link.linkClassProperties.amount;
         } else {
-          nodeChild.incomingAmount += link.linkClassProperties.amount;
+          nodeChild.nodeClassProperties.incomingAmount += link.linkClassProperties.amount;
         }
         graph.addNode(nodeChild);
         // Set the display properties for the new node.
