@@ -23,13 +23,33 @@ function processRows(rows, seedIds) {
 
   var links = [];
   var linkExistenceMap = {};
-  var linksToAggregate = { "source": [], "target": [] };
+  var rowsToMaybeAggregateBySelfType = { "source": [], "target": [] };
+  var rowsToAggregateBySelfType = { "source": [], "target": [] };
   var aggregateLinks = {};
   var linkCounts = {};
 
-  rows.forEach(handleRow);
+  // We do multiple passes over the rows to decide which ones to aggregate. First we identify sets
+  // of rows that we might do source and target aggregation, respectively. In doing so, we
+  // explicitly choose to display links for all rows that aren't in these sets. Then we do a second
+  // pass over the possible aggregates, and we opt to display a link rather than aggregate for any
+  // row for which there is already a displayable link between the same two nodes.
+  //
+  // TODO: Perhaps the criterion for displaying a link that would otherwise be aggregated should
+  // simply be that both of its nodes will already be displayed, rather than the stricter
+  // requirement that there must be an already existing displayable link between them.
 
-  function handleRow(row) {
+  // First pass.
+  rows.forEach(handleRow.bind(undefined, rowsToMaybeAggregateBySelfType));
+
+  // Second pass. Possibly aggregated rows are already split up by aggregate type.
+  rowsToMaybeAggregateBySelfType["source"]
+      .forEach(handleRowSelfType.bind(
+          undefined, "source", rowsToAggregateBySelfType["source"]));
+  rowsToMaybeAggregateBySelfType["target"]
+      .forEach(handleRowSelfType.bind(
+          undefined, "target", rowsToAggregateBySelfType["target"]));
+
+  function handleRow(rejectedRowsByType, row) {
     row.isRefund = row.amount < 0;
 
     row.id = row.sourceid + "; " + row.targetid + "; "
@@ -48,18 +68,18 @@ function processRows(rows, seedIds) {
     // TODO: There may be a bug here where the same link can be both displayed by itself and as
     // part of an aggregate.
     if (row.seedtarget) {
-      handleRowSelfType(row, "source");
+      handleRowSelfType("source", rejectedRowsByType["source"], row);
     }
     if (row.seedsource) {
-      handleRowSelfType(row, "target");
+      handleRowSelfType("target", rejectedRowsByType["target"], row);
     }
   }
 
   // Aggregate the outstanding links in reverse order, to ensure that the ones with the highest
   // amounts will be displayed first if the user chooses to expand them.
-  for (var aggregateType in linksToAggregate) {
-    for (var i = linksToAggregate[aggregateType].length - 1; i >= 0; --i) {
-      aggregateRow(linksToAggregate[aggregateType][i], aggregateType);
+  for (var aggregateType in rowsToAggregateBySelfType) {
+    for (var i = rowsToAggregateBySelfType[aggregateType].length - 1; i >= 0; --i) {
+      aggregateRow(rowsToAggregateBySelfType[aggregateType][i], aggregateType);
     }
   }
   for (var contributionKey in aggregateLinks) {
@@ -73,9 +93,10 @@ function processRows(rows, seedIds) {
         + row.directorindirect + "; " + row.isagainst;
   }
 
-  // TODO: Consider merging the logic above that calls this method 0, 1, or 2 times into the method
+  // TODO: Consider merging the logic above that calls this method multiple times into the method
   // itself.
-  function handleRowSelfType(row, selfType) {
+  // TODO: Also, try to improve decoupling by not using variables declared outside of this method.
+  function handleRowSelfType(selfType, rejectedRows, row) {
     var properties = getSelfProperties(selfType);
 
     var isAggregable = !row["seed" + selfType];  // FIXME
@@ -96,15 +117,12 @@ function processRows(rows, seedIds) {
         row.isAddedToLinks = true;
       }
       linkCounts[relativeAndLinkTypeId] = numLinks + 1;  // TODO: Use ++ operator?
-      // TODO: By setting the value in the link existence map to true, we may cause additional links
-      // between the same two nodes that would otherwise be aggregated to be displayed, but whether
-      // or not that happens depends on the order in which the links are processed. I.e., once a
-      // link has been aggregated, that decision will not be changed.
+      // By setting the value in the link existence map to true, we may cause additional links
+      // between the same two nodes that would otherwise be aggregated to be displayed.
       linkExistenceMap[row[properties.childIdType] + ", " + row[properties.relativeIdType]] = true;
     } else {
-      // We have enough links for the relative node to display already. We'll aggregate the
-      // remaining links later.
-      linksToAggregate[selfType].push(row);
+      // We have enough links for the relative node to display already. Reject this one.
+      rejectedRows.push(row);
     }
   }
 
