@@ -151,13 +151,13 @@ function setDisplayPropertiesForCandidateNode(node, link) {
       }
     }
   }
-  if (node.party == null || node.party == "U") {
+  if (node.nodeClassProperties.party == null || node.nodeClassProperties.party == "U") {
     if (link.targetparty != null) {
-      node.party = link.targetparty;
-      console.log("Getting party " + node.party + " from link");
+      node.nodeClassProperties.party = link.targetparty;
+      console.log("Getting party " + node.nodeClassProperties.party + " from link");
     } else {
       console.log("Party unknown");
-      node.party = "U";  // unknown party
+      node.nodeClassProperties.party = "U";  // unknown party
     }
   }
 }
@@ -237,6 +237,7 @@ var graph = {
                     nodeClass: link.sourcetype,
                     aggregate: link.sourceaggregate,
                     count: link.sourcecount,
+                    nodeClassProperties: [],
                     incomingAmount: 0,
                     outgoingAmount: 0
                   });
@@ -252,6 +253,7 @@ var graph = {
                     nodeClass: link.targettype,
                     aggregate: link.targetaggregate,
                     count: link.targetcount,
+                    nodeClassProperties: [],
                     incomingAmount: 0,
                     outgoingAmount: 0
                   });
@@ -651,6 +653,7 @@ function showGraph(inputLinks) {
           nodeClass: link[childType + "type"],  // FIXME
           aggregate: link[childType + "aggregate"],  // FIXME
           count: link[childType + "count"],  // FIXME
+          nodeClassProperties: [],
           incomingAmount: 0,
           outgoingAmount: 0
         };
@@ -725,7 +728,7 @@ function showGraph(inputLinks) {
 
     function getImageForCandidateNode(d) {
       // TODO: Try to find a way to avoid having one .svg file per party.
-      var imageToUse = "images/person-" + d.party + ".svg";
+      var imageToUse = "images/person-" + d.nodeClassProperties.party + ".svg";
       console.log("Selecting image " + imageToUse);
       return imageToUse;
     }
