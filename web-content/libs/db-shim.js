@@ -29,16 +29,16 @@ function processRows(rows, seedIds) {
   var linkCounts = {};
 
   // We do multiple passes over the rows to decide which ones to aggregate. First we identify sets
-  // of rows that we might do source and target aggregation, respectively. In doing so, we
-  // explicitly choose to display links for all rows that aren't in these sets. Then we do a second
-  // pass over the possible aggregates, and we opt to display a link rather than aggregate for any
-  // row for which there is already a displayable link between the same two nodes.
+  // of rows for which we might do source and target aggregation, respectively. We will definitely
+  // display links for any rows not in these sets. Then we do a second pass over these sets, and we
+  // opt to display a link rather than to aggregate for any row whose nodes are also connected by
+  // another link that we already plan to display.
   //
   // TODO: Perhaps the criterion for displaying a link that would otherwise be aggregated should
   // simply be that both of its nodes will already be displayed, rather than the stricter
   // requirement that there must be an already existing displayable link between them.
 
-  // First pass.
+  // First pass. Identify links that we might aggregate.
   rows.forEach(handleRow.bind(undefined, rowsToMaybeAggregateBySelfType));
 
   // Second pass. Possibly aggregated rows are already split up by aggregate type.
