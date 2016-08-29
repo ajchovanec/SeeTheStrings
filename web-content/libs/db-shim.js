@@ -106,7 +106,7 @@ function processRows(rows, seedIds, setRowLinkProperties) {
 
     // TODO: Given the various conditions that can trigger a new non-aggregate link, it's likely
     // that we'll often exceed initLinksPerRelative. Maybe we should do something about this. For
-    // example, maybe we could only add non aggregable links up to iniLinksPerRelative first, and
+    // example, maybe we could only add non aggregable links up to initLinksPerRelative first, and
     // then only consider aggregable ones if we haven't reached our limit.
     if (!isAggregable
         || numLinks < initLinksPerRelative
