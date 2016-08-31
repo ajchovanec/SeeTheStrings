@@ -483,6 +483,7 @@ function showGraph(inputLinks) {
     return node.aggregateLinks.length > 0;
   }
   function getAmountMagnitudeForNode(node) {
+    // TODO: Revisit how we compute amount magnitude for a node for display purposes.
     return Math.max(
         Math.abs(node.nodeClassProperties.incomingAmount),
         Math.abs(node.nodeClassProperties.outgoingAmount));
