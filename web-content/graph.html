@@ -125,6 +125,8 @@ function setRowLinkProperties(link) {
 // in our db shim or other graph library.
 function setNodeClassProperties(source, target, link) {
   // TODO: Maybe do something different here depending on the node types (e.g., "pac", "candidate").
+  // TODO: Consider not counting refunds (negative amounts) against incoming and outgoing amount, as
+  // they are highly dependent on timing and could make an important node seem unimportant.
   if (source) {
     if (!("nodeClassProperties" in source) ||
         !("outgoingAmount" in source.nodeClassProperties)) {
