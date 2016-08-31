@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYargetPE html>
 <meta charset="utf-8">
 <style>
 
@@ -119,6 +119,32 @@ function setRowLinkProperties(link) {
   link.targetClassProperties = { "party": link.targetparty }
   // TODO: Maybe clear out the original SQL query fields, now that they've been copied to more
   // suitable locations.
+}
+
+// TODO: Rename this method to something application specific and pass it into generic methods
+// in our db shim or other graph library.
+function setNodeClassProperties(source, target, link) {
+  // TODO: Maybe do something different here depending on the node types (e.g., "pac", "candidate").
+  if (source) {
+    if (!("nodeClassProperties" in source) ||
+        !("outgoingAmount" in source.nodeClassProperties)) {
+      source.nodeClassProperties = {
+        incomingAmount: 0,
+        outgoingAmount: 0,
+      };
+    }
+    source.nodeClassProperties.outgoingAmount += link.linkClassProperties.amount;
+  }
+  if (target) {
+    if (!("nodeClassProperties" in target) ||
+        !("incomingAmount" in target.nodeClassProperties)) {
+      target.nodeClassProperties = {
+        incomingAmount: 0,
+        outgoingAmount: 0,
+      };
+    }
+    target.nodeClassProperties.incomingAmount += link.linkClassProperties.amount;
+  }
 }
 
 function setDisplayPropertiesForLink(link) {
@@ -255,10 +281,6 @@ var graph = {
                     nodeClass: link.sourcetype,
                     aggregate: link.sourceaggregate,
                     count: link.sourcecount,
-                    nodeClassProperties: {
-                      incomingAmount: 0,
-                      outgoingAmount: 0
-                    },
                   });
               link.target = nodesMap[link.targetid] ||
                   (nodesMap[link.targetid] = {
@@ -272,13 +294,8 @@ var graph = {
                     nodeClass: link.targettype,
                     aggregate: link.targetaggregate,
                     count: link.targetcount,
-                    nodeClassProperties: {
-                      incomingAmount: 0,
-                      outgoingAmount: 0
-                    },
                   });
-              link.source.nodeClassProperties.outgoingAmount += link.linkClassProperties.amount;
-              link.target.nodeClassProperties.incomingAmount += link.linkClassProperties.amount;
+              setNodeClassProperties(link.source, link.target, link);
               // Set the display properties for the link and its source and target nodes.
               //
               // TODO: Since a single node will usually participate in multiple links, we will
@@ -677,15 +694,11 @@ function showGraph(inputLinks) {
           nodeClass: link[childType + "type"],  // FIXME
           aggregate: link[childType + "aggregate"],  // FIXME
           count: link[childType + "count"],  // FIXME
-          nodeClassProperties: {
-            incomingAmount: 0,
-            outgoingAmount: 0
-          },
         };
         if (childType == "source") {  // FIXME
-          nodeChild.nodeClassProperties.outgoingAmount += link.linkClassProperties.amount;
+          setNodeClassProperties(nodeChild, null, link);
         } else {
-          nodeChild.nodeClassProperties.incomingAmount += link.linkClassProperties.amount;
+          setNodeClassProperties(null, nodeChild, link);
         }
         graph.addNode(nodeChild);
         // Set the display properties for the new node.
