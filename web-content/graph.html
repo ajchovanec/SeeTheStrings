@@ -257,101 +257,105 @@ function handleResponse(err, rows) {
   showGraph(links, setPoliticalNodeClassProperties);
 }
 
-// TODO: Turn this into an object prototype or something.
-var graph = {
-  _impl: new Graph.Graph({ directed: true, multigraph: true }),
-  _nodes: [],
-  _links: {},
-  init:
-      function(inputLinks, setNodeClassProperties) {
-        var self = this;
-        var nodesMap = [];
-        this._links = inputLinks;
-        // Compute the distinct nodes from the links.
-        this._links.forEach(
-            function(link) {
-              link.source = nodesMap[link.sourceid] ||
-                  (nodesMap[link.sourceid] = {
-                    name: link.sourcename,
-                    id: link.sourceid,
-                    aggregateLinks: [],
-                    // TODO: Once we have nodes that are both a source and a target at the same
-                    // time, it may be necessary to mark a node as a seed if *any* link that has it
-                    // as a source or a target has it marked as a seed.
-                    seed: link.seedsource,
-                    nodeClass: link.sourcetype,
-                    aggregate: link.sourceaggregate,
-                    count: link.sourcecount,
-                  });
-              link.target = nodesMap[link.targetid] ||
-                  (nodesMap[link.targetid] = {
-                    name: link.targetname,
-                    id: link.targetid,
-                    aggregateLinks: [],
-                    // TODO: Once we have nodes that are both a source and a target at the same
-                    // time, it may be necessary to mark a node as a seed if *any* link that has it
-                    // as a source or a target has it marked as a seed.
-                    seed: link.seedtarget,
-                    nodeClass: link.targettype,
-                    aggregate: link.targetaggregate,
-                    count: link.targetcount,
-                  });
-              setNodeClassProperties(link.source, link.target, link);
-              // Set the display properties for the link and its source and target nodes.
-              //
-              // TODO: Since a single node will usually participate in multiple links, we will
-              // usually end up setting its display properties multiple times. Make certain that the
-              // display properties that it ends up having in the end don't depend on the order in
-              // which the links are processed.
-              //
-              // TODO: Move these display-related calls out of this method.
-              setDisplayPropertiesForLink(link);
-              setDisplayPropertiesForNode(link.source, link);
-              setDisplayPropertiesForNode(link.target, link);
-              if (link.subLinks != null) {
-                // Add a reference to the aggregate link to the aggregate node so that we can find
-                // the sub links when the user wants to expand it.
-                link[link.childType].aggregateLinks.push(link);
-                if (link[link.childType].aggregateLinks.length > 1) {
-                  console.log("Error: node has more than 1 aggregate link! (Actual count is "
-                      + link[link.childType].aggregateLinks.length + ")");
-                }
-              }
+// TODO: Try to remove business logic from this code and pull it out into a library.
+function ElidableGraph(inputLinks, setNodeClassProperties) {
+  this._impl = new Graph.Graph({ directed: true, multigraph: true });
+  this._nodes = [];
+  var nodesMap = [];
+  this._links = inputLinks;
+  // Compute the distinct nodes from the links.
+  this._links.forEach(
+      function(link) {
+        link.source = nodesMap[link.sourceid] ||
+            (nodesMap[link.sourceid] = {
+              name: link.sourcename,
+              id: link.sourceid,
+              aggregateLinks: [],
+              // TODO: Once we have nodes that are both a source and a target at the same
+              // time, it may be necessary to mark a node as a seed if *any* link that has it
+              // as a source or a target has it marked as a seed.
+              seed: link.seedsource,
+              nodeClass: link.sourcetype,
+              aggregate: link.sourceaggregate,
+              count: link.sourcecount,
             });
-        this._nodes = _.values(nodesMap);
+        link.target = nodesMap[link.targetid] ||
+            (nodesMap[link.targetid] = {
+              name: link.targetname,
+              id: link.targetid,
+              aggregateLinks: [],
+              // TODO: Once we have nodes that are both a source and a target at the same
+              // time, it may be necessary to mark a node as a seed if *any* link that has it
+              // as a source or a target has it marked as a seed.
+              seed: link.seedtarget,
+              nodeClass: link.targettype,
+              aggregate: link.targetaggregate,
+              count: link.targetcount,
+            });
+        setNodeClassProperties(link.source, link.target, link);
+        // Set the display properties for the link and its source and target nodes.
+        //
+        // TODO: Since a single node will usually participate in multiple links, we will
+        // usually end up setting its display properties multiple times. Make certain that the
+        // display properties that it ends up having in the end don't depend on the order in
+        // which the links are processed.
+        //
+        // TODO: Move these display-related calls out of this method.
+        setDisplayPropertiesForLink(link);
+        setDisplayPropertiesForNode(link.source, link);
+        setDisplayPropertiesForNode(link.target, link);
+        if (link.subLinks != null) {
+          // Add a reference to the aggregate link to the aggregate node so that we can find
+          // the sub links when the user wants to expand it.
+          link[link.childType].aggregateLinks.push(link);
+          if (link[link.childType].aggregateLinks.length > 1) {
+            console.log("Error: node has more than 1 aggregate link! (Actual count is "
+                + link[link.childType].aggregateLinks.length + ")");
+          }
+        }
+      });
+  this._nodes = _.values(nodesMap);
 
-        this._nodes.forEach(
-            function(node) {
-              self._impl.setNode(node.id, node);
-            });
-        this._links.forEach(
-            function(link) {
-              self._impl.setEdge(link.sourceid, link.targetid, link,  self.getLinkTypeKey(link));
-            });
-      },
-  nodes:
+  // TODO: Allow callers to pass in an application specific version of this method.
+  this.getLinkTypeKey =
+      function(link) {
+        return link.linkClassProperties.directOrIndirect + ", "
+            + link.linkClassProperties.isAgainst;
+      };
+
+  var self = this;
+  this._nodes.forEach(
+      function(node) {
+        self._impl.setNode(node.id, node);
+      });
+  this._links.forEach(
+      function(link) {
+        self._impl.setEdge(link.sourceid, link.targetid, link,  self.getLinkTypeKey(link));
+      });
+
+  this.nodes =
       function() {
         return this._nodes;
-      },
-  links:
+      };
+  this.links =
       function() {
         return this._links;
-      },
-  getNode:
+      };
+  this.getNode =
       function(nodeId) {
         return this._impl.node(nodeId);
-      },
-  getLink:
+      };
+  this.getLink =
       function(sourceId, targetId, typeKey) {
         return this._impl.edge(sourceId, targetId, typeKey);
-      },
-  addNode:
+      };
+  this.addNode =
       function(node) {
         // TODO: Do some kind of validation on the node passed in.
         this._nodes.push(node);
         this._impl.setNode(node.id, node);
-      },
-  removeNode:
+      };
+  this.removeNode =
       // TODO: Modify this method to take in a node id instead of a node.
       function(node) {
         if (this._impl.nodeEdges(node.id).length > 0) {
@@ -363,35 +367,29 @@ var graph = {
           this._impl.removeNode(node.id);
           this.nodes().splice(i, 1);
         }
-      },
-  addLink:
+      };
+  this.addLink =
       function(link) {
         // TODO: Do some kind of validation on the node passed in.
         this._links.push(link);
         this._impl.setEdge(link.sourceid, link.targetid, link, this.getLinkTypeKey(link));
-      },
-  removeLink:
+      };
+  this.removeLink =
       // TODO: Consider modifying this method to take in a source id, target id, and link type key
       // instead of a link.
       function(link) {
-        var i = graph.links().indexOf(link);
+        var i = this.links().indexOf(link);
         if (i != -1) {
           this._impl.removeEdge(link.sourceid, link.targetid, this.getLinkTypeKey(link));
           this._links.splice(i, 1);
         }
-      },
-  // TODO: Try to find a way to get rid of this method.
-  getLinkTypeKey:
-      function(link) {
-        return link.linkClassProperties.directOrIndirect + ", "
-            + link.linkClassProperties.isAgainst;
-      },
+      };
 }
 
 // TODO: Define dedicated methods to manage node and link addition and removal, to ensure that all
 // relevant array and map data structures are kept in sync with one another.
 function showGraph(inputLinks, setNodeClassProperties) {
-  graph.init(inputLinks, setNodeClassProperties);
+  var graph = new ElidableGraph(inputLinks, setNodeClassProperties);
 
   var width = 1600,
       height = 1200;
@@ -671,7 +669,7 @@ function showGraph(inputLinks, setNodeClassProperties) {
     restart();
   }
 
-  // TODO: Try to remove business logic from this code and move it into db-shim.js.
+  // TODO: Try to remove business logic from this code and pull it out into a library.
   function expandAggregateLink(aggregateLink, setNodeClassProperties) {
     var subLinks = aggregateLink.subLinks;
     var childType = aggregateLink.childType,
