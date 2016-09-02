@@ -121,9 +121,8 @@ function setRowLinkProperties(link) {
   // suitable locations.
 }
 
-// TODO: Rename this method to something application specific and pass it into generic methods
-// in our db shim or other graph library.
-function setNodeClassProperties(source, target, link) {
+// TODO: Come up with a better name for this function.
+function setPoliticalNodeClassProperties(source, target, link) {
   // TODO: Maybe do something different here depending on the node types (e.g., "pac", "candidate").
   // TODO: Consider not counting refunds (negative amounts) against incoming and outgoing amount, as
   // they are highly dependent on timing and could make an important node seem unimportant.
@@ -255,7 +254,7 @@ function handleResponse(err, rows) {
 
   var links = processRows(rows, seedIds, setRowLinkProperties);
 
-  showGraph(links);
+  showGraph(links, setPoliticalNodeClassProperties);
 }
 
 // TODO: Turn this into an object prototype or something.
@@ -264,7 +263,7 @@ var graph = {
   _nodes: [],
   _links: {},
   init:
-      function(inputLinks) {
+      function(inputLinks, setNodeClassProperties) {
         var self = this;
         var nodesMap = [];
         this._links = inputLinks;
@@ -391,8 +390,8 @@ var graph = {
 
 // TODO: Define dedicated methods to manage node and link addition and removal, to ensure that all
 // relevant array and map data structures are kept in sync with one another.
-function showGraph(inputLinks) {
-  graph.init(inputLinks);
+function showGraph(inputLinks, setNodeClassProperties) {
+  graph.init(inputLinks, setNodeClassProperties);
 
   var width = 1600,
       height = 1200;
@@ -664,13 +663,16 @@ function showGraph(inputLinks) {
     console.log("Removing clicked node with id " + nodeId + " and name " + clickedNode.name);
     graph.removeNode(clickedNode);
 
-    clickedNode.aggregateLinks.forEach(expandAggregateLink);
+    clickedNode.aggregateLinks.forEach(
+        function (aggregateLink) {
+          expandAggregateLink(aggregateLink, setPoliticalNodeClassProperties);
+        });
 
     restart();
   }
 
   // TODO: Try to remove business logic from this code and move it into db-shim.js.
-  function expandAggregateLink(aggregateLink) {
+  function expandAggregateLink(aggregateLink, setNodeClassProperties) {
     var subLinks = aggregateLink.subLinks;
     var childType = aggregateLink.childType,
         childIdType = aggregateLink.childIdType,
