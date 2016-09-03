@@ -18,6 +18,7 @@ DROP TABLE IF EXISTS Committees;
 DROP TABLE IF EXISTS PACsToCandidates;
 DROP TABLE IF EXISTS PACsToPACs;
 DROP TABLE IF EXISTS IndivsToCandidateTotals;
+DROP TABLE IF EXISTS IndivsToCommitteeTotals;
 
 CREATE TABLE Categories (
     catcode TEXT,
