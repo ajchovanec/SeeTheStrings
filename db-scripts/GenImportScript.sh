@@ -6,7 +6,9 @@
 #
 # psql -d [database] -U [user] -f [file]
 
-echo "\copy Categories from ./CRP_Categories.txt delimiter E'\t'"
+SRC=../data/sanitized
+
+echo "\copy Categories from $SRC/CRP_Categories.txt delimiter E'\t'"
 
 echo "DROP TABLE IF EXISTS TempIndivsToAny;"
 
@@ -38,11 +40,11 @@ echo "CREATE TABLE TempIndivsToAny (\
 
 CYCLES=$@
 for CYCLE in $CYCLES; do
-  echo "\copy Candidates from ./cands$CYCLE.sanitized delimiter '|'"
-  echo "\copy Committees from ./cmtes$CYCLE.sanitized delimiter '|'"
-  echo "\copy PACsToCandidates from ./pacs$CYCLE.sanitized delimiter '|'"
-  echo "\copy PACsToPACs from ./pac_other$CYCLE.sanitized delimiter '|'"
-  echo "\copy TempIndivsToAny from ./indivs$CYCLE.sanitized delimiter '|'"
+  echo "\copy Candidates from $SRC/cands$CYCLE.sanitized delimiter '|'"
+  echo "\copy Committees from $SRC/cmtes$CYCLE.sanitized delimiter '|'"
+  echo "\copy PACsToCandidates from $SRC/pacs$CYCLE.sanitized delimiter '|'"
+  echo "\copy PACsToPACs from $SRC/pac_other$CYCLE.sanitized delimiter '|'"
+  echo "\copy TempIndivsToAny from $SRC/indivs$CYCLE.sanitized delimiter '|'"
   echo "INSERT INTO IndivsToCandidateTotals\
       SELECT DISTINCT\
           CYCLE,\
