@@ -11,6 +11,8 @@ CYCLES="08 10 12 14 16"
 ./GenImportScript.sh $CYCLES > ./ImportCSV.sql
 
 for CYCLE in $CYCLES; do
-  echo Preparing Campaign CSV files for cycle $CYCLE...
+  echo Preparing cycle $CYCLE Campaign CSV files for import...
   ./PrepCampaignCSV.sh $CYCLE
 done
+
+echo Done preparing CSV files for import.
