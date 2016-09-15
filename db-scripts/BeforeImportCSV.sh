@@ -1,5 +1,6 @@
 #/bin/bash
 
+# Rerun cleanup operations, in case some intermediate files are lingering.
 ./AfterImportCSV.sh
 
 mkdir ../data/sanitized
