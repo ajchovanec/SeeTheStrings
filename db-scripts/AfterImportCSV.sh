@@ -1,4 +1,4 @@
 #/bin/bash
 
-rm -rf ./ImportCSV.sql
+rm -f ./ImportCSV.sql
 rm -rf ../data/sanitized
